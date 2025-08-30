@@ -76,4 +76,23 @@ public class DefaultRoom
 
         return toReturn;
     }
+
+    public void ImprintAtArray(CubeWorld cubeWorld) // Комната должна использовать функцию ModifyValue для установки идентификаторов клетки
+    {
+        for (int x = 0; x < this.myRect.size.x; x++)
+        {
+            for (int y = 0; y < this.myRect.size.y; y++)
+            {
+                for (int z = 0; z < this.myRect.size.z; z++)
+                {
+                    if (x == 0 | x == this.myRect.size.x |
+                        y == 0 | y == this.myRect.size.y |
+                        z == 0 | z == this.myRect.size.z)
+                    {
+                        cubeWorld.ModifyValue(1, this.myRect.A.x + x, this.myRect.A.y + y, this.myRect.A.z + z);
+                    }
+                }
+            }
+        }
+    }
 }

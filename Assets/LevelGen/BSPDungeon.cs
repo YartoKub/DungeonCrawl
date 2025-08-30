@@ -20,8 +20,8 @@ public class BSPDungeon : MonoBehaviour
     public Material debugMaterial;
     public CubeWorld debugCubeworld;
 
-    List<DefaultRoom> BSPHierarchy;
-    List<DefaultRoom> actualRooms;
+    public List<DefaultRoom> BSPHierarchy;
+    public List<DefaultRoom> actualRooms;
 
     void Start()
     {
@@ -63,7 +63,7 @@ public class BSPDungeon : MonoBehaviour
 
         PickActualRooms();
 
-        Debug.Log("listing begun");
+        //Debug.Log("listing begun");
         foreach (DefaultRoom item in actualRooms)
         {
             if (debugDepthInt == -1) {

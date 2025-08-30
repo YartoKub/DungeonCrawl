@@ -71,10 +71,6 @@ public static class GeometryGeneration
         mesh.triangles = triangles;
         mesh.SetUVs(0, uvList);
 
-
-
-
-
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
 
