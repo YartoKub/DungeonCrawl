@@ -108,7 +108,7 @@ public static class BoundsMathHelper
 
     public static int Voluminosity(BoundsInt box) // ¬озвращает количество измерений не равных 0
     {
-        return box.size.x == 0 ? 0 : 1 + box.size.y == 0 ? 0 : 1 + box.size.z == 0 ? 0 : 1;
+        return ((box.size.x == 0) ? 0 : 1) + ((box.size.y == 0) ? 0 : 1) + ((box.size.z == 0) ? 0 : 1);
     }
     public static bool IsDot(BoundsInt box)
     {
@@ -269,12 +269,12 @@ public static class BoundsMathHelper
         if (checkPlane.y != 0)
         {
             splits[0].SetMinMax(bounds.min, new Vector3Int(bounds.xMax, valuePlane.y, bounds.zMax));
-            splits[1].SetMinMax(new Vector3Int(bounds.xMax, valuePlane.y, bounds.zMin), bounds.max);
+            splits[1].SetMinMax(new Vector3Int(bounds.xMin, valuePlane.y, bounds.zMin), bounds.max);
         }
         if (checkPlane.z != 0)
         {
             splits[0].SetMinMax(bounds.min, new Vector3Int(bounds.xMax, bounds.yMax, valuePlane.z));
-            splits[1].SetMinMax(new Vector3Int(bounds.xMax, bounds.yMin, valuePlane.z), bounds.max);
+            splits[1].SetMinMax(new Vector3Int(bounds.xMin, bounds.yMin, valuePlane.z), bounds.max);
         }
         return splits;
     }

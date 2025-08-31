@@ -6,6 +6,7 @@ public class ManualNavBoxPlacer : MonoBehaviour
     public Vector3Int size;
 
     public bool KillYourself;
+    public bool ShowYourself;
 
     private void Start()
     {
@@ -16,6 +17,6 @@ public class ManualNavBoxPlacer : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        BoundsMathHelper.DebugDrawBox(min, size);
+        if (ShowYourself) BoundsMathHelper.DebugDrawBox(min, size);
     }
 }

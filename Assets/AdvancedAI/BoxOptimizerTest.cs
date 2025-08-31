@@ -22,7 +22,7 @@ public class BoxOptimizerTest : MonoBehaviour
         startBoxes.Add(new NavBoxInt(A.min, A.min + A.size));
         startBoxes.Add(new NavBoxInt(B.min, B.min + B.size));
         //if (DrawStarterBoxes) foreach (NavBoxInt item in startBoxes) BoundsMathHelper.DebugDrawBox(item.A, item.size);
-        List<BoundsInt> newbounds =  BoxOptimizer.OptimizeIntersections(startBoxes[0], startBoxes[1]);
+        List<BoundsInt> newbounds =  BoxOptimizer.SequentialBoxOptimization(startBoxes[0], startBoxes[1]);
 
         Debug.Log(newbounds.Count);
         if (DrawStarterBoxes) foreach (BoundsInt item in newbounds) BoundsMathHelper.DebugDrawBox(item.min, item.size, Color.purple);

@@ -12,20 +12,23 @@ public static class BoxOptimizer
     public static List<NavBoxInt> DecideBoxSplit(NavBoxInt A, NavBoxInt B)
     {
         List<NavBoxInt> result = new List<NavBoxInt>();
-        Debug.Log("Not implemented");
+        //Debug.Log("Not implemented");
         return result;
     }
 
     // Поиск объемного пересечения между членами списка
     // Если возвращает валидное значение значит еще есть коробки которые можно оптимизировать
-    public static Vector2Int FindBoxIntersection(List<NavBoxInt> boxes)
+    public static Vector2Int FindBoxIntersection(List<BoundsInt> boxes)
     {
         Vector2Int result = new Vector2Int(-1, -1); // Пересечение id_I и id_J
-        for (int i = 0; i < boxes.Count; i++)
+        if (boxes.Count < 2) return result;
+        for (int i = 0; i < boxes.Count - 1; i++)
     {
-            for (int j = 0; j < boxes.Count; j++)
+            for (int j = i + 1; j < boxes.Count; j++)
             {
-                if (BoundsMathHelper.IsBox(BoundsMathHelper.Intersect( boxes[i].bounds, boxes[j].bounds)))
+                //Debug.Log(BoundsMathHelper.Intersects(boxes[i], boxes[j]).ToString() + " " + i + " " + j);
+                //Debug.Log(BoundsMathHelper.Intersect(boxes[i], boxes[j]).ToString() + " " + BoundsMathHelper.IsBox(BoundsMathHelper.Intersect(boxes[i], boxes[j])).ToString());
+                if (BoundsMathHelper.Intersects(boxes[i], boxes[j]) && BoundsMathHelper.IsBox(BoundsMathHelper.Intersect( boxes[i], boxes[j])))
                 {
                     return new Vector2Int(i, j);
                 }
@@ -36,43 +39,74 @@ public static class BoxOptimizer
 
     // Перед тем как вызывать функцию надо убедиться в том что пересечение есть
     // Полное поглощение одной коробки другой коробкой не является пересечением и приведет к некорректному результату
-    public static List<BoundsInt> OptimizeIntersections(NavBoxInt A, NavBoxInt B)
+
+    public static List<BoundsInt> SequentialBoxOptimization(NavBoxInt A, NavBoxInt B)
+    {
+        //Debug.Log("SEQUENTIAL OPTIMIZATION");
+        List<BoundsInt> boxes = new List<BoundsInt>() { A.bounds, B.bounds};
+        bool reason_to_continue = true;
+        int safety = 0;
+        while (safety < 50 && boxes.Count != 1 && reason_to_continue)
+        {
+            //string testtest = "";
+            //foreach (BoundsInt item in boxes)  testtest += item.ToString() + "\n"; 
+            //Debug.Log(testtest);
+
+            safety += 1;
+            Vector2Int next_pair = FindBoxIntersection(boxes);
+            //Debug.Log(next_pair);
+            if (next_pair == new Vector2Int(-1,-1)) return boxes;
+
+            BoundsInt locA = boxes[next_pair[0]];
+            BoundsInt locB = boxes[next_pair[1]];
+            boxes.RemoveAt(next_pair[0] > next_pair[1] ? next_pair[0] : next_pair[1]);
+            boxes.RemoveAt(next_pair[0] < next_pair[1] ? next_pair[0] : next_pair[1]);
+
+            boxes.AddRange(OptimizeIntersections(locA, locB));
+        }
+        return boxes;
+    }
+
+    // Берет две Коробки на вход
+    // Делит одну из коробок пополам, поитогу возвращает 3 коробки
+    // Иожет вернуть 1 коробку, в случае если одна коробка полностью поглотила другую
+    public static List<BoundsInt> OptimizeIntersections(BoundsInt A, BoundsInt B)
     {
         //BoundsInt union = A.ExpandToInclude(B.bounds);
-        BoundsInt intersect = A.Intersect(B.bounds);
-        Vector3Int[] bestCuttingPlane = GetBestAxis(intersect, A.bounds, B.bounds);
+        BoundsInt intersect = BoundsMathHelper.Intersect(A, B);
+        Vector3Int[] bestCuttingPlane = GetBestAxis(intersect, A, B);
 
         // Первое значение - идентификатор оси, второе минимальные или максимальные координаты
         List<BoundsInt> boundsList = new List<BoundsInt>();
 
-        BoundsMathHelper.DebugDrawBox(intersect.min, intersect.size, Color.red);
+        //BoundsMathHelper.DebugDrawBox(intersect.min, intersect.size, Color.red);
 
         if (bestCuttingPlane[0] == Vector3Int.zero) return boundsList; // очень экзотический случай, вероятно вызван тем что А и В имеют одинаковый размер
 
-        Debug.Log(intersect.min.ToString() + A.bounds.min.ToString() + B.bounds.min.ToString());
-        Debug.Log(intersect.size.ToString() + A.size.ToString() + B.size.ToString());
-        Debug.Log((intersect == A.bounds | intersect == B.bounds).ToString());
-        if (intersect == A.bounds | intersect == B.bounds)
+        //Debug.Log(intersect.min.ToString() + A.min.ToString() + B.min.ToString());
+        //Debug.Log(intersect.size.ToString() + A.size.ToString() + B.size.ToString());
+        //Debug.Log((intersect == A | intersect == B).ToString());
+        if (intersect == A | intersect == B)
         {
-            boundsList.Add(BoundsMathHelper.ExpandToInclude(A.bounds, B.bounds));
+            boundsList.Add(BoundsMathHelper.ExpandToInclude(A, B));
             return boundsList;
         }
 
 
-        if (BoundsMathHelper.CanGetCut(A.bounds, bestCuttingPlane[0], bestCuttingPlane[1]))
+        if (BoundsMathHelper.CanGetCut(A, bestCuttingPlane[0], bestCuttingPlane[1]))
         {
-            BoundsInt[] newBounds = BoundsMathHelper.GetCut(A.bounds, bestCuttingPlane[0], bestCuttingPlane[1]);
+            BoundsInt[] newBounds = BoundsMathHelper.GetCut(A, bestCuttingPlane[0], bestCuttingPlane[1]);
             boundsList.Add(newBounds[0]);
             boundsList.Add(newBounds[1]);
-            boundsList.Add(B.bounds);
+            boundsList.Add(B);
             return boundsList;
         } 
-        if (BoundsMathHelper.CanGetCut(B.bounds, bestCuttingPlane[0], bestCuttingPlane[1]))
+        if (BoundsMathHelper.CanGetCut(B, bestCuttingPlane[0], bestCuttingPlane[1]))
         {
-            BoundsInt[] newBounds = BoundsMathHelper.GetCut(B.bounds, bestCuttingPlane[0], bestCuttingPlane[1]);
+            BoundsInt[] newBounds = BoundsMathHelper.GetCut(B, bestCuttingPlane[0], bestCuttingPlane[1]);
             boundsList.Add(newBounds[0]);
             boundsList.Add(newBounds[1]);
-            boundsList.Add(A.bounds);
+            boundsList.Add(A);
             return boundsList;
         }
 
@@ -112,7 +146,7 @@ public static class BoxOptimizer
                 min = areas[i];
             }
         }
-        Debug.Log(testetst);
+        //Debug.Log(testetst);
 
         if (min_id == -1)
         {
