@@ -52,18 +52,7 @@ public struct Rect3D
 
     public Vector3[] Get_8_Corners()
     {
-        Vector3[] corners = new Vector3[8];
-        corners[0] = new Vector3(bounds.min.x, bounds.min.y, bounds.min.z);
-        corners[1] = new Vector3(bounds.min.x, bounds.min.y, bounds.max.z);
-        corners[2] = new Vector3(bounds.min.x, bounds.max.y, bounds.min.z);
-        corners[3] = new Vector3(bounds.min.x, bounds.max.y, bounds.max.z);
-
-        corners[4] = new Vector3(bounds.max.x, bounds.min.y, bounds.min.z);
-        corners[5] = new Vector3(bounds.max.x, bounds.min.y, bounds.max.z);
-        corners[6] = new Vector3(bounds.max.x, bounds.max.y, bounds.min.z);
-        corners[7] = new Vector3(bounds.max.x, bounds.max.y, bounds.max.z);
-
-        return corners;
+        return BoundsMathHelper.Get_8_Corners(this.bounds);
     }
 
     public int CalculateSurfaceArea()
