@@ -6,6 +6,9 @@ public struct NavBoxInt
     public int myId;
     public int myGraphID; // принадлежность к первому вложенному графу
 
+    //public int tilt;
+    //public int NavBoxType;
+
     public Vector3Int A { get { return bounds.min; } set { this.bounds.min = value; } }
     public Vector3Int B { get { return bounds.max; } set { this.bounds.max = value; } }
     public Vector3Int size { get { return bounds.size; }}

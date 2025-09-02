@@ -138,6 +138,32 @@ public static class Geo3D
         return (RayEnd - RayStart) * t + RayStart;
     }
 
+    public static Vector3 ProjectPointOnPlane(Vector3 point, Plane plane)
+    {
+        float distance = plane.GetDistanceToPoint(point);
+        Vector3 projectedPoint = point - plane.normal * distance;
+        return projectedPoint;
+    }
+
+    public static List<Vector3> ArrangeCounterClockwise(List<Vector3> points)
+    {
+        if (points == null || points.Count < 3) return new List<Vector3>(points); 
+        
+        Vector3 centroid = Vector3.zero;
+        for (int i = 0; i < points.Count; i++) centroid += points[i];
+        centroid = centroid / points.Count;
+
+        List<Vector3> sortedPoints = new List<Vector3>(points);
+
+        sortedPoints.Sort((a, b) => { // Волшебная лямбда функция, никогда бы не додумался.
+            float angleA = Mathf.Atan2(a.y - centroid.y, a.x - centroid.x);
+            float angleB = Mathf.Atan2(b.y - centroid.y, b.x - centroid.x);
+            return angleA.CompareTo(angleB); // Кажется возвращает -1, 0, 1 а зависимости от результата сравнения
+        });
+
+        return sortedPoints;
+    }
+
     /*
     public static bool BBoxCheck(BBox A, BBox B) {
         return  A.op0.x < B.op1.x && A.op1.x > B.op0.x &&
