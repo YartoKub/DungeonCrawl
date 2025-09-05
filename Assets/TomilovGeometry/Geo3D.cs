@@ -4,10 +4,9 @@ using UnityEngine;
 
 public static class Geo3D
 {
-    public static float epsilon = 0.0001f;
+    public const float epsilon = 0.0001f;
     public static bool PBelongs(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3,  Vector3 PQ) // point belongs to a sphere
-    {
-
+    {   // Этот кусочек взят из другого проекта, уже не помню зачем оно надо
         Debug.Log("UNIMPLEMENTED, retirning junk");
         return false;
     }
@@ -145,15 +144,16 @@ public static class Geo3D
         return projectedPoint;
     }
 
-    public static List<Vector3> ArrangeCounterClockwise(List<Vector3> points)
+    // Применимо только к случайным группам точек. Может создавать полигоны, не являющиеся выпуклыми
+    public static List<Vector2> ArrangeCounterClockwise(List<Vector2> points)
     {
-        if (points == null || points.Count < 3) return new List<Vector3>(points); 
+        if (points == null || points.Count < 3) return new List<Vector2>(points); 
         
-        Vector3 centroid = Vector3.zero;
+        Vector2 centroid = Vector2.zero;
         for (int i = 0; i < points.Count; i++) centroid += points[i];
         centroid = centroid / points.Count;
 
-        List<Vector3> sortedPoints = new List<Vector3>(points);
+        List<Vector2> sortedPoints = new List<Vector2>(points);
 
         sortedPoints.Sort((a, b) => { // Волшебная лямбда функция, никогда бы не додумался.
             float angleA = Mathf.Atan2(a.y - centroid.y, a.x - centroid.x);
@@ -162,6 +162,12 @@ public static class Geo3D
         });
 
         return sortedPoints;
+    }
+
+    public static bool PointSimilarity(Vector2 A, Vector2 B, float epsilon)
+    { // если разница в обоих координатах меньше эпсилон, то это одна и та же точка
+        //Debug.Log(A.ToString() + "  " + B.ToString());
+        return (Mathf.Abs(A.x - B.x) < epsilon) & (Mathf.Abs(A.y - B.y) < epsilon);
     }
 
     /*

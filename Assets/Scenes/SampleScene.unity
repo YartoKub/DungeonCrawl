@@ -279,6 +279,65 @@ MonoBehaviour:
   size: {x: 1, y: 1, z: 3}
   KillYourself: 0
   ShowYourself: 0
+--- !u!1 &428874411
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 428874412}
+  - component: {fileID: 428874413}
+  m_Layer: 0
+  m_Name: PolygonMergeTest
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &428874412
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428874411}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.46291, y: 0.03447, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &428874413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428874411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 869cdfb673700404ba778fda8002e271, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PolygonMerge
+  polygonA:
+  - {x: 2, y: 5}
+  - {x: 6, y: 5}
+  - {x: 4, y: 1}
+  polygonAoffset: {x: 0, y: 0}
+  polygonB:
+  - {x: 2, y: 3}
+  - {x: 6, y: 3}
+  - {x: 4, y: -1}
+  polygonBoffset: {x: 0, y: 0}
+  polygonAM: []
+  polygonBM: []
+  showA: 0
+  showB: 1
+  showIntersections: 1
 --- !u!1 &529748024
 GameObject:
   m_ObjectHideFlags: 0
@@ -807,7 +866,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &929867484
 Transform:
   m_ObjectHideFlags: 0
@@ -839,13 +898,13 @@ MonoBehaviour:
   - {x: 1, y: 2, z: 3}
   - {x: -2, y: -2, z: 1}
   - {x: -2, y: 1, z: -2}
-  - {x: 4, y: 1, z: -2}
+  - {x: 4, y: 1, z: -0.11}
   myPoints2:
   - {x: 0, y: 3, z: 1}
   - {x: 1, y: 1, z: -2}
   - {x: -3, y: 2, z: 3}
   planePos: {x: 0, y: 1, z: 0}
-  planeNormal: {x: -0.13, y: 1, z: 0.16}
+  planeNormal: {x: 0, y: 1, z: 0}
   flatPoints: []
   allignedPoints: []
   restoredPoints: []
@@ -1457,6 +1516,70 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 5.776166, y: 1, z: 1}
   m_Center: {x: -2.388083, y: 0, z: 0}
+--- !u!1 &1634279667
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1634279669}
+  - component: {fileID: 1634279668}
+  m_Layer: 0
+  m_Name: PolygonMergeTestComplex
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1634279668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634279667}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 869cdfb673700404ba778fda8002e271, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PolygonMerge
+  polygonA:
+  - {x: 2, y: 5}
+  - {x: 6, y: 5}
+  - {x: 4, y: 1}
+  polygonAoffset: {x: 0, y: 0}
+  polygonB:
+  - {x: 5, y: 4}
+  - {x: 7, y: 4}
+  - {x: 4, y: -1}
+  - {x: 1, y: 1}
+  - {x: 3, y: 2}
+  - {x: 5, y: 2}
+  - {x: 4, y: 3}
+  - {x: 6, y: 3}
+  polygonBoffset: {x: 0, y: 0}
+  polygonAM: []
+  polygonBM: []
+  showA: 0
+  showB: 0
+  showIntersections: 1
+--- !u!4 &1634279669
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634279667}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.46291, y: 0.03447, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1748197560
 GameObject:
   m_ObjectHideFlags: 0
@@ -1821,3 +1944,5 @@ SceneRoots:
   - {fileID: 1148914382}
   - {fileID: 713682795}
   - {fileID: 929867484}
+  - {fileID: 428874412}
+  - {fileID: 1634279669}

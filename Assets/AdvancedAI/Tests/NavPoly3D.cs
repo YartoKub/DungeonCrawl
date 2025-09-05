@@ -9,12 +9,12 @@ public class NavPoly3D : MonoBehaviour
     public Vector3 planeNormal;
 
     public List<Vector3> flatPoints = new List<Vector3>();
-    public List<Vector3> allignedPoints = new List<Vector3>();
+    public List<Vector2> allignedPoints = new List<Vector2>();
     public List<Vector3> restoredPoints = new List<Vector3>();
 
     
     public List<Vector3> flatPoints2 = new List<Vector3>();
-    public List<Vector3> allignedPoints2 = new List<Vector3>();
+    public List<Vector2> allignedPoints2 = new List<Vector2>();
     // Этот код тестирует функцию ориентации плоскости с точками относительно иси XY,
     // что эквивалентно лишению группы точек их Z координаты без нарушения их относительной позиции друг от друга
     // Желтый - изначальное положение точки
@@ -75,7 +75,13 @@ public class NavPoly3D : MonoBehaviour
             DebugUtilities.DebugDrawLine(allignedPoints2[i], allignedPoints2[(i + 1) % allignedPoints2.Count], Color.purple);
         }
 
+        List<Vector2> intersections = Poly2DToolbox.MergePolygons(allignedPoints, allignedPoints2);
 
+        Debug.Log(intersections.Count);
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            DebugUtilities.DebugDrawCross(intersections[i], Color.yellow);
+        }
 
 
 
@@ -129,7 +135,7 @@ public class NavPoly3D : MonoBehaviour
         for (int i = 0; i < myPoints.Count; i++)
         {
             DebugUtilities.DebugUltraHedgehog(restoredPoints[i] + new Vector3(0, 0, 0.2f), Color.purple);
-            DebugUtilities.DebugUltraLine(allignedPoints[i] + new Vector3(0, 0, 0.2f), restoredPoints[i] + new Vector3(0, 0, 0.2f), Color.purple);
+            DebugUtilities.DebugUltraLine(allignedPoints[i], restoredPoints[i] + new Vector3(0, 0, 0.2f), Color.purple);
         }
     }
 
