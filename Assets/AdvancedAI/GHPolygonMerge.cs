@@ -16,10 +16,6 @@ public static class GHPolygonMerge
             this.boolInside = inside;
         }
     }
-    // Greiner Hoffman - очень сложный алгоритм, просто бессмысленно сложный.
-    // Самое неприятное то, что он сохраняет дырки и отдельные треугольники. 
-    // I.E. в одном объекте полигона мне ридется хранить несколько петель для внешних и внутренних границ.
-    // Вместо этого я лучше триагрулирую свои полигоны на выпуклые и каждый с каждым порежу. 
 
     // Ainside/Binside - what side to keep, the one outside other polygon, or one isnide
     // True/True --- intersection
@@ -29,143 +25,312 @@ public static class GHPolygonMerge
     // Это односторонний грейнер хофф. Делится только один треугольник, и только одна часть его сторон возвращается
     // Думаю можно сделать одновременную проверку AB и BA, но это кажется сложным, ведь придется иногда делать шаги назад или вперед.
     // Еще читаемость кода упадет, а я не выдержу макароны распутывать
-    private static List<GH_Intersection> SingleGreinerHoffmann(List<Vector2> A, List<Vector2> B, bool Ainside, float local_epsilon = Geo3D.epsilon)
-    { // Each has to subdivide each. Обновление списка происходит при пересечении
-        List<GH_Intersection> AB_intersections = new List<GH_Intersection>();
-
-        // Список меток, отмечает какая точка является пересечением
-        List<bool> isIntersection = new List<bool>(A.Count);
-        for (int i = 0; i < A.Count; i++) isIntersection.Add(false);
-
-        // Полигон B режет А. Внутри А появляются новые точки-пересечения.
-        int safety = 0; int safety_limit = 125; // Мне не нравится когда зависает юнити
-        for (int a1 = 0; a1 < A.Count; a1++)
-        {
-            safety += 1; if (safety > safety_limit) break;
-
-            int a2 = (a1 + 1) % A.Count;
-            for (int b1 = 0; b1 < B.Count; b1++)
-            {
-                safety += 1; if (safety > safety_limit) break;
-
-                int b2 = (b1 + 1) % B.Count;
-                Vector2 intersection;  // дистанция не нужна в этом 
-                bool doesIntersect = Poly2DToolbox.LineLineIntersection(A[a1], A[a2], B[b1], B[b2], out intersection);
-
-                // Прежде чем добавить точку она сравнивается со следующей и предыдущей, чтобы избежать дубликатов.
-                local_epsilon = 0.01f; // TODO: удалить эту штуку, сейчас мне нужно не спамить точками
-                if (doesIntersect) Debug.LogFormat("{0}, {1}, {2}", A[a1], intersection, A[a2]);
-                if (doesIntersect && !Geo3D.PointSimilarity(A[a1], intersection, local_epsilon) && !Geo3D.PointSimilarity(A[a2], intersection, local_epsilon))
-                {
-                    Debug.Log("insertion phase");
-                    A.Insert(a1 + 1, intersection);
-                    isIntersection.Insert(a1 + 1, true);
-
-                    a1 = a1 - 1;// Программа делает шаг назад и заново начинает проверки
-                    break; // Т.К. Произошло разделение грани a1a2 на a1X / Xa2. Каждая из этих граней может иметь свои пересечения с полигоном B 
-                }
-            }
-        }
-        bool isInside = Poly2DToolbox.IsPointInsidePolygon(A[0], B);
-        if (isInside) DebugUtilities.DebugDrawCross(A[0], Color.red);
-        else DebugUtilities.DebugDrawCross(A[0], Color.blue);
-
-        // MARKING every point as inside outside depending on starting point and intersection coujnt
-        bool[] insideOutsideList = new bool[A.Count];
-
-        for (int i = 0; i < A.Count; i++)
-        {
-            if (isIntersection[i]) { isInside = !isInside; }
-            insideOutsideList[i] = isInside;
-        }
-
-        int first_difference = -1; // В этой переменной хранится первая разница на позиции I/I+1
-        for (int i = 0; i < insideOutsideList.Length; i++)
-        {
-            int j = (i + 1) % insideOutsideList.Length;
-            if (insideOutsideList[i] != insideOutsideList[j])
-            {
-                first_difference = i;
-                break;
-            }
-        }
-        if (first_difference == -1) { Debug.Log("No separations failure"); return new List<GH_Intersection>(); } // No separations
-
-
-        // A1 и A2 compared, if they differ - new fragment, if they are same - append point to previous fragment
-        for (int a = 0; a < A.Count; a++)
-        {   //AB_intersections
-            int a1 = (a + first_difference) % A.Count;
-            int a2 = (a1 + 1) % A.Count; // A2 главнее чем A1, так как проверка производится именно на ней
-            Debug.Log(a1.ToString() + " " + a2.ToString());
-            if (insideOutsideList[a2] != Ainside)
-            {   // Если A2 не равна входной переменной, то такая точка нам не интересна
-                if (insideOutsideList[a1] != Ainside)
-                { // Если ни одна точка не является входной переменной то скип
-                    continue;
-                }
-                if (AB_intersections.Count != 0)
-                {
-                    AB_intersections[AB_intersections.Count - 1].followingPointsIDs.Add(a1);
-
-                }
-            }
-
-            else
-            {
-                // insideOutsideList[a2] = Ainside // Тут гарантированное равенство
-                if (insideOutsideList[a1] != Ainside) // Если неравно значит два значения разнятся. Надо создать новое пересечение
-                {
-                    Debug.Log("Adding new intersectino");
-                    AB_intersections.Add(new GH_Intersection(A[a2], new List<int>(), Ainside));
-                    continue;
-                }
-                Debug.Log("Adding new point to intersection");
-                AB_intersections[AB_intersections.Count - 1].followingPointsIDs.Add(a2);
-            }
-        }
-
-        //string boolstring = "IsIntersection: ";
-        //foreach (bool item in isIntersection) { boolstring += item + " "; }
-        //Debug.Log(boolstring);
-
-        string boolstring = "Inside/Outside: ";
-        foreach (bool item in insideOutsideList) { boolstring += item + " "; }
-        Debug.Log(boolstring);
-
-        foreach (GH_Intersection intersection in AB_intersections)
-        {
-            string interstring = "Intersection " + intersection.intersectionPointID + " ";
-            foreach (int item in intersection.followingPointsIDs)
-            {
-                interstring += item + " ";
-            }
-            Debug.Log(interstring);
-        }
-
-
-
-        Debug.Log(A.Count);
-        Debug.Log(safety);
-
-        return AB_intersections;
-    }
 
     public static List<Vector2> CompleteGH(List<Vector2> A, List<Vector2> B, bool Ainside, bool Binside, float local_epsilon = Geo3D.epsilon)
     {
-        List<GH_Intersection> AB = SingleGreinerHoffmann(A, B, Ainside, local_epsilon);
-        List<GH_Intersection> BA = SingleGreinerHoffmann(B, A, Binside, local_epsilon);
+        //List<GH_Intersection> AB = SingleGreinerHoffmann(A, B, Ainside, local_epsilon);
+        //List<GH_Intersection> BA = SingleGreinerHoffmann(B, A, Binside, local_epsilon);
+        // Разделение полигонов. Они связаны пересечениямм
+        SubdividePolygons(A, B, local_epsilon, out List<Pair> intersections);
 
-        List<Vector2> combinedPolygon = new List<Vector2>();
+        int[] Ainter = new int[A.Count]; // default value - 0
+        int[] Binter = new int[B.Count]; // default value - 0
+        for (int i = 0; i < Ainter.Length; i++) Ainter[i] = -2;
+        for (int i = 0; i < Binter.Length; i++) Binter[i] = -2;
 
-        Debug.Log(AB.Count);
-        Debug.Log(BA.Count);
-
-        for (int i = 0; i < AB.Count; i++)
+        // -1 - true; // -2 - false
+        for (int i = 0; i < intersections.Count; i++)
         {
-
+            Ainter[intersections[i].A] = intersections[i].B;
+            Binter[intersections[i].B] = intersections[i].A;
         }
 
-        return combinedPolygon;
+        bool B0Inside = Poly2DToolbox.IsPointInsidePolygon(B[0], A);
+        bool A0Inside = Poly2DToolbox.IsPointInsidePolygon(A[0], B);
+
+        for (int i = 0; i < Ainter.Length; i++)
+        {
+            if (Ainter[i] >= 0) { A0Inside = !A0Inside; continue; }
+            Ainter[i] = (Ainside == A0Inside) ? -1 : -2;
+        }
+        for (int i = 0; i < Binter.Length; i++)
+        {
+            if (Binter[i] >= 0) { B0Inside = !B0Inside; continue; }
+            Binter[i] = (Binside == B0Inside) ? -1 : -2;
+        }
+
+        // Marking intersections as exiting and entering polygon A
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            intersections[i] = new Pair(intersections[i].A, intersections[i].B, A0Inside == (i % 2 == 0));
+        }
+        string intersectionCount = "InterCOunt " + intersections.Count.ToString() + "\n";
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            Pair p = intersections[i];
+            intersectionCount += "(" + p.A + " " + p.B + " " + p.doesExit + ") " + A[p.A] + "\n";
+        }
+        Debug.Log(intersectionCount);
+
+        // Picking Loops:
+        string Asting = "";
+        for (int i = 0; i < Ainter.Length; i++) { Asting += Ainter[i].ToString() + " "; }
+        Debug.Log(Asting);
+
+        string Bsting = "";
+        for (int i = 0; i < Binter.Length; i++) { Bsting += Binter[i].ToString() + " "; }
+        Debug.Log(Bsting);
+
+        List<Vector2> toReturn = IsolateLoop(A, B, Ainter, Binter, intersections, Ainside, Binside);
+
+
+        Asting = "";
+        for (int i = 0; i < Ainter.Length; i++) { Asting += Ainter[i].ToString() + " "; }
+        Debug.Log(Asting);
+
+        Bsting = "";
+        for (int i = 0; i < Binter.Length; i++) { Bsting += Binter[i].ToString() + " "; }
+        Debug.Log(Bsting);
+
+        return toReturn;
+    }
+
+
+    // Pairs that are a part of a loop are popped
+    private static List<Vector2> IsolateLoop(List<Vector2> A, List<Vector2> B, int[] Ainter, int[] Binter, List<Pair> pairs, bool Adir, bool Bdir)
+    {
+        // false - по часовой / true - против часовой
+        // Снаружи - против часовой / Внутри - по часовой
+        Debug.Log("ISOLATE LOOP " + pairs[0].A);
+        if (Ainter[pairs[0].A] == -2)
+        {// если текущий выброшен значит здесь уже прошелся алгоритм
+            pairs.RemoveAt(0);
+            return new List<Vector2>(0);
+        }
+
+        int startPoint = pairs[0].A; bool startAorB = false;
+        if (!pairs[0].doesExit) // If A enters B, then start at B
+        {
+            startPoint = pairs[0].B; startAorB = true;
+        }
+
+        int curntPoint = startPoint; bool curntAorB = startAorB;
+        int next_Point = curntPoint; bool needToJump = false;
+        int safety = 0; bool isDone = false;
+
+        List<Vector2> newLoop = new List<Vector2>();
+
+        int Adiff = Adir ? -1 : 1;
+        int Bdiff = Bdir ? -1 : 1;
+
+        int[] currentLinkArray;
+        List<Vector2> currentList;
+        int current_step;
+        while (safety < 250 && !isDone)
+        {
+            safety += 1;
+
+            curntPoint = next_Point;
+            if (curntAorB)
+            {
+                currentLinkArray = Binter;
+                currentList = B;
+                current_step = Bdiff;
+            }
+            else
+            {
+                currentLinkArray = Ainter;
+                currentList = A;
+                current_step = Adiff;
+            }
+            switch (currentLinkArray[curntPoint])
+            {
+                case -2:
+                    isDone = true;
+                    break;
+                case -1:
+                    Debug.Log(curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                    newLoop.Add(currentList[curntPoint]);
+                    currentLinkArray[curntPoint] = -2;
+                    next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
+                    break;
+                default:
+                    if (needToJump)
+                    {
+                        next_Point = currentLinkArray[curntPoint];
+                        Debug.Log("Jump B" + curntPoint + " -> A" + next_Point + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                        curntAorB = false;
+                        currentLinkArray[curntPoint] = -2;
+                        needToJump = false;
+                        continue;
+                    }
+                    Debug.Log(curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                    newLoop.Add(currentList[curntPoint]);
+                    currentLinkArray[curntPoint] = -2;
+                    next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
+                    needToJump = true;
+                    break;
+            }
+        }
+        return newLoop;
+    }
+
+    private static int wrapAround(int curr, int diff, int max)
+    {
+        return (curr + diff + max) % max;
+    }
+
+    public struct Pair
+    {
+        public int A; public int B; public bool doesExit;
+        public Pair(int A, int B, bool doesExit)
+        {
+            this.A = A; this.B = B; this.doesExit = doesExit;
+        }
+
+    }
+
+    private static void SubdividePolygons(List<Vector2> A, List<Vector2> B, float local_epsilon, out List<Pair> intersections)
+    {
+        int safety = 0; int safety_limit = 500; // Мне не нравится когда зависает юнити
+        for (int a1 = 0; a1 < A.Count; a1++)
+        { safety += 1; if (safety > safety_limit) break;
+            int a2 = (a1 + 1) % A.Count;
+            for (int b1 = 0; b1 < B.Count; b1++)
+            { safety += 1; if (safety > safety_limit) break;
+                int b2 = (b1 + 1) % B.Count;
+
+                Vector2 intersection;
+                bool doesIntersect = Poly2DToolbox.LineLineIntersection(A[a1], A[a2], B[b1], B[b2], out intersection);
+
+                // Прежде чем добавить точку она сравнивается со следующей и предыдущей, чтобы избежать дубликатов.
+                //if (doesIntersect) Debug.LogFormat("{0}, A{1}, A{2}, B{3}, B{4}", intersection, A[a1], A[a2], B[b1], B[b2]);
+                if (!doesIntersect) continue;
+                if (Poly2DToolbox.PointSimilarity(A[a1], intersection, local_epsilon)) continue;
+                if (Poly2DToolbox.PointSimilarity(A[a2], intersection, local_epsilon)) continue;
+                if (Poly2DToolbox.PointSimilarity(B[b1], intersection, local_epsilon)) continue;
+                if (Poly2DToolbox.PointSimilarity(B[b2], intersection, local_epsilon)) continue;
+
+                Debug.Log("insertion phase");
+                A.Insert(a1 + 1, intersection);
+                B.Insert(b1 + 1, intersection);
+
+
+                a1 = a1 - 1;// Программа делает шаг назад и заново начинает проверки
+                break; // Т.К. Произошло разделение грани a1a2 на a1X / Xa2. Каждая из этих граней может иметь свои пересечения с полигоном B 
+                
+            }
+        }
+        intersections = new List<Pair>();
+
+        for (int a = 0; a < A.Count; a++)
+        {
+            for (int b = 0; b < B.Count; b++)
+            { // Поиск одинаковых точек в двух полигонах
+                //Debug.Log(A[a].ToString() + " " + B[b].ToString());
+                if (Poly2DToolbox.PointSimilarity(A[a], B[b], local_epsilon)) 
+                {
+                    intersections.Add(new Pair(a, b, false));
+                }
+            }
+        }
     }
 }
+
+/* LEGACY ISOLATE LOOP
+    private static List<Vector2> IsolateLoop(List<Vector2> A, List<Vector2> B, int[] Ainter, int[] Binter, List<Pair> pairs, bool Adir, bool Bdir)
+    {
+        // false - по часовой / true - против часовой
+        // Снаружи - против часовой / Внутри - по часовой
+        Debug.Log("ISOLATE LOOP " + pairs[0].A);
+        if (Ainter[pairs[0].A] == -2)
+        {// если текущий выброшен значит здесь уже прошелся алгоритм
+            pairs.RemoveAt(0);
+            return new List<Vector2>(0);
+        }
+
+        int startPoint = pairs[0].A; bool startAorB = false;
+        if (!pairs[0].doesExit) // If A enters B, then start at B
+        {
+            startPoint = pairs[0].B; startAorB = true;
+        }
+
+        int curntPoint = startPoint; bool curntAorB = startAorB;
+        int next_Point = curntPoint; bool needToJump = false;
+        int safety = 0; bool isDone = false;
+
+        List<Vector2> newLoop = new List<Vector2>();
+
+        int Adiff = Adir ? -1 : 1;
+        int Bdiff = Bdir ? -1 : 1;
+        
+        while (safety < 50 && !isDone)
+        {   safety += 1;
+
+            curntPoint = next_Point;
+            if (curntAorB)
+            {   // BBBBBBBBBBBBBB
+                switch (Binter[curntPoint])
+                {
+                    case -2:
+                        isDone = true;
+                        break;
+                    case -1:
+                        Debug.Log(curntPoint.ToString() + " (" + Binter[curntPoint].ToString() + " -> -2)");
+                        newLoop.Add(B[curntPoint]);
+                        Binter[curntPoint] = -2;
+                        next_Point = wrapAround(curntPoint, Bdiff, Binter.Length);
+                        break;
+                    default:
+                        if (needToJump)
+                        {
+                            next_Point = Binter[curntPoint];
+                            Debug.Log("Jump B" + curntPoint + " -> A" + next_Point + " (" + Binter[curntPoint].ToString() + " -> -2)");
+                            curntAorB = false;
+                            Binter[curntPoint] = -2;
+                            needToJump = false;
+                            continue;
+                        }
+                        Debug.Log(curntPoint.ToString() + " (" + Binter[curntPoint].ToString() + " -> -2)");
+                        newLoop.Add(B[curntPoint]);
+                        Binter[curntPoint] = -2;
+                        next_Point = wrapAround(curntPoint, Bdiff, Binter.Length);
+                        needToJump = true;
+                        break;
+                }
+            } 
+            else
+            {   // AAAAAAAAAAAAAA
+                switch (Ainter[curntPoint])
+                {
+                    case -2:
+                        isDone = true;
+                        break;
+                    case -1:
+                        Debug.Log(curntPoint.ToString() + " (" + Ainter[curntPoint].ToString() + " -> -2)");
+                        newLoop.Add(A[curntPoint]);
+                        Ainter[curntPoint] = -2;
+                        next_Point = wrapAround(curntPoint, Adiff, Ainter.Length);
+                        break;
+                    default:
+                        if (needToJump)
+                        {
+                            next_Point = Ainter[curntPoint];
+                            Debug.Log("Jump A" + curntPoint + " -> B" + next_Point + " (" + Ainter[curntPoint].ToString() + " -> -2)");
+                            curntAorB = true;
+                            Ainter[curntPoint] = - 2;
+                            needToJump = false;
+                            continue;
+                        }
+                        Debug.Log(curntPoint.ToString() + " (" + Ainter[curntPoint].ToString() + " -> -2)");
+                        newLoop.Add(A[curntPoint]);
+                        Ainter[curntPoint] = -2;
+                        next_Point = wrapAround(curntPoint, Adiff, Ainter.Length);
+                        needToJump = true;
+                        break;
+                }
+            }
+        }
+        return newLoop;
+    }
+ */

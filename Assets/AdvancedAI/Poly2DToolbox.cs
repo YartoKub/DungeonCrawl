@@ -11,12 +11,12 @@ public class Poly2DToolbox
 
     }
 
-    // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки.
-    // Ок, я решил забыть о своемалгоритме. Изначальная задумка похожа на Greiner–Hormann алгоритм, реализую его.
+    // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки. 
+    // Оба полигона должны быть выпуклыми
     public static List<Vector2> MergePolygons(List<Vector2> A, List<Vector2> B)
     {
         Debug.Log("NOT IMPLEEMNTED");
-        List<Intersection> intersections = new List<Intersection>();
+        //List<Intersection> intersections = new List<Intersection>();
         List<Vector2> result = new List<Vector2>();
         // N^2, не нравится мне это, но мне пока лень упрощать проверку
         // Как вариант можно рассчитать BBox для аолигона А и B 
@@ -31,22 +31,11 @@ public class Poly2DToolbox
                 bool did_intersect = LineLineIntersection(A[a1], A[a2], B[b1], B[b2], out intersection_point, out distance);
                 //Debug.LogFormat("{0} {1} {2} {3} {4}", a1, a2, b1, b2, did_intersect);
                 if (did_intersect) {
-                    intersections.Add(new Intersection(a1, a2, b1, b2, intersection_point, distance));
+                    //intersections.Add(new Intersection(a1, a2, b1, b2, intersection_point, distance));
                     result.Add(intersection_point);
                 }
             }
         }
-
-        if (intersections.Count == 0)
-        {
-            // Тут нет пересечений, либо полигоны уделены друг от друга либо же один сидит внутри дргуого
-            // Тут нужно проверить с какой стороны относительно грани A расположена произвольная точка B:
-            // Если снаружи значит они раздельны, если внутри то полигон можно поглотить или удалить, нет разницы
-            Debug.Log("нет пересечений!");
-            return result;
-        }
-
-
 
         return result;
     }
@@ -79,30 +68,6 @@ public class Poly2DToolbox
         if (A.y <= targetPoint.y & B.y <= targetPoint.y) return false; // Если обе точки ниже цели, значит луч выше отрезка
         return true;
     }
-
-
-    private struct Intersection
-    { // AB x CD пересечение линий
-        int A1;
-        int A2;
-        int B1;
-        int B2;
-        Vector2 point;
-        float distanceFromPointA;
-
-        public Intersection(int A1, int A2, int B1, int B2, Vector2 point, float distance)
-        {
-            this.A1 = A1;
-            this.A2 = A2;
-            this.B1 = B1;
-            this.B2 = B2;
-            this.point = point;
-            this.distanceFromPointA = distance;
-        }
-    }
-
-
-
 
     public static bool AreCrossing(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out Vector2 crossing)
     {
@@ -173,7 +138,11 @@ public class Poly2DToolbox
         return LineLineIntersection(A, B, C, D, out interPoint, out Dummy);
     }
 
-
+    public static bool PointSimilarity(Vector2 A, Vector2 B, float epsilon)
+    { // если разница в обоих координатах меньше эпсилон, то это одна и та же точка
+        //Debug.Log(A.ToString() + "  " + B.ToString());
+        return (Mathf.Abs(A.x - B.x) < epsilon) & (Mathf.Abs(A.y - B.y) < epsilon);
+    }
 
 }
 

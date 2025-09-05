@@ -324,18 +324,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PolygonMerge
   polygonA:
-  - {x: 2, y: 5}
   - {x: 6, y: 5}
+  - {x: 2, y: 5}
   - {x: 4, y: 1}
   polygonAoffset: {x: 0, y: 0}
   polygonB:
-  - {x: 2, y: 3}
   - {x: 6, y: 3}
+  - {x: 2, y: 3}
   - {x: 4, y: -1}
   polygonBoffset: {x: 0, y: 0}
+  Abool: 1
+  Bbool: 1
   polygonAM: []
   polygonBM: []
-  showA: 0
+  showA: 1
   showB: 1
   showIntersections: 1
 --- !u!1 &529748024
@@ -1560,11 +1562,13 @@ MonoBehaviour:
   - {x: 4, y: 3}
   - {x: 6, y: 3}
   polygonBoffset: {x: 0, y: 0}
+  Abool: 0
+  Bbool: 0
   polygonAM: []
   polygonBM: []
-  showA: 0
-  showB: 0
-  showIntersections: 1
+  showA: 1
+  showB: 1
+  showIntersections: 0
 --- !u!4 &1634279669
 Transform:
   m_ObjectHideFlags: 0

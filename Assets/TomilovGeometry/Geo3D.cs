@@ -164,11 +164,7 @@ public static class Geo3D
         return sortedPoints;
     }
 
-    public static bool PointSimilarity(Vector2 A, Vector2 B, float epsilon)
-    { // если разница в обоих координатах меньше эпсилон, то это одна и та же точка
-        //Debug.Log(A.ToString() + "  " + B.ToString());
-        return (Mathf.Abs(A.x - B.x) < epsilon) & (Mathf.Abs(A.y - B.y) < epsilon);
-    }
+
 
     /*
     public static bool BBoxCheck(BBox A, BBox B) {
