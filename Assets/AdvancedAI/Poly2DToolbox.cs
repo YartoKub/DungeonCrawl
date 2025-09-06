@@ -145,18 +145,38 @@ public class Poly2DToolbox
         float area = 0;
         for (int i = 0; i < points.Count; i++)
         {
-            int j = (i + 1) & points.Count;
+            int j = (i + 1) % points.Count;
             area += points[i].x * points[j].y - points[i].y * points[j].x;
 
         }
         return area / 2.0f;
     }
-
-    public static bool DoesPolygonContainOther(Poly2D A, Poly2D B)
+    // Does A belong to B?
+    // 1 B inside A / 0 even level / -1 A inside B
+    // If polygons are a result of Greiner-Hoffmann's algorithm, then they are almost guaranteed to have no intersections
+    // There are so degenerate cases, mostly when a point A belongs to an edge B.
+    public static int DoesPolygonContainOther(Poly2D A, Poly2D B)
     {
+        if (!A.BBox.Intersects(B.BBox)) { return 0; }// Они раздельны
+        bool is_B_Inside = IsPointInsidePolygon(B.vertices[0], A.vertices);
+        bool is_A_Inside = IsPointInsidePolygon(A.vertices[0], B.vertices);
 
-        Debug.Log("Not iimplemented");
-        return false;
+        //Debug.Log(is_B_Inside.ToString() + " " + is_A_Inside.ToString());
+
+        if (is_B_Inside)
+        {
+            return 1;
+        }
+        if (is_A_Inside)
+        {
+            return -1;
+        }
+
+        return 0;
+    }
+    public static bool DoesPolygonContainOtherBool(Poly2D A, Poly2D B)
+    {
+        return (DoesPolygonContainOther(A, B) == 1);
     }
 
 }

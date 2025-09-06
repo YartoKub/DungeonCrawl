@@ -134,20 +134,20 @@ public static class GHPolygonMerge
             safety += 1;
 
             curntPoint = next_Point;
-            string debugString = "";
+            //string debugString = "";
             if (curntAorB)
             {
                 currentLinkArray = Binter;
                 currentList = B;
                 current_step = Bdiff;
-                debugString += "B " + Bdiff.ToString() + " ";
+                //debugString += "B " + Bdiff.ToString() + " ";
             }
             else
             {
                 currentLinkArray = Ainter;
                 currentList = A;
                 current_step = Adiff;
-                debugString += "A " + Adiff.ToString() + " ";
+                //debugString += "A " + Adiff.ToString() + " ";
             }
 
             switch (currentLinkArray[curntPoint])

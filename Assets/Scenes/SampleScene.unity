@@ -226,7 +226,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 7.58, y: -0.22, z: 7.45}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 5, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1168,6 +1168,81 @@ MonoBehaviour:
   size: {x: 7, y: 1, z: 1}
   KillYourself: 0
   ShowYourself: 0
+--- !u!1 &1075517776
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1075517778}
+  - component: {fileID: 1075517777}
+  m_Layer: 0
+  m_Name: PolygonContainment
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1075517777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075517776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1d8432390982604798556ecc725250d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestPolyContainment
+  polygonA:
+  - {x: 0, y: 0}
+  - {x: 7, y: 0}
+  - {x: 7, y: 5}
+  - {x: 0, y: 5}
+  polygonAoffset: {x: 0, y: 0}
+  polygonB:
+  - {x: 0, y: 0}
+  - {x: 3, y: 0}
+  - {x: 3, y: 3}
+  - {x: 0, y: 3}
+  polygonBoffset: {x: 2, y: 1}
+  polygonC:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  polygonCoffset: {x: -2, y: 1}
+  polygonD:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  polygonDoffset: {x: 3, y: 2}
+  polygonAM: []
+  polygonBM: []
+  polygonCM: []
+  polygonDM: []
+  showA: 1
+  showB: 1
+  showC: 0
+  showD: 0
+  gigaP: 1
+--- !u!4 &1075517778
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075517776}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.96542, y: 0.46905, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1148914380
 GameObject:
   m_ObjectHideFlags: 0
@@ -1489,7 +1564,7 @@ MonoBehaviour:
   - {x: 2, y: 3}
   - {x: 5, y: 1}
   - {x: 5, y: -1}
-  polygonBoffset: {x: 0, y: -1.2}
+  polygonBoffset: {x: 0, y: 0}
   Abool: 1
   Bbool: 1
   polygonAM: []
@@ -2013,3 +2088,4 @@ SceneRoots:
   - {fileID: 428874412}
   - {fileID: 1430422053}
   - {fileID: 1634279669}
+  - {fileID: 1075517778}
