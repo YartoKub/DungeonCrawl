@@ -40,33 +40,27 @@ public class Poly2DToolbox
         return result;
     }
 
-    
-
-
-
-    
-
-
     // Returns FALSE if point is outside, and TRUE if inside
     public static bool IsPointInsidePolygon(Vector2 point, List<Vector2> points)
     { // Я кидаю луч с лева (-1) на право до точки. 
         bool intersection_counter = false; // Я его просто флипаю, а не инкрементриурю. Иначе в конце придется сделать IC % 2
+        //int debug_counter = 0;
         for (int i = 0; i < points.Count; i++)
         {
             if (PointInsidePolygonHorizontalRaycast(points[i], points[(i + 1) % points.Count], point))
             {
                 intersection_counter = !intersection_counter;
+                //debug_counter += 1;
             }
         }
+        //Debug.Log(debug_counter);
         return intersection_counter;
     }
 
     private static bool PointInsidePolygonHorizontalRaycast(Vector2 A, Vector2 B, Vector2 targetPoint)
     {
-        if (A.x >= targetPoint.x & B.x >= targetPoint.x) return false; // Луч кастуется слева, если оба x отрезка справа от точки значит пересечения быть не может
-        if (A.y >= targetPoint.y & B.y >= targetPoint.y) return false; // Если обе точки выше цели, значит луч ниже отрезка
-        if (A.y <= targetPoint.y & B.y <= targetPoint.y) return false; // Если обе точки ниже цели, значит луч выше отрезка
-        return true;
+        return (targetPoint.y < A.y != targetPoint.y < B.y) &&
+            (targetPoint.x < A.x + ((targetPoint.y - A.y) / (B.y - A.y)) * (B.x - A.x));
     }
 
     public static bool AreCrossing(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out Vector2 crossing)
@@ -80,13 +74,13 @@ public class Poly2DToolbox
 
         float prod1 = Poly2DToolbox.Cross(cut1, B1 - A1);
         float prod2 = Poly2DToolbox.Cross(cut1, B2 - A1);
-        Debug.LogFormat("{0} {1}", prod1, prod2);
+        //Debug.LogFormat("{0} {1}", prod1, prod2);
         if (Mathf.Sign(prod1) == Mathf.Sign(prod2) || prod1 == 0 || prod2 == 0) return false;
 
         prod1 = Poly2DToolbox.Cross(cut2, A1 - B1);
         prod2 = Poly2DToolbox.Cross(cut2, A2 - B1);
 
-        Debug.LogFormat("{0} {1}", prod1, prod2);
+        //Debug.LogFormat("{0} {1}", prod1, prod2);
         if (Mathf.Sign(prod1) == Mathf.Sign(prod2) || prod1 == 0 || prod2 == 0) return false;
 
         float t = Mathf.Abs(prod1) / Mathf.Abs(prod2 - prod1);
@@ -144,9 +138,38 @@ public class Poly2DToolbox
         return (Mathf.Abs(A.x - B.x) < epsilon) & (Mathf.Abs(A.y - B.y) < epsilon);
     }
 
+    public static float AreaShoelace(List<Vector2> points)
+    {
+        // Can be used to identify order of vertices. Positive area - counter clockwise | Negative Area - clockwise
+        // 0 Implies polygon is flat
+        float area = 0;
+        for (int i = 0; i < points.Count; i++)
+        {
+            int j = (i + 1) & points.Count;
+            area += points[i].x * points[j].y - points[i].y * points[j].x;
+
+        }
+        return area / 2.0f;
+    }
+
+    public static bool DoesPolygonContainOther(Poly2D A, Poly2D B)
+    {
+
+        Debug.Log("Not iimplemented");
+        return false;
+    }
+
 }
 
 /*
+    private static bool PointInsidePolygonHorizontalRaycastLegacy(Vector2 A, Vector2 B, Vector2 targetPoint)
+    {
+        if (A.x >= targetPoint.x & B.x >= targetPoint.x) return false; // Луч кастуется слева, если оба x отрезка справа от точки значит пересечения быть не может
+        if (A.y > targetPoint.y & B.y > targetPoint.y) return false; // Если обе точки выше цели, значит луч ниже отрезка
+        if (A.y < targetPoint.y & B.y < targetPoint.y) return false; // Если обе точки ниже цели, значит луч выше отрезка
+        return true;
+    }
+ 
     public static bool LineLineIntersection(Vector2 A, Vector2 B, Vector2 C, Vector2 D, out Vector2 intersection)
     {
         Debug.Log("НЕ РАБОТАЕТ. ТОЧКИ НЕ СТАВЯТСЯ КОРРЕКТНО");

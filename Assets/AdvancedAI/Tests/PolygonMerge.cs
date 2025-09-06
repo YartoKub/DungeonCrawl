@@ -25,13 +25,13 @@ public class PolygonMerge : MonoBehaviour
         for (int i = 0; i < polygonA.Count; i++) polygonAM.Add(polygonA[i] + polygonAoffset);
         for (int i = 0; i < polygonB.Count; i++) polygonBM.Add(polygonB[i] + polygonBoffset);
 
-        List<GHPolygonMerge.Pair> dump = new List<GHPolygonMerge.Pair>();
-        List<Vector2> combined = GHPolygonMerge.CompleteGH(polygonAM, polygonBM, Abool, Bbool, 0.01f); // List<Vector2> resultlings = 
+        List<Pair> dump = new List<Pair>();
+        SuperPoly2D combined = GHPolygonMerge.CompleteGH(polygonAM, polygonBM, Abool, Bbool, 0.01f); // List<Vector2> resultlings = 
 
         if (showA) for (int i = 0; i < polygonAM.Count; i++) DebugUtilities.DebugDrawLine(polygonAM[i], polygonAM[(i + 1) % polygonAM.Count], Color.red);
         if (showB) for (int i = 0; i < polygonBM.Count; i++) DebugUtilities.DebugDrawLine(polygonBM[i], polygonBM[(i + 1) % polygonBM.Count], Color.cyan);
 
-        Debug.Log(combined.Count           );
-        if (showIntersections) for (int i = 0; i < combined.Count; i++) DebugUtilities.DebugDrawLine(combined[i], combined[(i + 1) % combined  .Count], Color.yellow);
+        //Debug.Log(combined.Count );
+        if (showIntersections) combined.DebugDraw();
     }
 }

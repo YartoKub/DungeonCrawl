@@ -1,37 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
-
+//  ажетс€ эта штука работает. — ней в целом проблем много быть не должно. 
 public static class GHPolygonMerge
 {
-    private struct GH_Intersection // Greiner Hoff intersection
-    { // ѕересечение дл€ алгоритма. ѕредставл€ет собой голову - перечение двух отрезков, на которой растет волосок из последующих до следующего пересечени€ точек
-        //int A1; int A2; int B1; int B2;
-        public Vector2 intersectionPointID;
-        public List<int> followingPointsIDs;
-        public bool boolInside;
-        public GH_Intersection(Vector2 intersect, List<int> points, bool inside)
-        {
-            this.intersectionPointID = intersect;
-            this.followingPointsIDs = points;
-            this.boolInside = inside;
-        }
-    }
-
     // Ainside/Binside - what side to keep, the one outside other polygon, or one isnide
     // True/True --- intersection
     // False/False --- union
     // True/false --- A - B
     // False/True --- B - A
-    // Ёто односторонний грейнер хофф. ƒелитс€ только один треугольник, и только одна часть его сторон возвращаетс€
-    // ƒумаю можно сделать одновременную проверку AB и BA, но это кажетс€ сложным, ведь придетс€ иногда делать шаги назад или вперед.
-    // ≈ще читаемость кода упадет, а € не выдержу макароны распутывать
-
-    public static List<Vector2> CompleteGH(List<Vector2> A, List<Vector2> B, bool Ainside, bool Binside, float local_epsilon = Geo3D.epsilon)
+    // ∆елательно скармливать ему только полигоны без дырок
+    public static SuperPoly2D CompleteGH(List<Vector2> A, List<Vector2> B, bool Ainside, bool Binside, float local_epsilon = Geo3D.epsilon)
     {
-        //List<GH_Intersection> AB = SingleGreinerHoffmann(A, B, Ainside, local_epsilon);
-        //List<GH_Intersection> BA = SingleGreinerHoffmann(B, A, Binside, local_epsilon);
         // –азделение полигонов. ќни св€заны пересечени€мм
         SubdividePolygons(A, B, local_epsilon, out List<Pair> intersections);
+        SuperPoly2D polyToReturn = new SuperPoly2D();
+        if (intersections.Count == 0)
+        {
+            return polyToReturn;
+        }
 
         int[] Ainter = new int[A.Count]; // default value - 0
         int[] Binter = new int[B.Count]; // default value - 0
@@ -45,9 +31,10 @@ public static class GHPolygonMerge
             Binter[intersections[i].B] = intersections[i].A;
         }
 
-        bool B0Inside = Poly2DToolbox.IsPointInsidePolygon(B[0], A);
         bool A0Inside = Poly2DToolbox.IsPointInsidePolygon(A[0], B);
+        bool B0Inside = Poly2DToolbox.IsPointInsidePolygon(B[0], A);
 
+        //Debug.Log(A0Inside.ToString() + " " + B0Inside.ToString());
         for (int i = 0; i < Ainter.Length; i++)
         {
             if (Ainter[i] >= 0) { A0Inside = !A0Inside; continue; }
@@ -64,25 +51,41 @@ public static class GHPolygonMerge
         {
             intersections[i] = new Pair(intersections[i].A, intersections[i].B, A0Inside == (i % 2 == 0));
         }
+        /*
         string intersectionCount = "InterCOunt " + intersections.Count.ToString() + "\n";
         for (int i = 0; i < intersections.Count; i++)
         {
             Pair p = intersections[i];
             intersectionCount += "(" + p.A + " " + p.B + " " + p.doesExit + ") " + A[p.A] + "\n";
         }
-        Debug.Log(intersectionCount);
-
-        // Picking Loops:
+        Debug.Log(intersectionCount);*/
+        /*
         string Asting = "";
         for (int i = 0; i < Ainter.Length; i++) { Asting += Ainter[i].ToString() + " "; }
         Debug.Log(Asting);
 
         string Bsting = "";
         for (int i = 0; i < Binter.Length; i++) { Bsting += Binter[i].ToString() + " "; }
-        Debug.Log(Bsting);
+        Debug.Log(Bsting);*/
 
-        List<Vector2> toReturn = IsolateLoop(A, B, Ainter, Binter, intersections, Ainside, Binside);
+        int safety = 0;
+        while ((safety < 25) && intersections.Count > 0)
+        {
+            if (Ainter[intersections[0].A] == -2 | Binter[intersections[0].B] == -2)
+            {
+                intersections.RemoveAt(0);
+                continue;
+            }
+            List<Vector2> newLoop = IsolateLoop(A, B, Ainter, Binter, intersections, Ainside, Binside);
+            
+            if (newLoop.Count >= 3)
+            {
+                polyToReturn.polygons.Add(new Poly2D(newLoop));
+            }
+        }
 
+        /*
+        Debug.Log(polyToReturn.polygons.Count);
 
         Asting = "";
         for (int i = 0; i < Ainter.Length; i++) { Asting += Ainter[i].ToString() + " "; }
@@ -90,9 +93,9 @@ public static class GHPolygonMerge
 
         Bsting = "";
         for (int i = 0; i < Binter.Length; i++) { Bsting += Binter[i].ToString() + " "; }
-        Debug.Log(Bsting);
+        Debug.Log(Bsting);*/
 
-        return toReturn;
+        return polyToReturn;
     }
 
 
@@ -101,7 +104,7 @@ public static class GHPolygonMerge
     {
         // false - по часовой / true - против часовой
         // —наружи - против часовой / ¬нутри - по часовой
-        Debug.Log("ISOLATE LOOP " + pairs[0].A);
+        //Debug.Log("ISOLATE LOOP " + pairs[0].A);
         if (Ainter[pairs[0].A] == -2)
         {// если текущий выброшен значит здесь уже прошелс€ алгоритм
             pairs.RemoveAt(0);
@@ -131,25 +134,29 @@ public static class GHPolygonMerge
             safety += 1;
 
             curntPoint = next_Point;
+            string debugString = "";
             if (curntAorB)
             {
                 currentLinkArray = Binter;
                 currentList = B;
                 current_step = Bdiff;
+                debugString += "B " + Bdiff.ToString() + " ";
             }
             else
             {
                 currentLinkArray = Ainter;
                 currentList = A;
                 current_step = Adiff;
+                debugString += "A " + Adiff.ToString() + " ";
             }
+
             switch (currentLinkArray[curntPoint])
             {
                 case -2:
                     isDone = true;
                     break;
                 case -1:
-                    Debug.Log(curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                    //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
                     currentLinkArray[curntPoint] = -2;
                     next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
@@ -158,13 +165,14 @@ public static class GHPolygonMerge
                     if (needToJump)
                     {
                         next_Point = currentLinkArray[curntPoint];
-                        Debug.Log("Jump B" + curntPoint + " -> A" + next_Point + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
-                        curntAorB = false;
+                        //Debug.Log("Jump " + (curntAorB ? "B" : "A") + curntPoint + " " + (!curntAorB ? "B" : "A") + next_Point + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                        newLoop.Add(currentList[curntPoint]);
+                        curntAorB = !curntAorB;
                         currentLinkArray[curntPoint] = -2;
                         needToJump = false;
                         continue;
                     }
-                    Debug.Log(curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
+                    //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
                     currentLinkArray[curntPoint] = -2;
                     next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
@@ -178,16 +186,6 @@ public static class GHPolygonMerge
     private static int wrapAround(int curr, int diff, int max)
     {
         return (curr + diff + max) % max;
-    }
-
-    public struct Pair
-    {
-        public int A; public int B; public bool doesExit;
-        public Pair(int A, int B, bool doesExit)
-        {
-            this.A = A; this.B = B; this.doesExit = doesExit;
-        }
-
     }
 
     private static void SubdividePolygons(List<Vector2> A, List<Vector2> B, float local_epsilon, out List<Pair> intersections)
@@ -211,7 +209,7 @@ public static class GHPolygonMerge
                 if (Poly2DToolbox.PointSimilarity(B[b1], intersection, local_epsilon)) continue;
                 if (Poly2DToolbox.PointSimilarity(B[b2], intersection, local_epsilon)) continue;
 
-                Debug.Log("insertion phase");
+                //Debug.Log("insertion phase");
                 A.Insert(a1 + 1, intersection);
                 B.Insert(b1 + 1, intersection);
 

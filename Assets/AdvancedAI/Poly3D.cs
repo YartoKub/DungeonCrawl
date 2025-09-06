@@ -1,28 +1,41 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+
 
 public class Poly3D
 {
     public List<Vector3> vertices;
     public Plane plane;
+    public bool isHole;
     public bool convex;
     public float w; // w = Vector3.Dot(plane.normal, plane.normal * -plane.distance);
-
+    public Bounds BBox;
 
     public Poly3D(List<Vector3> _vertices)
     {
+        if (_vertices.Count < 3)
+        {
+            throw new ArgumentException("The number of vertices must be at least 3. ярик.");
+        }
         vertices = _vertices;
         plane = new Plane(_vertices[0], _vertices[1], _vertices[2]);
         w = Vector3.Dot(plane.normal, _vertices[0]);
+
     }
     public Poly3D(params Vector3[] _vertices)
     {
+        if (_vertices.Length < 3)
+        {
+            throw new ArgumentException("The number of vertices must be at least 3. ярик.");
+        }
         vertices = new List<Vector3>();
         vertices.AddRange(_vertices);
         plane = new Plane(_vertices[0], _vertices[1], _vertices[2]);
 
         w = Vector3.Dot(plane.normal, _vertices[0]);
+
     }
 
     enum Type
@@ -133,6 +146,9 @@ public class Poly3D
         float cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
         return cross > 0;
     }
+
+
+
 
 
 
