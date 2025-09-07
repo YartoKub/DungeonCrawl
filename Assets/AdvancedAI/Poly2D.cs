@@ -54,15 +54,6 @@ public class Poly2D
         return this.SignedArea() < 0;
     }
 
-    public float Area()
-    {
-        return Mathf.Abs( Poly2DToolbox.AreaShoelace(this.vertices));
-    }
-    public float SignedArea()
-    {
-        return Poly2DToolbox.AreaShoelace(this.vertices);
-    }
-
     public float BBoxArea()
     {
         return this.BBox.size.x * this.BBox.size.y; 
@@ -75,6 +66,19 @@ public class Poly2D
         if (this.IsCounterClockwise() == IsCounterClockwise) return;
         this.vertices.Reverse();
         //Debug.Log(this.IsCounterClockwise() + " " + IsCounterClockwise + " " + SignedArea());
+    }
+    public float Area()
+    {
+        return Mathf.Abs(Poly2DToolbox.AreaShoelace(this.vertices));
+    }
+    public float SignedArea()
+    {
+        return Poly2DToolbox.AreaShoelace(this.vertices);
+    }
+
+    public bool BBoxLineIntersection(Vector2 A, Vector2 B)
+    {
+        return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox);
     }
 
 }

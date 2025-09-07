@@ -4,11 +4,47 @@ using System.Collections.Generic;
 // Полигоны в 3D пространстве надо привести к двухмерному виду при помощи алгоритма из NavPoly3D
 public class Poly2DToolbox
 {
-    // Пока бесполезный алгоритм, т.к. у меня нет инструмента для объединения двух полигонов
-
-    public static void EarClip(List<Vector2> points)
+    // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
+    // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
+    public static void EarClip(Poly2D A, List<Poly2D> B)
     {
 
+
+
+    }
+
+    public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
+    {
+        List<Vector2> combined = new List<Vector2>(A.vertices);
+        List<Poly2D> vacantPolys = new List<Poly2D>(B); 
+        List<Vector2> StartPoint = new List<Vector2>(); // Хранит позиции начальной и конечной точки дегенеративного ребра соединяющего родительский полигон с ребенком
+        List<Vector2> EndPoint = new List<Vector2>();
+
+
+        for (int i = 0; i < B.Count; i++)
+        {
+
+            int safety = 0;
+            while (false)
+            {
+
+            }
+            safety += 1;
+            // Весь день чувствую себя как вяленая помидорка. Отдых.
+            //for (int i = 0; i < length; i++) {  }
+
+
+        }
+        /*
+        int safety = 0;
+        while (B.Count > 0 && safety < 10)
+        {
+            safety += 1;
+
+        }*/
+
+
+        return new List<Vector2>();
     }
 
     // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки. 
@@ -178,6 +214,26 @@ public class Poly2DToolbox
     {
         return (DoesPolygonContainOther(A, B) == 1);
     }
+
+    public static bool DoesLineIntersectPolygon(Vector2 A, Vector2 B, List<Vector2> P)
+    {
+        for (int i = 0; i < P.Count; i++)
+        {
+            int j = (i + 1) % P.Count;
+            if (LineLineIntersection(A, B, P[i], P[j], out Vector2 dumdum)) return true;
+        }
+        return false;
+    }
+
+
+    public static bool DoesLineIntersectPolygon(Vector2 A, Vector2 B, Poly2D P)
+    {
+        //P.BBox.
+
+        return false;
+    }
+
+
 
 }
 

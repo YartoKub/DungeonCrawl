@@ -279,7 +279,63 @@ public static class BoundsMathHelper
         return splits;
     }
 
+    // Note: Не возвращает точку пересечения
+    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Bounds BBox)
+    {
+        Vector2 B1 = BBox.min; Vector2 B2 = BBox.max;
+        if (L2.x < B1.x && L1.x < B1.x) return false;
+        if (L2.x > B2.x && L1.x > B2.x) return false;
+        if (L2.y < B1.y && L1.y < B1.y) return false;
+        if (L2.y > B2.y && L1.y > B2.y) return false;
+        if (L1.x > B1.x && L1.x < B2.x && L1.y > B1.y && L1.y < B2.y) return true;
 
+        return BBoxLineEquation2D(BBox, GetLineEquation(L1, L2));
+    }
+
+    // 
+    public static Vector3 GetLineEquation(Vector2 a, Vector2 b)
+    {
+        if (a.x == b.x && a.y == b.y) return Vector3.zero;
+
+        float A = a.y - b.y;
+        float B = b.x - a.x;
+        float C = a.x * b.y - b.x * a.y;
+
+        return new Vector3(A, B, C);
+    }
+
+
+    public static bool BBoxLineEquation2D(Bounds BBox, Vector3 lineEq)
+    {
+        Vector2 a = BBox.min;               Vector2 c = BBox.max; 
+        Vector2 b = new Vector2(a.x, c.y);  Vector2 d = new Vector2(c.x, a.y);
+
+        if (lineEq == Vector3.zero) return false;
+        // 0 точное попадание в точку
+        // -n точка ниже
+        // +n точка выше
+        // Если есть разница между точками по знаку то есть пересечение
+        //float signA = Mathf.Sign(lineEq.x * a.x + lineEq.y * a.y + lineEq.z);
+        float signA = Mathf.Sign(PointAboveOrBelowLine(lineEq, a));
+        if (signA == 0) return true;
+        float signB = Mathf.Sign(PointAboveOrBelowLine(lineEq, b));
+        if (signB == 0) return true;
+        float signC = Mathf.Sign(PointAboveOrBelowLine(lineEq, c));
+        if (signC == 0) return true;
+        float signD = Mathf.Sign(PointAboveOrBelowLine(lineEq, d));
+        if (signD == 0) return true;
+        //Debug.Log(signA.ToString() + " " + signB.ToString() + " " + signC.ToString() + " " + signD.ToString());
+        // если они все одинаковы, значит коробка расположена по ту сторону прямой
+        if ((signA == signB) && (signB == signC) && (signC == signD)) return false;
+        return true;
+    }
+
+    private static float PointAboveOrBelowLine(Vector3 lineEq, Vector2 p)
+    {
+        //float y = -lineEq.x / lineEq.y * p.x - lineEq.z / lineEq.y;
+        //Debug.Log(y.ToString() + " " + p.y.ToString() + " " + (y < p.y).ToString());
+        return lineEq.x * p.x + lineEq.y * p.y + lineEq.z;
+    }
 
 
 
