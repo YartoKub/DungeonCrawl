@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 // Работа с двухмерными полигонами. 
 // Полигоны в 3D пространстве надо привести к двухмерному виду при помощи алгоритма из NavPoly3D
-public class Poly2DToolbox
+public static class Poly2DToolbox
 {
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
@@ -16,35 +16,163 @@ public class Poly2DToolbox
     public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
     {
         List<Vector2> combined = new List<Vector2>(A.vertices);
-        List<Poly2D> vacantPolys = new List<Poly2D>(B); 
-        List<Vector2> StartPoint = new List<Vector2>(); // Хранит позиции начальной и конечной точки дегенеративного ребра соединяющего родительский полигон с ребенком
-        List<Vector2> EndPoint = new List<Vector2>();
-
+        //List<Poly2D> vacantPolys = new List<Poly2D>(B);
 
         for (int i = 0; i < B.Count; i++)
         {
-
-            int safety = 0;
-            while (false)
-            {
-
-            }
-            safety += 1;
-            // Весь день чувствую себя как вяленая помидорка. Отдых.
-            //for (int i = 0; i < length; i++) {  }
-
-
+            (int ai, int bi) = UniteHole(combined, B[i]);
+            combined = StitchHole(combined, B[i].vertices, ai, bi);
         }
-        /*
-        int safety = 0;
-        while (B.Count > 0 && safety < 10)
+
+
+
+        return combined;
+    }
+
+    // Присоединяет дырку 
+    // Наивная имплементация, нет оптимизации проверки
+    // TODO: make binary space partitioning optimization
+    public static (int,int) UniteHole(List <Vector2> A, List<Vector2> B)
+    {   // Алгоритм прыжковый, если есть пересечение с A, то перепрыгивает на грань с которой было пересечение
+        // Если есть пересечение с самим собой, то перепрыгивает на грань где было пересечение
+        int currA = 0; int currB = 0;
+        int safety = 0; bool hasChanged = true;
+        while (safety < 10)
+        { safety += 1;
+            //Vector2 locA = A[currA]; Vector2 locB = B[currB];
+            if (!hasChanged) break; // если не было изменений значит не было пересечений
+            hasChanged = false;//DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.red);
+            if (ReturnFirstIntersectingEdge(A[currA], B, currB, out int newB))
+            {
+                hasChanged = true;
+                //DebugUtilities.DebugDrawLine(B[currB], B[newB], Color.violet);
+                currB = newB;
+            }
+            
+            if (ReturnFirstIntersectingEdge(B[currB], A, currA, out int newA))
+            {
+                hasChanged = true;
+                //DebugUtilities.DebugDrawLine(A[currA], A[newA], Color.yellow);
+                currA = newA;
+            }
+        }
+        //DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.green);
+        return (currA, currB);
+    }
+
+    // Uses heuristics to find two points that are separated by the least distance.
+    public static (int, int) UniteHole(List<Vector2> A, Poly2D B)
+    {   // Алгоритм прыжковый, если есть пересечение с A, то перепрыгивает на грань с которой было пересечение
+        // Если есть пересечение с самим собой, то перепрыгивает на грань где было пересечение
+        int currA = 0; int currB = 0;
+        int safety = 0; bool hasChanged = true;
+
+        int[] AindicesArr = new int[A.Count];
+        for (int i = 0; i < A.Count; i++) AindicesArr[i] = i;
+        Vector2 center = B.BBox.center;
+        List<int> Aindices = new List<int>(AindicesArr);
+        Aindices.Sort((a, b) => { // Sort by distance to center
+            return (center - A[a]).magnitude.CompareTo((center - A[b]).magnitude);
+        });
+        currA = Aindices[0];
+
+        while (safety < 20)
         {
             safety += 1;
+            if (!hasChanged) break; // если не было изменений значит не было пересечений
+            hasChanged = false;
+            if (ReturnFirstIntersectingEdge(A[currA], B.vertices, currB, out int newB))
+            {
+                hasChanged = true;
+                currB = newB;
+            }
 
-        }*/
+            if (ReturnFirstIntersectingEdge(B.vertices[currB], A, currA, out int newA))
+            {
+                hasChanged = true;
+                currA = newA;
+            }
+        }
+        return (currA, currB);
+    }
 
+    // Stitches A and B, new list will contain A+B+2 points. There wil be a duplicate point in both A and B to create a degenerate line.
+    public static List<Vector2> StitchHole(List<Vector2> A, List<Vector2> B, int Aindex, int Bindex)
+    {
+        Vector2[] stitched = new Vector2[A.Count + B.Count + 2];
+        //string newLoop = "";
+        int newIndex;
+        for (int a = 0; a < Aindex; a++)
+        {
+            newIndex = a;
+            stitched[newIndex] = A[a];
+            //newLoop += "I" + newIndex + " A" + a + "\n";
+        }
+        stitched[Aindex] = A[Aindex];
+        //newLoop += "I" + Aindex + "_AI_" + Aindex + "\n";
+        //Debug.Log(newLoop);
+        for (int b = 0; b < B.Count - Bindex; b++)
+        {
+            newIndex = Aindex + b + 1;
+            stitched[newIndex] = B[b + Bindex];
+            //newLoop += "I" + newIndex + " B" + (b + Bindex) + "\n";
+        }
+        //Debug.Log(newLoop);
+        for (int b = 0; b < Bindex; b++)
+        {
+            newIndex = Aindex + (B.Count - Bindex + 1) + b;
+            stitched[newIndex] = B[b];
+            //newLoop += "I" + newIndex + " B" + b + "\n";
+        }
 
-        return new List<Vector2>();
+        stitched[Aindex + B.Count + 1] = B[Bindex];
+        //newLoop += "I" + (Aindex + B.Count + 1) + "_BI_" + Bindex + "\n";
+        //Debug.Log(newLoop);
+
+        for (int a = 0; a < A.Count - Aindex; a++)
+        {
+            newIndex = Aindex + B.Count + 2 + a;
+            stitched[newIndex] = A[a + Aindex];
+            //newLoop += "I" + newIndex + " A" + (a + Aindex) + "\n";
+        }
+        //Debug.Log(newLoop);
+        return new List<Vector2>(stitched);
+    }
+
+    // Outsider is a point that does not belong to a Poly
+    // Poly - is plygon
+    // Pvert - vertex ID of some vertex that belongs to List P
+    public static bool ReturnFirstIntersectingEdge(Vector2 Outsider, List<Vector2> Poly, int Pvert, out int Pa /*, out int Pb*/) // Pb = Pa +1
+    { 
+        for (int i = 0; i < Poly.Count; i++) 
+        {
+            int j = (i + 1) % Poly.Count;
+            if (Pvert == i | Pvert == j) continue; // I do not need an intersection with an edge that contains Pvert 
+            if (LineLineIntersection(Outsider, Poly[Pvert], Poly[i], Poly[j], out Vector2 dumdum))
+            {
+                Pa = i;
+                return true;
+            }
+        }
+        Pa = -1;
+        return false;
+    }
+    // Filters out degenerate line fragments that overlap. These fragments are used to bind Holes to Hull
+    // Degenerates come in pairs, so length is always even. 
+    public static bool ReturnFirstIntersectingEdgeDegenerateFilter(Vector2 Outsider, int Pvert, List<Vector2> Poly, List<int> degenerates, out int Pa /*, out int Pb*/) // Pb = Pa +1
+    {
+        for (int i = 0; i < Poly.Count; i++)
+        {
+            int j = (i + 1) % Poly.Count;
+            if (Pvert == i | Pvert == j) continue; // I do not need an intersection with an edge that contains Pvert 
+            if (LineLineIntersection(Outsider, Poly[Pvert], Poly[i], Poly[j], out Vector2 dumdum))
+            {
+                Pa = i;
+                return true;
+            }
+        }
+        Pa = -1;
+        return false;
     }
 
     // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки. 
@@ -233,6 +361,22 @@ public class Poly2DToolbox
         return false;
     }
 
+    public static float TriangleCross(Vector2 p1, Vector2 p2, Vector2 p3)
+    {
+        // 0 - collinear
+        // negative - thos point is to the right from O->P line || clockwise triangle
+        // positive - this point is to the left  from O->P line ||  counter clockwise triangle
+        return ((p3.x - p2.x) * (p1.y - p2.y) - (p3.y - p2.y) * (p1.x - p2.x));
+    }
+
+    public static bool isRight(Vector2 Q, Vector2 p1, Vector2 p2)
+    {
+        return TriangleCross(Q, p1, p2) < Geo3D.epsilon;
+    }
+    public static bool isLeft(Vector2 Q, Vector2 p1, Vector2 p2)
+    {
+        return TriangleCross(Q, p1, p2) > Geo3D.epsilon;
+    }
 
 
 }

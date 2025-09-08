@@ -499,7 +499,7 @@ Transform:
   m_GameObject: {fileID: 705507993}
   serializedVersion: 2
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: -3.01, y: 3, z: -1.738}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1120,6 +1120,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1148914382}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1006644819
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1006644821}
+  - component: {fileID: 1006644820}
+  m_Layer: 0
+  m_Name: PolygonContainment (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1006644820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1006644819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70c67c126a706374a824f8a468f7407e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestLineJumper
+  polygonA:
+  - {x: 7, y: 0}
+  - {x: 7, y: 4}
+  - {x: 0, y: 4}
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 1, y: 3}
+  - {x: 2, y: 3}
+  - {x: 2, y: 0}
+  polygonAoffset: {x: 0, y: 0}
+  polygonB:
+  - {x: 0.75, y: 0.75}
+  - {x: 0, y: 1}
+  - {x: 1.5, y: 1.5}
+  - {x: 1, y: 0}
+  polygonBoffset: {x: 3, y: 0.3}
+  polygonAM: []
+  polygonBM: []
+  polygonCM: []
+  polyCMoffset: {x: 4.5, y: 1}
+  showA: 0
+  showB: 1
+  showC: 1
+  showIntersections: 0
+--- !u!4 &1006644821
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1006644819}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1072254858
 GameObject:
   m_ObjectHideFlags: 0
@@ -1184,7 +1252,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1075517777
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2089,3 +2157,4 @@ SceneRoots:
   - {fileID: 1430422053}
   - {fileID: 1634279669}
   - {fileID: 1075517778}
+  - {fileID: 1006644821}
