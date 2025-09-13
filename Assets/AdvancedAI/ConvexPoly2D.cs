@@ -32,7 +32,7 @@ public class ConvexPoly2D
         string strrr = ""; for (int i = 0; i < triangleList.Count; i++) { strrr += isValid[i] + " "; }; Debug.Log(strrr);
 
         int safety = 0;
-        while (reasonToLive & safety < 5) { safety += 1;
+        while (reasonToLive & safety < 50) { safety += 1;
             int currT = FirstTrue(isValid);     // current triangle
             if (currT == -1)
             {
@@ -41,35 +41,83 @@ public class ConvexPoly2D
             }
 
             int voronoiIssue = VoronoiCheck(currT, connections[currT], vectorList, triangleList);
-            if (voronoiIssue == -1) isValid[currT] = false;     // If no voronoi issue, then this triangle is correct
+            if (voronoiIssue == -1) { isValid[currT] = false; continue; }    // If no voronoi issue, then this triangle is correct
 
-            FlipTriangle(currT, voronoiIssue, vectorList, triangleList, connections, safety == 4);
-            isValid[currT] = false;
-
-
+            FlipTriangle(currT, voronoiIssue, vectorList, triangleList, connections);
+            isValid[currT] = true;             // Both triangles have been flipped, it is unknown whether they follow Voronoi rule or not
+            isValid[voronoiIssue] = true;
         }
+
+        Debug.Log("SAFEYTY " +  safety);
     }
 
-    public static void FlipTriangle(int T1, int T2, List<Vector2> verts, List<Vector3Int> triangleList, List<Vector3Int> connections, bool showUp)
+    public static void FlipTriangle(int T1, int T2, List<Vector2> verts, List<Vector3Int> triangleList, List<Vector3Int> connections)
     {   // By default all little triangles are counter-clockwise, resulting triangles should too be CCW
-        int A1 = GetDifferringVertice(triangleList[T1], triangleList[T2]);
-        int A2 = GetDifferringVertice(triangleList[T2], triangleList[T1]);
-        /* (A1, C, B) (A2, C, B) */ int B = triangleList[T2].y; int C = triangleList[T2].x;
-        if (triangleList[T2].x == A1) { B = triangleList[T2].z;     C = triangleList[T2].y; }
-        if (triangleList[T2].y == A1) { B = triangleList[T2].x;     C = triangleList[T2].z; }
+        Debug.Log(T1 + " " + T2);
         Debug.Log(triangleList[T1] + " " + triangleList[T2]);
-        Debug.Log("( " + A1 + " [ " + C + " " + B + " ) " + A2 + "]");
+        Debug.Log(triangleList.Count);
+        int A2 = GetDifferringVertice(triangleList[T1], triangleList[T2]);
+        int A1 = GetDifferringVertice(triangleList[T2], triangleList[T1]);
+        /* (A2, C, B) (A1, B, C) */ int B = triangleList[T2].y; int C = triangleList[T2].x;     // Triangles overlap at C and B
+        if (triangleList[T2].x == A2) { B = triangleList[T2].z;     C = triangleList[T2].y; }
+        if (triangleList[T2].y == A2) { B = triangleList[T2].x;     C = triangleList[T2].z; }
         
-        if (showUp)
-        {
-            DebugUtilities.DebugDrawLine(verts[B], verts[A1], Color.red);
-            DebugUtilities.DebugDrawLine(verts[A1], verts[C], Color.red);
-            DebugUtilities.DebugDrawLine(verts[C], verts[B], Color.red);
+        Debug.Log("( " + A2 + " " + C + " " + B + " ) ( " + A1 + " " + B + " " + C + " )");
 
-            DebugUtilities.DebugDrawLine(verts[C], verts[A2], Color.purple);
-            DebugUtilities.DebugDrawLine(verts[A2], verts[B], Color.purple);
-            DebugUtilities.DebugDrawLine(verts[B], verts[C], Color.purple);
+        // Connections
+        // Both triangles will remain connected to each other
+        // Old triangles" (A1, B,  C) (A2, C,  B), they overlap at CB
+        // New triangles: (A1, A2, C) (A2, A1, B), they overlap at A1 A2
+        // A1's CB n
+
+        Vector3Int nT1 = new Vector3Int(A1, A2, C);
+        Vector3Int nT2 = new Vector3Int(A2, A1, B);
+        triangleList[T1] = nT1;
+        triangleList[T2] = nT2;
+
+        // purges connections to T1 and T2
+        List<int> FourNeighboursList = new List<int>(4);    // Connected triangles that are not T1 or T2
+        if (connections[T1].x != T2) FourNeighboursList.Add(connections[T1].x);
+        if (connections[T1].y != T2) FourNeighboursList.Add(connections[T1].y);
+        if (connections[T1].z != T2) FourNeighboursList.Add(connections[T1].z);
+
+        if (connections[T2].x != T1) FourNeighboursList.Add(connections[T2].x);
+        if (connections[T2].y != T1) FourNeighboursList.Add(connections[T2].y);
+        if (connections[T2].z != T1) FourNeighboursList.Add(connections[T2].z);
+
+        //Debug.Log(FourNeighboursList.Count);
+        for (int i = 0; i < FourNeighboursList.Count; i++)
+        {
+            if (FourNeighboursList[i] == -1) continue;
+            Vector3Int con = connections[FourNeighboursList[i]];
+            Vector3Int newCon = new Vector3Int(
+                ((con.x == T1) | (con.x == T2)) ? -1 : con.x,
+                ((con.y == T1) | (con.y == T2)) ? -1 : con.y,
+                ((con.z == T1) | (con.z == T2)) ? -1 : con.z);
+            connections[FourNeighboursList[i]] = newCon;
+            //Debug.Log(con + " -> " + newCon);
         }
+
+        // Reestablishes connections to nT1 and nT2
+        connections[T1] = -Vector3Int.one; connections[T2] = -Vector3Int.one;
+        for (int i = 0; i < FourNeighboursList.Count; i++)
+        {
+            int locN = FourNeighboursList[i];
+            if (FourNeighboursList[i] == -1) continue;
+            //Debug.Log(T1 + " " + locN);
+            if (DoIntTrianglesTouch(triangleList[T1], triangleList[locN]))
+            {
+                SetNeighbours(T1, locN, triangleList[T1], triangleList[locN], connections);
+            }
+            //Debug.Log(T2 + " " + locN);
+            if (DoIntTrianglesTouch(triangleList[T2], triangleList[locN]))
+            {
+                SetNeighbours(T2, locN, triangleList[T2], triangleList[locN], connections);
+            }
+        }
+
+        SetNeighbours(T1, T2, triangleList[T1], triangleList[T2], connections);
+        //Debug.Log(T1 + " " + T2);
     }
 
     private static int FirstTrue(bool[] list)
@@ -191,7 +239,6 @@ public class ConvexPoly2D
             }
         }
         string connmattrix = "=== Connection matrix ==="; for (int i = 0; i < triangles.Count; i++) connmattrix += triangles[i] + " " + TConnections[i] + "\n"; Debug.Log(connmattrix);
-        DrawPolygonConnections(TConnections, triangles, vertices);
         return TConnections;
     }   
 

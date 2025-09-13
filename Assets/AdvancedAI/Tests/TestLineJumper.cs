@@ -21,6 +21,7 @@ public class TestLineJumper : MonoBehaviour
     public bool showCombined;
 
     public bool showTriangulation;
+    public bool showVoronoi;
 
     public int PickPointA;
     public int PickPointB;
@@ -44,14 +45,7 @@ public class TestLineJumper : MonoBehaviour
         if (showC) for (int i = 0; i < polygonCM.Count; i++) DebugUtilities.DebugDrawLine(polygonCM[i], polygonCM[(i + 1) % polygonCM.Count], Color.blue);
         if (showCombined) for (int i = 0; i < stitched.Count; i++) DebugUtilities.DebugDrawLine(stitched[i], stitched[(i + 1) % stitched.Count], Color.green);
         
-        if (showTriangulation)  {
-            foreach (Vector3Int abc in triangles) {
-                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
-                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
-            }
-        }
+        
 
         DebugUtilities.DebugDrawLine(stitched[PickPointA], stitched[PickPointB], Color.red);
         DebugUtilities.DebugDrawLine(stitched[PickPointB], stitched[PickPointC], Color.red);
@@ -59,7 +53,32 @@ public class TestLineJumper : MonoBehaviour
         DebugUtilities.DebugDrawCross(stitched[PickPointP], Poly2DToolbox.DoesContainPoint(stitched[PickPointA], stitched[PickPointB], stitched[PickPointC], stitched[PickPointP]) ? Color.green : Color.red);
 
         List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(stitched, triangles);
+        if (showTriangulation)
+        {
+            foreach (Vector3Int abc in triangles)
+            {
+                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
+                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+            }
+            ConvexPoly2D. DrawPolygonConnections(connections, triangles, stitched);
+        }
+
+
         ConvexPoly2D.IterativeVoronoi(stitched, triangles, connections);
+
+        if (showVoronoi)
+        {
+            foreach (Vector3Int abc in triangles)
+            {
+                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
+                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+            }
+            ConvexPoly2D.DrawPolygonConnections(connections, triangles, stitched);
+        }
 
 
     }
