@@ -3,7 +3,7 @@ using UnityEngine;
 
 public abstract class GraphDataStorage
 {
-    public NavBoxInt[] vertices;
+    //public NavBoxInt[] vertices;
     public int vCount;
 
     
@@ -16,7 +16,7 @@ public abstract class GraphDataStorage
     public abstract bool GetValue(int a_ID, int b_ID); // Наличие связи комнаты А и Б
     public abstract bool[] GetSliceArray(int rowID);
     public abstract List<int> GetSliceIDList(int rowID);
-    public abstract List<NavBoxInt> GetSliceBoxList(int rowID);
+    //public abstract List<NavBoxInt> GetSliceBoxList(int rowID);
     public abstract float[] GetSliceDistance(int rowID);
     public abstract int GetNodeEdgeCount(int rowID);
 

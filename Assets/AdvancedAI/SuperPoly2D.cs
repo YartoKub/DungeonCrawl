@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-
+// Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
+// I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 public class SuperPoly2D
 {
     // Супер полигон, состоящий из нескольких полигонов или дырок. 

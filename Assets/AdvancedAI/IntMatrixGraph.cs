@@ -1,22 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FullMatrixGraph : GraphDataStorage
+public class IntMatrixGraph : GraphDataStorage
 {
-    public NavBoxInt[] vertices; // У родительского класса
     //public int vCount; // У родительского касса
     public bool[] connections;
 
-    public FullMatrixGraph(List<NavBoxInt> _vertices)
+    public IntMatrixGraph(List<NavBoxInt> _vertices)
     {
         vCount = _vertices.Count;
-        vertices = new NavBoxInt[vCount];
         connections = new bool[vCount * vCount];
 
-        for (int i = 0; i < vCount; i++)
-        {
-            vertices[i] = _vertices[i];
-        }
         this.setConnectionMatrix(false);
         this.establishConnections();
     }
@@ -31,13 +25,10 @@ public class FullMatrixGraph : GraphDataStorage
     {
         return this.connections[a_ID + b_ID * vCount];
     }
-
+    
     public override int NaiveBoxFinder(Transform asker)
     {
-        for (int i = 0; i < vCount; i++)
-        {
-            if (vertices[i].DoesContainPoint(asker.position)) return i;
-        }
+        Debug.Log("UNILMPLEMENTED");
         return -1;
     }
 
@@ -53,12 +44,14 @@ public class FullMatrixGraph : GraphDataStorage
 
     public override float[] GetSliceDistance(int rowID)
     {
+        /*
         float[] toReturn = new float[vCount];
         for (int i = 0; i < vCount; i++)
         {
-            toReturn[i] = GetValue(i, rowID) ? BoundsMathHelper.CenterDistance( vertices[i].bounds, vertices[rowID].bounds) : float.PositiveInfinity;
-        }
-        return toReturn;
+            toReturn[i] = GetValue(i, rowID) ? BoundsMathHelper.CenterDistance(vertices[i].bounds, vertices[rowID].bounds) : float.PositiveInfinity;
+        }*/
+        Debug.Log("NOT IMPLEMENTED");
+        return new float[1];
     }
 
     public override List<int> GetSliceIDList(int rowID)
@@ -74,19 +67,6 @@ public class FullMatrixGraph : GraphDataStorage
         return toReturn;
     }
 
-    public List<NavBoxInt> GetSliceBoxList(int rowID)
-    {
-        List<NavBoxInt> toReturn = new List<NavBoxInt>();
-        for (int i = 0; i < vCount; i++)
-        {
-            if (GetValue(i, rowID))
-            {
-                toReturn.Add(vertices[i]);
-            }
-        }
-        return toReturn;
-    }
-
     public override int GetNodeEdgeCount(int rowID)
     {
         int toReturn = 0;
@@ -97,16 +77,22 @@ public class FullMatrixGraph : GraphDataStorage
         return toReturn;
     }
 
-    protected override void establishConnections() { // пока идея в том что пути не будут меняться
-        for (int i = 0; i < vertices.Length; i++) {
-            for (int j = i; j < vertices.Length; j++) {
+    protected override void establishConnections()
+    { // пока идея в том что пути не будут меняться
+        /*
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            for (int j = i; j < vertices.Length; j++)
+            {
                 NavBoxInt boxA = this.vertices[i];
                 NavBoxInt boxB = this.vertices[j];
                 this.SetValue(boxA.DoesIntersect(boxB.bounds), i, j);
             }
-        }
+        }*/
+        Debug.Log("Does not have an ability to establih commnenetsts");
     }
-    protected override void setConnectionMatrix(bool newValue) {
+    protected override void setConnectionMatrix(bool newValue)
+    {
         for (int i = 0; i < connections.Length; i++)
             connections[i] = newValue;
     }
@@ -122,24 +108,26 @@ public class FullMatrixGraph : GraphDataStorage
             }
             newString += "\n";
         }
-
         Debug.Log(newString);
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            Debug.Log(vertices[i]);
-        }
+
     }
 
-    public override List<Vector3> DumpConnectionPairs(){
+    public override List<Vector3> DumpConnectionPairs()
+    {
+        Debug.Log("Does not have an ability to establih commnenetsts");
         List<Vector3> pairs = new List<Vector3>();
-        for (int i = 0; i < vCount; i++) {
-            for (int j = 0; j < vCount; j++) {
-                if (GetValue(i, j)) {
+        /*
+        for (int i = 0; i < vCount; i++)
+        {
+            for (int j = 0; j < vCount; j++)
+            {
+                if (GetValue(i, j))
+                {
                     pairs.Add(this.vertices[i].bounds.center);
                     pairs.Add(this.vertices[j].bounds.center);
                 }
             }
-        }
+        }*/
         return pairs;
     }
 }

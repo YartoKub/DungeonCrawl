@@ -1,32 +1,75 @@
 using UnityEngine;
 using System.Collections.Generic;
+// Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
+// I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
+
 // Работа с двухмерными полигонами. 
 // Полигоны в 3D пространстве надо привести к двухмерному виду при помощи алгоритма из NavPoly3D
+// TODO: Перекинуть все связанное с триангуляцией в отдельный файлик
 public static class Poly2DToolbox
 {
+    // Каждая ранка от объединения полигона с его дыркой оставляет дегенеративную грань, состоящую из двух наложеных друг на друга граней.
+    // Эти грании должны быть объединены в одну, а треугольники корректно переформированы
+
+
+
+
+
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
-    public static void EarClip(Poly2D A, List<Poly2D> B)
-    {
+    public static List<Vector3Int> EarClip(List<Vector2> vectorList)
+    {   // Я хочу получить integer-список, 
+        List<Vector3Int> triangles = new List<Vector3Int>(vectorList.Count - 2); // Количество треугольников равно количеству вершин -2
+        List<int> indices = new List<int>(vectorList.Count);
+        for (int i = 0; i < vectorList.Count; i++) indices.Add(i);
 
-
-
+        int safety = 0;
+        while (safety < 100 && indices.Count != 3) { safety += 1;
+            for (int i = 0; i < indices.Count; i++) 
+            {
+                int A = indices[wrapAround(i, -1, indices.Count)];
+                int B = indices[i];
+                int C = indices[wrapAround(i, 1, indices.Count)];
+                //Debug.Log(Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]));
+                if (Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]) > 180.0f) continue;
+                if (MassContainPoint(A, B, C, vectorList)) continue;
+                //if (ReturnFirstIntersectingEdge(vectorList, A, C)) { continue; }
+                triangles.Add(new Vector3Int(A, B, C));
+                indices.RemoveAt(i);
+                break;
+            } 
+        }
+        triangles.Add(new Vector3Int(indices[0], indices[1], indices[2]));
+        //string sterrrrng = "";for (int i = 0; i < triangles.Count; i++) sterrrrng+= triangles[i].ToString() + " "; Debug.Log(sterrrrng);
+        return triangles;
     }
 
     public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
     {
         List<Vector2> combined = new List<Vector2>(A.vertices);
-        //List<Poly2D> vacantPolys = new List<Poly2D>(B);
 
         for (int i = 0; i < B.Count; i++)
         {
             (int ai, int bi) = UniteHole(combined, B[i]);
             combined = StitchHole(combined, B[i].vertices, ai, bi);
         }
-
-
-
         return combined;
+    }
+
+    public static int wrapAround(int curr, int diff, int max)
+    {
+        return (curr + diff + max) % max;
+    }
+
+    // Возвращает градус от 0 до 360
+    public static float Get_ABC_angle(Vector2 A, Vector2 B, Vector2 C)
+    {
+        Vector2 vecA = A - B;
+        Vector2 vecC = C - B;
+
+        float angle = Mathf.Atan2(vecA.y, vecA.x) - Mathf.Atan2(vecC.y, vecC.x);
+        float degree_angle = (angle * Mathf.Rad2Deg + 360.0f) % 360.0f;
+        return degree_angle;
     }
 
     // Присоединяет дырку 
@@ -96,30 +139,60 @@ public static class Poly2DToolbox
         return (currA, currB);
     }
 
+    public static bool DoesContainPoint(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
+    {
+        Vector2 v0 = B - A, v1 = C - A, v2 = P - A;
+        float d00 = Vector2.Dot(v0, v0);
+        float d01 = Vector2.Dot(v0, v1);
+        float d11 = Vector2.Dot(v1, v1);
+        float denom = d00 * d11 - d01 * d01;
+        if (denom == 0.0f) return false;
+        float d20 = Vector2.Dot(v2, v0);
+        float d21 = Vector2.Dot(v2, v1);
+        float v = (d11 * d20 - d01 * d21) / denom;
+        if (v < 0.0f || v > 1.0f) return false;
+        float w = (d00 * d21 - d01 * d20) / denom;
+        if (w < 0.0f || w > 1.0f) return false;
+        float u = 1.0f - v - w;
+        if (u < 0.0f || u > 1.0f) return false;
+        return true;
+    }
+
+    public static bool MassContainPoint(int A, int B, int C, List<Vector2> Points)
+    {
+        for (int i = 0; i < Points.Count; i++) {
+            //Debug.Log(Points[A] + " " + Points[B] + " " + Points[C] + " " + Points[i]);
+            if (PointSimilarity(Points[A], Points[i]) || PointSimilarity(Points[B], Points[i]) || PointSimilarity(Points[C], Points[i])) continue;
+            if (DoesContainPoint(Points[A], Points[B], Points[C], Points[i])) 
+            {
+                //Debug.Log(A + " " + B + " " + C + " " + i + " True");
+                return true; 
+            }
+        }
+        //Debug.Log(A + " " + B + " " + C + " False");
+        return false;
+    }
+
     // Stitches A and B, new list will contain A+B+2 points. There wil be a duplicate point in both A and B to create a degenerate line.
     public static List<Vector2> StitchHole(List<Vector2> A, List<Vector2> B, int Aindex, int Bindex)
     {
         Vector2[] stitched = new Vector2[A.Count + B.Count + 2];
         //string newLoop = "";
         int newIndex;
-        for (int a = 0; a < Aindex; a++)
-        {
+        for (int a = 0; a < Aindex; a++) {
             newIndex = a;
-            stitched[newIndex] = A[a];
-            //newLoop += "I" + newIndex + " A" + a + "\n";
+            stitched[newIndex] = A[a];              //newLoop += "I" + newIndex + " A" + a + "\n";
         }
         stitched[Aindex] = A[Aindex];
         //newLoop += "I" + Aindex + "_AI_" + Aindex + "\n";
         //Debug.Log(newLoop);
-        for (int b = 0; b < B.Count - Bindex; b++)
-        {
+        for (int b = 0; b < B.Count - Bindex; b++) {
             newIndex = Aindex + b + 1;
             stitched[newIndex] = B[b + Bindex];
             //newLoop += "I" + newIndex + " B" + (b + Bindex) + "\n";
         }
         //Debug.Log(newLoop);
-        for (int b = 0; b < Bindex; b++)
-        {
+        for (int b = 0; b < Bindex; b++) {
             newIndex = Aindex + (B.Count - Bindex + 1) + b;
             stitched[newIndex] = B[b];
             //newLoop += "I" + newIndex + " B" + b + "\n";
@@ -129,13 +202,18 @@ public static class Poly2DToolbox
         //newLoop += "I" + (Aindex + B.Count + 1) + "_BI_" + Bindex + "\n";
         //Debug.Log(newLoop);
 
-        for (int a = 0; a < A.Count - Aindex; a++)
-        {
+        for (int a = 0; a < A.Count - Aindex; a++) {
             newIndex = Aindex + B.Count + 2 + a;
-            stitched[newIndex] = A[a + Aindex];
-            //newLoop += "I" + newIndex + " A" + (a + Aindex) + "\n";
+            stitched[newIndex] = A[a + Aindex];      //newLoop += "I" + newIndex + " A" + (a + Aindex) + "\n";
         }
         //Debug.Log(newLoop);
+        /*
+        Vector2Int overlapA = new Vector2Int(Aindex, Aindex + B.Count + 2);
+        Vector2Int overlapB = new Vector2Int(Aindex + 1, Aindex + B.Count + 1);
+        IncrementOverlap(overlaps, overlapA);
+        IncrementOverlap(overlaps, overlapB);
+        Debug.Log(overlapA + " " + stitched[overlapA[0]] + " " + stitched[overlapA[1]] + "\n" + overlapB + " " + stitched[overlapB[0]] + " " + stitched[overlapB[1]]);
+        overlaps.Add(overlapA); overlaps.Add(overlapB);*/
         return new List<Vector2>(stitched);
     }
 
@@ -157,9 +235,26 @@ public static class Poly2DToolbox
         Pa = -1;
         return false;
     }
+
+    // Returns an true if ther is an intersection between an edge built on top of 2 polygon vertices and native poligon edges
+    public static bool ReturnFirstIntersectingEdge(List<Vector2> Poly, int Aid, int Bid) 
+    {
+        for (int i = 0; i < Poly.Count; i++)
+        {
+            int j = (i + 1) % Poly.Count;// I do not need an intersection with an edge that contains Pvert 
+            if (PointSimilarity(Poly[Aid], Poly[i]) | PointSimilarity(Poly[Aid], Poly[j])) continue; //
+            if (PointSimilarity(Poly[Bid], Poly[i]) | PointSimilarity(Poly[Bid], Poly[j])) continue; //  | PointSimilarity(Poly[Bid], Poly[j])
+            if (LineLineIntersection(Poly[Aid], Poly[Bid], Poly[i], Poly[j], out Vector2 dumdum)) 
+            {
+                return true;
+            }
+        }
+        return false;
+    }
     // Filters out degenerate line fragments that overlap. These fragments are used to bind Holes to Hull
-    // Degenerates come in pairs, so length is always even. 
-    public static bool ReturnFirstIntersectingEdgeDegenerateFilter(Vector2 Outsider, int Pvert, List<Vector2> Poly, List<int> degenerates, out int Pa /*, out int Pb*/) // Pb = Pa +1
+    // Degenerates come in pairs, so length is always even.
+    /*
+    public static bool ReturnFirstIntersectingEdgeDegenerateFilter(Vector2 Outsider, int Pvert, List<Vector2> Poly, List<int> degenerates, out int Pa)
     {
         for (int i = 0; i < Poly.Count; i++)
         {
@@ -173,7 +268,7 @@ public static class Poly2DToolbox
         }
         Pa = -1;
         return false;
-    }
+    }*/
 
     // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки. 
     // Оба полигона должны быть выпуклыми
@@ -296,7 +391,7 @@ public static class Poly2DToolbox
         return LineLineIntersection(A, B, C, D, out interPoint, out Dummy);
     }
 
-    public static bool PointSimilarity(Vector2 A, Vector2 B, float epsilon)
+    public static bool PointSimilarity(Vector2 A, Vector2 B, float epsilon = Geo3D.epsilon)
     { // если разница в обоих координатах меньше эпсилон, то это одна и та же точка
         //Debug.Log(A.ToString() + "  " + B.ToString());
         return (Mathf.Abs(A.x - B.x) < epsilon) & (Mathf.Abs(A.y - B.y) < epsilon);

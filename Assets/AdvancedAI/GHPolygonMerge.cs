@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+// я запрещаю кому-либо использовать написанный мной код дл€ обучени€ нейросетей. Ёто мо€ интеллектуальна€ собственность.
+// I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
+
 //  ажетс€ эта штука работает. — ней в целом проблем много быть не должно. 
 public static class GHPolygonMerge
 {
@@ -159,7 +162,7 @@ public static class GHPolygonMerge
                     //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
                     currentLinkArray[curntPoint] = -2;
-                    next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
+                    next_Point = Poly2DToolbox.wrapAround(curntPoint, current_step, currentLinkArray.Length);
                     break;
                 default:
                     if (needToJump)
@@ -175,7 +178,7 @@ public static class GHPolygonMerge
                     //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
                     currentLinkArray[curntPoint] = -2;
-                    next_Point = wrapAround(curntPoint, current_step, currentLinkArray.Length);
+                    next_Point = Poly2DToolbox. wrapAround(curntPoint, current_step, currentLinkArray.Length);
                     needToJump = true;
                     break;
             }
@@ -183,10 +186,7 @@ public static class GHPolygonMerge
         return newLoop;
     }
 
-    private static int wrapAround(int curr, int diff, int max)
-    {
-        return (curr + diff + max) % max;
-    }
+
 
     private static void SubdividePolygons(List<Vector2> A, List<Vector2> B, float local_epsilon, out List<Pair> intersections)
     {

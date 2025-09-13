@@ -60,12 +60,11 @@ public class GraphManager : MonoBehaviour
         int listCount = this.boxes.Count;
         this.boxes.Add(new NavBoxInt(A, B, listCount, this.myId));
     }
-
-    public void DumpBoxList()
-    {
+    /*
+    public void DumpBoxList() {
         Debug.Log("У меня " + this.boxes.Count + " коробок");
         foreach (var item in graph.vertices) Debug.Log(item);
-    }
+    }*/
 
 // Прочее
     private void Start() {
@@ -97,7 +96,7 @@ public class GraphManager : MonoBehaviour
 }
 
 
-
+/*
 [CustomEditor(typeof(GraphManager))] 
 public class MyComponentEditor : Editor
 {
@@ -110,5 +109,5 @@ public class MyComponentEditor : Editor
         }
     }
 }
-
+*/
 

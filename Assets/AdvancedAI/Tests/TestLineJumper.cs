@@ -13,28 +13,55 @@ public class TestLineJumper : MonoBehaviour
     public List<Vector2> polygonCM;
     public Vector2 polyCMoffset;
 
+    public List<Vector2> stitched;
+
     public bool showA;
     public bool showB;
     public bool showC;
-    public bool showIntersections;
+    public bool showCombined;
+
+    public bool showTriangulation;
+
+    public int PickPointA;
+    public int PickPointB;
+    public int PickPointC;
+    public int PickPointP;
 
     private void Update()
     {
+        
         polygonAM.Clear(); polygonBM.Clear(); polygonCM.Clear();
         for (int i = 0; i < polygonA.Count; i++) polygonAM.Add(polygonA[i] + polygonAoffset);
         for (int i = 0; i < polygonB.Count; i++) polygonBM.Add(polygonB[i] + polygonBoffset);
         for (int i = 0; i < polygonB.Count; i++) polygonCM.Add(polygonB[i] + polyCMoffset);
 
-        //(int p1,int p2) = Poly2DToolbox.UniteHole(polygonAM, new Poly2D(polygonBM)); // List<Vector2> resultlings = 
-        //Debug.Log(p1 + " " + p2);
-        //List<Vector2> stitched = Poly2DToolbox.StitchHole(polygonAM, polygonBM, p1, p2);
-        List<Vector2> stitched = Poly2DToolbox.UniteHoles(new Poly2D(polygonAM), new List<Poly2D>() { new Poly2D(polygonBM), new Poly2D(polygonCM) });
+        stitched = Poly2DToolbox.UniteHoles(new Poly2D(polygonAM), new List<Poly2D>() { new Poly2D(polygonBM), new Poly2D(polygonCM) });
+        List<Vector3Int> triangles = Poly2DToolbox.EarClip(stitched);
+        ConvexPoly2D.HealScars(stitched, triangles);
 
         if (showA) for (int i = 0; i < polygonAM.Count; i++) DebugUtilities.DebugDrawLine(polygonAM[i], polygonAM[(i + 1) % polygonAM.Count], Color.red);
         if (showB) for (int i = 0; i < polygonBM.Count; i++) DebugUtilities.DebugDrawLine(polygonBM[i], polygonBM[(i + 1) % polygonBM.Count], Color.cyan);
         if (showC) for (int i = 0; i < polygonCM.Count; i++) DebugUtilities.DebugDrawLine(polygonCM[i], polygonCM[(i + 1) % polygonCM.Count], Color.blue);
+        if (showCombined) for (int i = 0; i < stitched.Count; i++) DebugUtilities.DebugDrawLine(stitched[i], stitched[(i + 1) % stitched.Count], Color.green);
+        
+        if (showTriangulation)  {
+            foreach (Vector3Int abc in triangles) {
+                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
+                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+            }
+        }
 
-        if (showIntersections) for (int i = 0; i < stitched.Count; i++) DebugUtilities.DebugDrawLine(stitched[i], stitched[(i + 1) % stitched.Count], Color.green);
+        DebugUtilities.DebugDrawLine(stitched[PickPointA], stitched[PickPointB], Color.red);
+        DebugUtilities.DebugDrawLine(stitched[PickPointB], stitched[PickPointC], Color.red);
+        DebugUtilities.DebugDrawLine(stitched[PickPointC], stitched[PickPointA], Color.red);
+        DebugUtilities.DebugDrawCross(stitched[PickPointP], Poly2DToolbox.DoesContainPoint(stitched[PickPointA], stitched[PickPointB], stitched[PickPointC], stitched[PickPointP]) ? Color.green : Color.red);
+
+        List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(stitched, triangles);
+        ConvexPoly2D.IterativeVoronoi(stitched, triangles, connections);
+
+
     }
 
 }

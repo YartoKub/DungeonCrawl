@@ -1131,7 +1131,7 @@ GameObject:
   - component: {fileID: 1006644821}
   - component: {fileID: 1006644820}
   m_Layer: 0
-  m_Name: PolygonContainment (1)
+  m_Name: LineJumper
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1160,19 +1160,25 @@ MonoBehaviour:
   - {x: 2, y: 0}
   polygonAoffset: {x: 0, y: 0}
   polygonB:
-  - {x: 0.75, y: 0.75}
+  - {x: 0, y: 0}
   - {x: 0, y: 1}
-  - {x: 1.5, y: 1.5}
+  - {x: 1, y: 1}
   - {x: 1, y: 0}
   polygonBoffset: {x: 3, y: 0.3}
   polygonAM: []
   polygonBM: []
   polygonCM: []
-  polyCMoffset: {x: 4.5, y: 1}
+  polyCMoffset: {x: 5.2, y: 2.2}
+  stitched: []
   showA: 0
-  showB: 1
-  showC: 1
-  showIntersections: 0
+  showB: 0
+  showC: 0
+  showCombined: 0
+  showTriangulation: 1
+  PickPointA: 0
+  PickPointB: 0
+  PickPointC: 0
+  PickPointP: 0
 --- !u!4 &1006644821
 Transform:
   m_ObjectHideFlags: 0

@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+// Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
+// I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 
 public static class Geo3D
 {
@@ -164,6 +166,36 @@ public static class Geo3D
         return sortedPoints;
     }
 
+    public static Vector2 IncircleCenter(Vector2 p1, Vector2 p2, Vector2 p3)
+    {
+        float A = Vector2.Distance(p1, p2);
+        float B = Vector2.Distance(p1, p3);
+        float C = Vector2.Distance(p2, p3);
+
+        Vector2 incenter = A * p3 + B * p2 + C * p1;
+        Vector2 ans = incenter / (A + B + C);
+        //Debug.Log(ans);
+        return ans;
+    }
+    public static Vector2 CircumCenter(Vector2 pA, Vector2 pB, Vector2 pC)
+    {
+        Vector2 B = pB - pA;
+        Vector2 C = pC - pA;
+        float D = 2 * (B.x * C.y - B.y * C.x);
+        float Ux = 1 / D * (C.y * (B.x * B.x + B.y * B.y) - B.y * (C.x * C.x + C.y * C.y));
+        float Uy = 1 / D * (B.x * (C.x * C.x + C.y * C.y) - C.x * (B.x * B.x + B.y * B.y));
+
+        Vector2 ans = new Vector2(Ux, Uy) + pA;
+        return ans;
+    }
+
+    // Draws a bisector from start to AB, while at the same time splittng the angle in half
+    public static Vector2 bisectorFoot(Vector2 start, Vector2 A, Vector2 B)
+    {   // Does not seem to work
+        float Angle = Vector2.Angle(A - start, B - start);
+        Angle = Angle / 180 * Mathf.PI;
+        return A + (B - A) * Angle;
+    }
 
 
     /*
