@@ -23,10 +23,10 @@ public class TestLineJumper : MonoBehaviour
     public bool showTriangulation;
     public bool showVoronoi;
 
-    public int PickPointA;
-    public int PickPointB;
-    public int PickPointC;
-    public int PickPointP;
+    public int ShowTriangle;
+    public int ShowVertice;
+    public Vector3Int debugVector;
+
 
     private void Update()
     {
@@ -44,13 +44,16 @@ public class TestLineJumper : MonoBehaviour
         if (showB) for (int i = 0; i < polygonBM.Count; i++) DebugUtilities.DebugDrawLine(polygonBM[i], polygonBM[(i + 1) % polygonBM.Count], Color.cyan);
         if (showC) for (int i = 0; i < polygonCM.Count; i++) DebugUtilities.DebugDrawLine(polygonCM[i], polygonCM[(i + 1) % polygonCM.Count], Color.blue);
         if (showCombined) for (int i = 0; i < stitched.Count; i++) DebugUtilities.DebugDrawLine(stitched[i], stitched[(i + 1) % stitched.Count], Color.green);
-        
-        
 
+
+        /*
         DebugUtilities.DebugDrawLine(stitched[PickPointA], stitched[PickPointB], Color.red);
         DebugUtilities.DebugDrawLine(stitched[PickPointB], stitched[PickPointC], Color.red);
         DebugUtilities.DebugDrawLine(stitched[PickPointC], stitched[PickPointA], Color.red);
         DebugUtilities.DebugDrawCross(stitched[PickPointP], Poly2DToolbox.DoesContainPoint(stitched[PickPointA], stitched[PickPointB], stitched[PickPointC], stitched[PickPointP]) ? Color.green : Color.red);
+        */
+
+
 
         List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(stitched, triangles);
         if (showTriangulation)
@@ -80,6 +83,18 @@ public class TestLineJumper : MonoBehaviour
             ConvexPoly2D.DrawPolygonConnections(connections, triangles, stitched);
         }
 
+        if (ShowTriangle >= 0 && ShowTriangle < triangles.Count)
+        {
+            Vector3Int triangle = triangles[ShowTriangle];
+            DebugUtilities.DebugDrawCross((stitched[triangle.x] + stitched[triangle.y] + stitched[triangle.z]) / 3, Color.purple);
+        }
+        if (ShowVertice >= 0 && ShowVertice < stitched.Count)
+        {
+            DebugUtilities.DebugDrawCross(stitched[ShowVertice], Color.purple);
+        }
+
+        ConvexPoly2D poly = new ConvexPoly2D(stitched, triangles, connections, debugVector);
+        poly.DebugDrawSelf();
 
     }
 

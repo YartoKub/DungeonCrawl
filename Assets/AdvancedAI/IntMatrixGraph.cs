@@ -15,8 +15,25 @@ public class IntMatrixGraph : GraphDataStorage
         this.establishConnections();
     }
 
-    protected override void SetValue(bool newValue, int x, int y)
+    public IntMatrixGraph(int VCount)
     {
+        vCount = VCount;
+        connections = new bool[vCount * vCount];
+
+        //this.setConnectionMatrix(false);
+        //this.establishConnections();
+    }
+
+    public override void SetValue(bool newValue, int x, int y)
+    {
+        this.connections[x + y * this.vCount] = newValue;
+        this.connections[y + x * this.vCount] = newValue;
+    }
+
+    public void SetValueSafe(bool newValue, int x, int y)
+    {
+        if (x == -1 | y == -1) return;
+        if (x >= vCount | y >= vCount) return;
         this.connections[x + y * this.vCount] = newValue;
         this.connections[y + x * this.vCount] = newValue;
     }
@@ -104,7 +121,7 @@ public class IntMatrixGraph : GraphDataStorage
         {
             for (int j = 0; j < vCount; j++)
             {
-                newString += (GetValue(i, j) ? "X" : "_") + " ";
+                newString += (GetValue(i, j) ? "X" : "O") + " ";
             }
             newString += "\n";
         }

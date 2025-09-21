@@ -8,13 +8,7 @@ using System.Collections.Generic;
 // TODO: Перекинуть все связанное с триангуляцией в отдельный файлик
 public static class Poly2DToolbox
 {
-    // Каждая ранка от объединения полигона с его дыркой оставляет дегенеративную грань, состоящую из двух наложеных друг на друга граней.
-    // Эти грании должны быть объединены в одну, а треугольники корректно переформированы
-
-
-
-
-
+    
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
     public static List<Vector3Int> EarClip(List<Vector2> vectorList)
@@ -184,8 +178,7 @@ public static class Poly2DToolbox
             stitched[newIndex] = A[a];              //newLoop += "I" + newIndex + " A" + a + "\n";
         }
         stitched[Aindex] = A[Aindex];
-        //newLoop += "I" + Aindex + "_AI_" + Aindex + "\n";
-        //Debug.Log(newLoop);
+        //newLoop += "I" + Aindex + "_AI_" + Aindex + "\n"; Debug.Log(newLoop);
         for (int b = 0; b < B.Count - Bindex; b++) {
             newIndex = Aindex + b + 1;
             stitched[newIndex] = B[b + Bindex];
@@ -199,8 +192,7 @@ public static class Poly2DToolbox
         }
 
         stitched[Aindex + B.Count + 1] = B[Bindex];
-        //newLoop += "I" + (Aindex + B.Count + 1) + "_BI_" + Bindex + "\n";
-        //Debug.Log(newLoop);
+        //newLoop += "I" + (Aindex + B.Count + 1) + "_BI_" + Bindex + "\n"; Debug.Log(newLoop);
 
         for (int a = 0; a < A.Count - Aindex; a++) {
             newIndex = Aindex + B.Count + 2 + a;
@@ -251,29 +243,11 @@ public static class Poly2DToolbox
         }
         return false;
     }
-    // Filters out degenerate line fragments that overlap. These fragments are used to bind Holes to Hull
-    // Degenerates come in pairs, so length is always even.
-    /*
-    public static bool ReturnFirstIntersectingEdgeDegenerateFilter(Vector2 Outsider, int Pvert, List<Vector2> Poly, List<int> degenerates, out int Pa)
-    {
-        for (int i = 0; i < Poly.Count; i++)
-        {
-            int j = (i + 1) % Poly.Count;
-            if (Pvert == i | Pvert == j) continue; // I do not need an intersection with an edge that contains Pvert 
-            if (LineLineIntersection(Outsider, Poly[Pvert], Poly[i], Poly[j], out Vector2 dumdum))
-            {
-                Pa = i;
-                return true;
-            }
-        }
-        Pa = -1;
-        return false;
-    }*/
 
     // Предполагается что точки в полигонах уже отсортированы против часоовй стрелки. 
     // Оба полигона должны быть выпуклыми
     public static List<Vector2> MergePolygons(List<Vector2> A, List<Vector2> B)
-    {
+    {   // Не работает, я реализовал GH алгоритм объединения
         Debug.Log("NOT IMPLEEMNTED");
         //List<Intersection> intersections = new List<Intersection>();
         List<Vector2> result = new List<Vector2>();
@@ -398,18 +372,21 @@ public static class Poly2DToolbox
     }
 
     public static float AreaShoelace(List<Vector2> points)
-    {
-        // Can be used to identify order of vertices. Positive area - counter clockwise | Negative Area - clockwise
-        // 0 Implies polygon is flat
+    {   // Can be used to identify order of vertices. Positive area - counter clockwise | Negative Area - clockwise | 0 Implies polygon is flat
         float area = 0;
         for (int i = 0; i < points.Count; i++)
         {
             int j = (i + 1) % points.Count;
             area += points[i].x * points[j].y - points[i].y * points[j].x;
-
         }
         return area / 2.0f;
     }
+
+    public static float AreaTriangle(Vector2 A, Vector2 B, Vector2 C)
+    {
+        return ( A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y)) * 0.5f;
+    }
+
     // Does A belong to B?
     // 1 B inside A / 0 even level / -1 A inside B
     // If polygons are a result of Greiner-Hoffmann's algorithm, then they are almost guaranteed to have no intersections
@@ -419,18 +396,9 @@ public static class Poly2DToolbox
         if (!A.BBox.Intersects(B.BBox)) { return 0; }// Они раздельны
         bool is_B_Inside = IsPointInsidePolygon(B.vertices[0], A.vertices);
         bool is_A_Inside = IsPointInsidePolygon(A.vertices[0], B.vertices);
-
         //Debug.Log(is_B_Inside.ToString() + " " + is_A_Inside.ToString());
-
-        if (is_B_Inside)
-        {
-            return 1;
-        }
-        if (is_A_Inside)
-        {
-            return -1;
-        }
-
+        if (is_B_Inside) return 1;
+        if (is_A_Inside) return -1;
         return 0;
     }
     public static bool DoesPolygonContainOtherBool(Poly2D A, Poly2D B)
@@ -452,13 +420,11 @@ public static class Poly2DToolbox
     public static bool DoesLineIntersectPolygon(Vector2 A, Vector2 B, Poly2D P)
     {
         //P.BBox.
-
         return false;
     }
 
     public static float TriangleCross(Vector2 p1, Vector2 p2, Vector2 p3)
-    {
-        // 0 - collinear
+    {   // 0 - collinear
         // negative - thos point is to the right from O->P line || clockwise triangle
         // positive - this point is to the left  from O->P line ||  counter clockwise triangle
         return ((p3.x - p2.x) * (p1.y - p2.y) - (p3.y - p2.y) * (p1.x - p2.x));
@@ -473,8 +439,38 @@ public static class Poly2DToolbox
         return TriangleCross(Q, p1, p2) > Geo3D.epsilon;
     }
 
+    public static float SignedAngle(Vector2 P2, Vector2 P1, Vector2 P3)
+    {   // Я помню что реализовывал эту функцию, куда она потерялась?
+        float angle = -(Mathf.Atan2(P3.y - P1.y, P3.x - P1.x) - Mathf.Atan2(P2.y - P1.y, P2.x - P1.x)) * Mathf.Rad2Deg;
+        return (angle + 360.0f) % 360.0f;
+    }
+
+    public static bool IsReflex(Vector2 P2, Vector2 P1, Vector2 P3)
+    {
+        return SignedAngle(P2, P1, P3) > 180.0f;
+    }
+
 
 }
+
+// Filters out degenerate line fragments that overlap. These fragments are used to bind Holes to Hull
+// Degenerates come in pairs, so length is always even.
+/*
+public static bool ReturnFirstIntersectingEdgeDegenerateFilter(Vector2 Outsider, int Pvert, List<Vector2> Poly, List<int> degenerates, out int Pa)
+{
+    for (int i = 0; i < Poly.Count; i++)
+    {
+        int j = (i + 1) % Poly.Count;
+        if (Pvert == i | Pvert == j) continue; // I do not need an intersection with an edge that contains Pvert 
+        if (LineLineIntersection(Outsider, Poly[Pvert], Poly[i], Poly[j], out Vector2 dumdum))
+        {
+            Pa = i;
+            return true;
+        }
+    }
+    Pa = -1;
+    return false;
+}*/
 
 /*
     private static bool PointInsidePolygonHorizontalRaycastLegacy(Vector2 A, Vector2 B, Vector2 targetPoint)

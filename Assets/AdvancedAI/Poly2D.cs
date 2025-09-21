@@ -81,4 +81,23 @@ public class Poly2D
         return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox);
     }
 
+    public void DebugDrawSelf(Color color)
+    {
+        for (int i = 0; i < vertices.Count - 1; i++)
+        {
+            DebugUtilities.DebugDrawLine(vertices[i], vertices[i+1], color);
+        }
+        DebugUtilities.DebugDrawLine(vertices[vertices.Count - 1], vertices[0], color);
+    }
+
+    public Vector2 AveragePoint()
+    {
+        Vector2 summ = Vector2.zero;
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            summ += vertices[i];
+        }
+        return summ / vertices.Count;
+    }
+
 }

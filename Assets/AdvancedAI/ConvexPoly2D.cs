@@ -1,19 +1,315 @@
 using System.Collections.Generic;
 using UnityEngine;
-//using System.Linq;
+using System.Linq;
 
 // Всегда содержит в себе кучу выпуклых полигонов. По дефолту это просто отдельные треугольники, они всегда выпуклы
 // Внутри класса есть инструменты для оптимизации полигонов, по их объединению в более крупные структуры
 public class ConvexPoly2D
 {
     List<Poly2D> polygons; // Содержит в себе полигоны, поверхность, дыры, стены. Все полигоны равны в иерархии
-    IntMatrixGraph storage; // хранит связи между полигонами
+    IntMatrixGraph myMatrix; // хранит связи между полигонами
 
     Bounds BBox;
 
     public ConvexPoly2D()
     {
 
+    }
+
+    private struct TMPConvexPoly
+    {
+        public List<int> vertices;
+        public List<int> absorbedTriangles;
+        //public List<int> neighbours;
+        public TMPConvexPoly(bool dummy)
+        {
+            vertices = new List<int>();
+            absorbedTriangles = new List<int>();
+            //neighbours = new List<int>();
+        }
+    }
+
+    public ConvexPoly2D(List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections, Vector3Int debug)
+    {
+        List<TMPConvexPoly> polys = VolumeGrowth(vectorList, triangleList, connections, debug);
+
+        myMatrix = new IntMatrixGraph(polys.Count);
+        int[] triangleIDList = new int[triangleList.Count];
+        for (int i = 0; i < polys.Count; i++) {
+            for (int j = 0; j < polys[i].absorbedTriangles.Count; j++)
+            {
+                triangleIDList[polys[i].absorbedTriangles[j]] = i;
+            }
+        }
+
+        for (int i = 0; i < polys.Count; i++)
+        {
+            for (int j = 0; j < polys[i].absorbedTriangles.Count; j++)
+            {
+                int Tid = polys[i].absorbedTriangles[j];
+                Vector3Int CCon = connections[Tid];
+                //Debug.Log(i + " " + CCon + " " + j);
+                if (CCon.x != -1 & CCon.x < triangleIDList.Length) myMatrix.SetValue(true, i, triangleIDList[CCon.x]);
+                if (CCon.y != -1 & CCon.y < triangleIDList.Length) myMatrix.SetValue(true, i, triangleIDList[CCon.y]);
+                if (CCon.z != -1 & CCon.z < triangleIDList.Length) myMatrix.SetValue(true, i, triangleIDList[CCon.z]);
+            }
+        }
+
+        this.polygons = new List<Poly2D>();
+        for (int i = 0; i < polys.Count; i++)
+        {
+            List<Vector2> loc_vertices = new List<Vector2>(polys[i].vertices.Count);
+            for (int j = 0; j < polys[i].vertices.Count; j++)
+            {
+                loc_vertices.Add(vectorList[polys[i].vertices[j]]);
+            }
+            Poly2D newPoly = new Poly2D(loc_vertices);
+            newPoly.CalculateBBox();
+            newPoly.convex = true;
+            polygons.Add(newPoly);
+        }
+    }
+
+    public void DebugDrawSelf()
+    {
+        myMatrix.DumpSelf();
+
+        foreach (Poly2D item in this.polygons)
+        {
+            item.DebugDrawSelf(Color.purple);
+        }
+
+        for (int i = 0; i < myMatrix.vCount; i++)
+        {
+            for (int j = i + 1; j < myMatrix.vCount; j++)
+            {
+                if (myMatrix.GetValue(i, j))
+                {
+                    Vector2 A = this.polygons[i].AveragePoint();
+                    Vector2 B = this.polygons[j].AveragePoint();
+                    DebugUtilities.DebugDrawLine(A, B, Color.yellow);
+                    //DebugUtilities.DebugDrawLine(B, A, Color.yellow);
+                }
+            }
+        }
+    }
+
+    public static IntMatrixGraph TmpPolyToConnections()
+    {
+        return null;
+    }
+
+    private static List<TMPConvexPoly> VolumeGrowth(List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections, Vector3Int debug) // Суть в том что полигоны растут
+    {   // Желательно исползовать полигоны, прошедшие через триангуляцию Дюлонея/Вороного, т.к. эта триангуляция уменьшает максимальную грань,
+        // Это приводит к тому что полигоны получаются более округлыми и менее вытянутыми
+        int safety = 0;
+        bool[] isOccupied = new bool[triangleList.Count];       // False by default
+        List< TMPConvexPoly > polys = new List< TMPConvexPoly >();
+        while (safety < 25) { safety += 1;
+            int currT = -1;
+            for (int i = 0; i < triangleList.Count; i++) { if (!isOccupied[i]) { currT = i; break; } }
+            if (currT == -1) break;
+
+            //List<Pair> edges = new List<Pair>(); // Edges, A - start, B - end, bool - является ли грань частью оригинальной границы
+            polys.Add(GrowBigPolygon(currT, isOccupied, vectorList, triangleList, connections, debug));
+        }
+        //Debug.Log("   BROKEN OUT!   ");
+        return polys;
+    }
+    private static TMPConvexPoly GrowBigPolygon(int seedT, bool[] isOccupied, List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections, Vector3Int debug)
+    {
+        //Debug.Log("BEGAN BUILDING POLY");
+        int safety = 0;
+        TMPConvexPoly bigPoly = new TMPConvexPoly(true);
+        //bigPoly.absorbedTriangles.Add(seedT);
+        List<int> order = new List<int>();
+        List<float> area = new List<float>();
+        bigPoly.vertices.Add(triangleList[seedT].x);
+        bigPoly.vertices.Add(triangleList[seedT].y);
+        bigPoly.vertices.Add(triangleList[seedT].z);
+        bigPoly.absorbedTriangles.Add(seedT);
+        int currT = seedT;
+        while (safety < 25) { safety += 1;
+            // Identify neighbours and add them to queue
+            isOccupied[currT] = true;
+            //Debug.Log((connections[currT].x != -1) + " " + CanConsume(currT, connections[currT].x, vectorList, triangleList));
+            if (connections[currT].x != -1 && CanConsume(currT, connections[currT].x, bigPoly, vectorList, triangleList) && !isOccupied[connections[currT].x])
+            {
+                Vector3Int XT = triangleList[connections[currT].x];
+                order.Add(connections[currT].x);
+                area.Add(Poly2DToolbox.AreaTriangle(vectorList[XT.x], vectorList[XT.y], vectorList[XT.z]));
+            }
+            //Debug.Log((connections[currT].y != -1) + " " + CanConsume(currT, connections[currT].y, vectorList, triangleList));
+            if (connections[currT].y != -1 && CanConsume(currT, connections[currT].y, bigPoly, vectorList, triangleList) && !isOccupied[connections[currT].y])
+            {
+                Vector3Int YT = triangleList[connections[currT].y];
+                order.Add(connections[currT].y);
+                area.Add(Poly2DToolbox.AreaTriangle(vectorList[YT.x], vectorList[YT.y], vectorList[YT.z]));
+            }
+            //Debug.Log((connections[currT].z != -1) + " " + CanConsume(currT, connections[currT].z, vectorList, triangleList));
+            if (connections[currT].z != -1 && CanConsume(currT, connections[currT].z, bigPoly, vectorList, triangleList) && !isOccupied[connections[currT].z])
+            {
+                Vector3Int ZT = triangleList[connections[currT].z];
+                order.Add(connections[currT].z);
+                area.Add(Poly2DToolbox.AreaTriangle(vectorList[ZT.x], vectorList[ZT.y], vectorList[ZT.z]));
+            }
+            //Debug.Log(order.Count == 0 ? "NO MORE TO ADD" : "Have " + order.Count + " triangles in quee");
+            if (order.Count == 0) break;
+
+            // SELECT biggest triangle and SELECT it's Neighbour inside of BigPoly
+            int biggest = 0;    // Picks largest area of all areas as next block
+            for (int i = 0; i < order.Count; i++) biggest = area[biggest] <= area[i] ? i : biggest;
+
+            int absorbedT = -1; // neighbour that shares an edge with biggest
+            for (int i = 0; i < bigPoly.absorbedTriangles.Count; i++)
+            {
+                //Debug.Log(triangleList[bigPoly.absorbedTriangles[i]] + " " + triangleList[order[biggest]]);
+                //Debug.Log(DoIntTrianglesTouch(triangleList[bigPoly.absorbedTriangles[i]], triangleList[order[biggest]]));
+                if (DoIntTrianglesTouch(triangleList[bigPoly.absorbedTriangles[i]], triangleList[order[biggest]]))
+                {
+                    absorbedT = i;
+                    break;
+                }
+            }
+            if (absorbedT == -1) break;
+            int thisTid = bigPoly.absorbedTriangles[absorbedT];
+            int otherTid = order[biggest];
+            // Get vertices involved in operation
+            //Debug.Log(otherTid + " " + thisTid + " " + triangleList[otherTid] + " " + triangleList[thisTid]);
+            Vector3Int dirrerent = GetDifferringVerticeAndOverlap(triangleList[otherTid], triangleList[thisTid]);  // T that belongs to BigPoly
+            int C = GetDifferringVertice(triangleList[thisTid], triangleList[otherTid]);                        // New point to add
+            int Bc = dirrerent.y;
+            int Bn = bigPoly.vertices[GetPrevious(bigPoly.vertices, Bc)];
+            int Dc = dirrerent.z;
+            int Dn = bigPoly.vertices[GetNext(bigPoly.vertices, Dc)];
+            //Debug.Log(dirrerent + " C " + C + " Bc " +Bc + " Bn " + Bn + " Dc " + Dc + " Dn " + Dn);
+            //Debug.Log(vectorList[Bc] + " " + vectorList[Bn] + " " + vectorList[Dc] + " " + vectorList[Dn]);
+
+            // If angles are not reflex, absorbs triangle
+            float Bangle = Poly2DToolbox.SignedAngle(vectorList[Bn], vectorList[Bc], vectorList[C]);
+            float Dangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Dc], vectorList[Dn]);
+            //Debug.Log(Bangle + " " + Dangle);
+            /*
+            if (debug.x != -1 && debug.x == order[biggest])
+            {
+                DebugUtilities.DebugDrawLine(vectorList[Bn], vectorList[Bc], Color.red);
+                DebugUtilities.DebugDrawLine(vectorList[Bc], vectorList[C], Color.red);
+                DebugUtilities.DebugDrawLine(vectorList[C], vectorList[Dc], Color.blue);
+                DebugUtilities.DebugDrawLine(vectorList[Dc], vectorList[Dn], Color.blue);
+            }*/
+
+
+            if (Bangle < 180 && Dangle < 180)
+            {
+                //Debug.Log("Triangle injection " + order[biggest]);
+                InjectVertice(bigPoly.vertices, C, Dc);
+                bigPoly.absorbedTriangles.Add(order[biggest]);
+                currT = order[biggest]; // sets newly added triangle as next triangle
+            }
+            order.RemoveAt(biggest);    // removes next block from neighbours
+            area .RemoveAt(biggest);    // as well as it's area
+        }
+        //Debug.Log(bigPoly.absorbedTriangles.Count);
+        //string absT1 = ""; for (int i = 0; i < bigPoly.absorbedTriangles.Count; i++) absT1 += bigPoly.absorbedTriangles[i] + " "; Debug.Log(absT1);
+
+        //Debug.Log("FINISHED BUIL:DING POLY");
+        return bigPoly;
+    }
+
+    private static bool CanConsume(int thisTid, int otherTid, TMPConvexPoly bigPoly, List<Vector2> vectorList, List<Vector3Int> triangleList)
+    {
+        // Get vertices involved in operation
+        //Debug.Log(otherTid + " " + thisTid + " " + triangleList[otherTid] + " " + triangleList[thisTid]);
+        Vector3Int dirrerent = GetDifferringVerticeAndOverlap(triangleList[otherTid], triangleList[thisTid]);  // T that belongs to BigPoly
+        int C = GetDifferringVertice(triangleList[thisTid], triangleList[otherTid]);                        // New point to add
+        int Bc = dirrerent.y;
+        int Bn = bigPoly.vertices[GetPrevious(bigPoly.vertices, Bc)];
+        int Dc = dirrerent.z;
+        int Dn = bigPoly.vertices[GetNext(bigPoly.vertices, Dc)];
+
+        float Bangle = Poly2DToolbox.SignedAngle(vectorList[Bn], vectorList[Bc], vectorList[C]);
+        float Dangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Dc], vectorList[Dn]);
+
+        return Bangle < 180 && Dangle < 180;
+    }
+
+
+    // Injects a new vertex after previous vertex
+    public static void InjectVertice(List<int> bigPolyVerts, int newVert, int prevVert)
+    {
+        if (bigPolyVerts.Count < 2) return;
+        for (int i = 0; i < bigPolyVerts.Count; i++)
+        {
+            if (bigPolyVerts[i] != prevVert) continue;
+            //Debug.Log(i + " " + bigPolyVerts[i] + " " + prevVert + " " + newVert);
+            bigPolyVerts.Insert(i, newVert);
+            return;
+        }
+        return;
+    }
+    public static int GetPrevious(List<int> bigPolyVerts, int vid)
+    {
+        for (int i = 0; i < bigPolyVerts.Count; i++)
+        {
+            if (bigPolyVerts[i] == vid)
+            {
+                return (i - 1 + bigPolyVerts.Count) % bigPolyVerts.Count;
+            }
+        }
+        return -1;
+    }
+
+    public static int GetNext(List<int> bigPolyVerts, int vid)
+    {
+        for (int i = 0; i < bigPolyVerts.Count; i++)
+        {
+            if (bigPolyVerts[i] == vid)
+            {
+                return (i + 1) % bigPolyVerts.Count;
+            }
+        }
+        return -1;
+    }
+
+
+    // Picks next triangle to add to the Polygon
+    private static int PickOneToConsume(TMPConvexPoly bigP, List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections)
+    {
+        return -1;
+    }
+
+    public static bool CanConsume(int T1, int T2, List<Vector2> vectorList, List<Vector3Int> triangleList)
+    {
+        if (T1 == -1) return false;
+        if (T2 == -1) return false;
+
+        Vector3Int A1BC = GetDifferringVerticeAndOverlap(triangleList[T2], triangleList[T1]);
+        int A1 = A1BC.x;
+        int B = A1BC.y;
+        int C = A1BC.z;
+        int A2 = GetDifferringVertice(triangleList[T1], triangleList[T2]);
+        /*
+        DebugUtilities.DebugDrawCross(avgPoint(vectorList[triangleList[T1].x], vectorList[triangleList[T1].y], vectorList[triangleList[T1].z]), Color.red);
+        DebugUtilities.DebugDrawLine(vectorList[A1], vectorList[B], Color.yellow);
+        DebugUtilities.DebugDrawLine(vectorList[B], vectorList[A2], Color.yellow);
+        DebugUtilities.DebugDrawCross(vectorList[B], Color.orange);
+        DebugUtilities.DebugDrawLine(vectorList[A2], vectorList[C], Color.cyan);
+        DebugUtilities.DebugDrawLine(vectorList[C], vectorList[A1], Color.cyan);
+        DebugUtilities.DebugDrawCross(vectorList[C], Color.purple);*/
+        //Debug.Log(angleB + " " + angleC);
+        float angleB = Poly2DToolbox.SignedAngle(vectorList[A1], vectorList[B], vectorList[A2]);
+        float angleC = Poly2DToolbox.SignedAngle(vectorList[A2], vectorList[C], vectorList[A1]);
+        return (angleB <= 180 && angleC <= 180);
+    }
+
+    public static float GetAreaAndConsumability(int T1, int T2, List<Vector2> vectorList, List<Vector3Int> triangleList)
+    {
+        if (CanConsume(T1, T2, vectorList, triangleList)) 
+            return Poly2DToolbox.AreaTriangle(
+            vectorList[triangleList[T2].x], 
+            vectorList[triangleList[T2].y], 
+            vectorList[triangleList[T2].z]);
+        return -1.0f;
     }
 
     public static void IterativeVoronoi(List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections)
@@ -28,8 +324,8 @@ public class ConvexPoly2D
             isValid[i] = true;
             reasonToLive = true;
         }
-        Debug.Log(reasonToLive ? "I have reason to live!" : "NO reason to live...");
-        string strrr = ""; for (int i = 0; i < triangleList.Count; i++) { strrr += isValid[i] + " "; }; Debug.Log(strrr);
+        //Debug.Log(reasonToLive ? "I have reason to live!" : "NO reason to live...");
+        //string strrr = ""; for (int i = 0; i < triangleList.Count; i++) { strrr += isValid[i] + " "; }; Debug.Log(strrr);
 
         int safety = 0;
         while (reasonToLive & safety < 50) { safety += 1;
@@ -46,23 +342,17 @@ public class ConvexPoly2D
             FlipTriangle(currT, voronoiIssue, vectorList, triangleList, connections);
             isValid[currT] = true;             // Both triangles have been flipped, it is unknown whether they follow Voronoi rule or not
             isValid[voronoiIssue] = true;
-        }
-
-        Debug.Log("SAFEYTY " +  safety);
+        } //Debug.Log("SAFEYTY " +  safety);
     }
 
     public static void FlipTriangle(int T1, int T2, List<Vector2> verts, List<Vector3Int> triangleList, List<Vector3Int> connections)
     {   // By default all little triangles are counter-clockwise, resulting triangles should too be CCW
-        Debug.Log(T1 + " " + T2);
-        Debug.Log(triangleList[T1] + " " + triangleList[T2]);
-        Debug.Log(triangleList.Count);
         int A2 = GetDifferringVertice(triangleList[T1], triangleList[T2]);
         int A1 = GetDifferringVertice(triangleList[T2], triangleList[T1]);
         /* (A2, C, B) (A1, B, C) */ int B = triangleList[T2].y; int C = triangleList[T2].x;     // Triangles overlap at C and B
         if (triangleList[T2].x == A2) { B = triangleList[T2].z;     C = triangleList[T2].y; }
         if (triangleList[T2].y == A2) { B = triangleList[T2].x;     C = triangleList[T2].z; }
-        
-        Debug.Log("( " + A2 + " " + C + " " + B + " ) ( " + A1 + " " + B + " " + C + " )");
+        //Debug.Log("( " + A2 + " " + C + " " + B + " ) ( " + A1 + " " + B + " " + C + " )");
 
         // Connections
         // Both triangles will remain connected to each other
@@ -103,21 +393,11 @@ public class ConvexPoly2D
         for (int i = 0; i < FourNeighboursList.Count; i++)
         {
             int locN = FourNeighboursList[i];
-            if (FourNeighboursList[i] == -1) continue;
-            //Debug.Log(T1 + " " + locN);
-            if (DoIntTrianglesTouch(triangleList[T1], triangleList[locN]))
-            {
-                SetNeighbours(T1, locN, triangleList[T1], triangleList[locN], connections);
-            }
-            //Debug.Log(T2 + " " + locN);
-            if (DoIntTrianglesTouch(triangleList[T2], triangleList[locN]))
-            {
-                SetNeighbours(T2, locN, triangleList[T2], triangleList[locN], connections);
-            }
+            if (FourNeighboursList[i] == -1) continue;  // Rechecks whether there is a connection for an updates T1 and T2
+            if (DoIntTrianglesTouch(triangleList[T1], triangleList[locN])) SetNeighbours(T1, locN, triangleList[T1], triangleList[locN], connections);
+            if (DoIntTrianglesTouch(triangleList[T2], triangleList[locN])) SetNeighbours(T2, locN, triangleList[T2], triangleList[locN], connections);
         }
-
-        SetNeighbours(T1, T2, triangleList[T1], triangleList[T2], connections);
-        //Debug.Log(T1 + " " + T2);
+        SetNeighbours(T1, T2, triangleList[T1], triangleList[T2], connections);     // And finally sets T1 and T2 as neighbours
     }
 
     private static int FirstTrue(bool[] list)
@@ -155,17 +435,28 @@ public class ConvexPoly2D
         return -1;
     }
 
+    private static Vector3Int GetDifferringVerticeAndOverlap(Vector3Int A, Vector3Int B)
+    {   // First value is a difference, second two values are overlap
+        if (B.x != A.x && B.x != A.y && B.x != A.z) return new Vector3Int(B.x, B.y, B.z); 
+        if (B.y != A.x && B.y != A.y && B.y != A.z) return new Vector3Int(B.y, B.z, B.x);
+        if (B.z != A.x && B.z != A.y && B.z != A.z) return new Vector3Int(B.z, B.x, B.y);
+        return -Vector3Int.one;
+    }
+
     public static void CompleteVoronoiTriangulation(Poly2D mainPoly, List<Poly2D> holes)
     {
         List<Vector2> stitched = Poly2DToolbox.UniteHoles(mainPoly, holes);
         List<Vector3Int> triangles = Poly2DToolbox.EarClip(stitched);
         HealScars(stitched, triangles);
         List<Vector3Int> TConnections = EstablishConnections(stitched, triangles);
+        IterativeVoronoi(stitched, triangles, TConnections);
+
     }
 
+    // Каждая ранка от объединения полигона с его дыркой оставляет дегенеративную грань, состоящую из двух наложеных друг на друга граней.
+    // Эти грании должны быть объединены в одну, а треугольники корректно переформированы
     public static void HealScars(List<Vector2> vectorList, List<Vector3Int> triangleList)
     {
-        //overlapA.AddRange(overlapB);
         List<Vector2Int> all_overlaps = DetectOverlaps(vectorList);
         //for (int i = 0; i < all_overlaps.Count; i++) Debug.Log(all_overlaps[i] + " " + vectorList[all_overlaps[i][0]] + " " + vectorList[all_overlaps[i][1]] );
 
@@ -238,7 +529,7 @@ public class ConvexPoly2D
                 SetNeighbours(a, b, triangles[a], triangles[b], TConnections);
             }
         }
-        string connmattrix = "=== Connection matrix ==="; for (int i = 0; i < triangles.Count; i++) connmattrix += triangles[i] + " " + TConnections[i] + "\n"; Debug.Log(connmattrix);
+        //string connmattrix = "=== Connection matrix ==="; for (int i = 0; i < triangles.Count; i++) connmattrix += triangles[i] + " " + TConnections[i] + "\n"; Debug.Log(connmattrix);
         return TConnections;
     }   
 
@@ -265,17 +556,6 @@ public class ConvexPoly2D
                 DebugUtilities.DebugDrawLine(avgPoint(vertices[t1.x], vertices[t1.y], vertices[t1.z]), avgPoint(vertices[t2.x], vertices[t2.y], vertices[t2.z]), Color.red);
             }
         }
-    }
-
-    public static void VolumeGrowth(Poly2D outer, List<Poly2D> holes) // Суть в том что полигоны растут
-    {   // Пока нет идей по тому какой именно алгоритм можно использовать для подобного разделения
-        //int safety = 0; // Второстепенная цель: минимизировать площадь соприкосновения между отдельными выпуклыми фрагментами
-        /*
-        while (safety < 25)
-        {   safety += 1;
-            List<Pair> edges = new List<Pair>(); // Edges, A - start, B - end, bool - является ли грань частью оригинальной границы
-        }
-        */
     }
 
     private static Vector2 avgPoint(Vector2 A, Vector2 B, Vector2 C)

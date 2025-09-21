@@ -21,7 +21,7 @@ public abstract class GraphDataStorage
     public abstract int GetNodeEdgeCount(int rowID);
 
     // INITIALIZATION
-    protected abstract void SetValue(bool newValue, int x, int y);
+    public abstract void SetValue(bool newValue, int x, int y);
     protected abstract void setConnectionMatrix(bool newValue);
     protected abstract void establishConnections();
     // DEBUG

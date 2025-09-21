@@ -21,7 +21,7 @@ public class FullMatrixGraph : GraphDataStorage
         this.establishConnections();
     }
 
-    protected override void SetValue(bool newValue, int x, int y)
+    public override void SetValue(bool newValue, int x, int y)
     {
         this.connections[x + y * this.vCount] = newValue;
         this.connections[y + x * this.vCount] = newValue;
