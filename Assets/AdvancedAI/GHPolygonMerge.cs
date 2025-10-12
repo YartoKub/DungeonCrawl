@@ -169,7 +169,7 @@ public static class GHPolygonMerge
                     {
                         next_Point = currentLinkArray[curntPoint];
                         //Debug.Log("Jump " + (curntAorB ? "B" : "A") + curntPoint + " " + (!curntAorB ? "B" : "A") + next_Point + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
-                        newLoop.Add(currentList[curntPoint]);
+                        //newLoop.Add(currentList[curntPoint]); // Это приводит к дубликатам вершин
                         curntAorB = !curntAorB;
                         currentLinkArray[curntPoint] = -2;
                         needToJump = false;

@@ -340,6 +340,10 @@ MonoBehaviour:
   showA: 1
   showB: 1
   showIntersections: 1
+  showStitch: 0
+  showTriangulation: 0
+  iterationLimit: 0
+  lightUpVert: 0
 --- !u!1 &529748024
 GameObject:
   m_ObjectHideFlags: 0
@@ -956,9 +960,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40101bdb7cc5b7c48989ee2e33b48806, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  A: {x: 5, y: 5}
-  B: {x: 6, y: 5}
+  A: {x: 0, y: 0}
+  B: {x: 5, y: 0}
+  C1: {x: 0, y: 5}
   C2: {x: 6, y: 4}
+  epsilon: 0.1
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -1183,7 +1189,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1006644820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1221,8 +1227,9 @@ MonoBehaviour:
   showB: 0
   showC: 0
   showCombined: 0
-  showTriangulation: 0
-  showVoronoi: 1
+  showTriangulation: 1
+  showVoronoi: 0
+  showConvexDecomposition: 0
   ShowTriangle: 0
   ShowVertice: 0
   debugVector: {x: 0, y: 0, z: 0}
@@ -1693,6 +1700,10 @@ MonoBehaviour:
   showA: 0
   showB: 0
   showIntersections: 1
+  showStitch: 0
+  showTriangulation: 0
+  iterationLimit: 0
+  lightUpVert: 0
 --- !u!4 &1430422053
 Transform:
   m_ObjectHideFlags: 0
@@ -1792,7 +1803,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1634279668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1814,7 +1825,7 @@ MonoBehaviour:
   - {x: 6, y: 3}
   - {x: 4, y: 3}
   - {x: 5, y: 2}
-  - {x: 3, y: 2}
+  - {x: 2, y: 2}
   - {x: 1, y: 1}
   - {x: 4, y: -1}
   - {x: 7, y: 4}
@@ -1824,9 +1835,13 @@ MonoBehaviour:
   Bbool: 0
   polygonAM: []
   polygonBM: []
-  showA: 1
-  showB: 1
-  showIntersections: 1
+  showA: 0
+  showB: 0
+  showIntersections: 0
+  showStitch: 1
+  showTriangulation: 0
+  iterationLimit: 0
+  lightUpVert: -1
 --- !u!4 &1634279669
 Transform:
   m_ObjectHideFlags: 0

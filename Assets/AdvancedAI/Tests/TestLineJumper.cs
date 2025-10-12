@@ -22,6 +22,7 @@ public class TestLineJumper : MonoBehaviour
 
     public bool showTriangulation;
     public bool showVoronoi;
+    public bool showConvexDecomposition;
 
     public int ShowTriangle;
     public int ShowVertice;
@@ -94,8 +95,7 @@ public class TestLineJumper : MonoBehaviour
         }
 
         ConvexPoly2D poly = new ConvexPoly2D(stitched, triangles, connections, debugVector);
-        poly.DebugDrawSelf();
-
+        if (showConvexDecomposition) poly.DebugDrawSelf();
     }
 
 }

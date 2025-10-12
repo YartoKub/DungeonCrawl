@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+// TODO: заменить Vector3Int треугольники и соседей на простые структуры из 3х integer-ов чтобы не путаться.
+
 // Всегда содержит в себе кучу выпуклых полигонов. По дефолту это просто отдельные треугольники, они всегда выпуклы
 // Внутри класса есть инструменты для оптимизации полигонов, по их объединению в более крупные структуры
 public class ConvexPoly2D
@@ -427,7 +429,7 @@ public class ConvexPoly2D
         return -1;
     }
 
-    private static int GetDifferringVertice(Vector3Int A, Vector3Int B)
+    public static int GetDifferringVertice(Vector3Int A, Vector3Int B)
     {
         if (B.x != A.x && B.x != A.y && B.x != A.z) return B.x;
         if (B.y != A.x && B.y != A.y && B.y != A.z) return B.y;
@@ -435,7 +437,7 @@ public class ConvexPoly2D
         return -1;
     }
 
-    private static Vector3Int GetDifferringVerticeAndOverlap(Vector3Int A, Vector3Int B)
+    public static Vector3Int GetDifferringVerticeAndOverlap(Vector3Int A, Vector3Int B)
     {   // First value is a difference, second two values are overlap
         if (B.x != A.x && B.x != A.y && B.x != A.z) return new Vector3Int(B.x, B.y, B.z); 
         if (B.y != A.x && B.y != A.y && B.y != A.z) return new Vector3Int(B.y, B.z, B.x);

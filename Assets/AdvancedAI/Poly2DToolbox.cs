@@ -8,6 +8,8 @@ using System.Collections.Generic;
 // TODO: Перекинуть все связанное с триангуляцией в отдельный файлик
 public static class Poly2DToolbox
 {
+    public static float straightAngle = 179.5f;
+    public static float flatAngle = 0.01f;
     
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
@@ -24,8 +26,9 @@ public static class Poly2DToolbox
                 int A = indices[wrapAround(i, -1, indices.Count)];
                 int B = indices[i];
                 int C = indices[wrapAround(i, 1, indices.Count)];
-                //Debug.Log(Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]));
-                if (Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]) > 180.0f) continue;
+                float currAngle = Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]);
+                //Debug.Log(currAngle + " " + (currAngle >= straightAngle | currAngle <= flatAngle));
+                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;
                 if (MassContainPoint(A, B, C, vectorList)) continue;
                 //if (ReturnFirstIntersectingEdge(vectorList, A, C)) { continue; }
                 triangles.Add(new Vector3Int(A, B, C));
@@ -33,10 +36,53 @@ public static class Poly2DToolbox
                 break;
             } 
         }
+        // Добавление последних трех оставшихся вершин
         triangles.Add(new Vector3Int(indices[0], indices[1], indices[2]));
+        /*
+        Vector3Int lt = new Vector3Int(indices[0], indices[1], indices[2]);
+        Vector3Int pt = triangles[triangles.Count - 1];
+        float lastAngle = Get_ABC_angle(vectorList[lt.x], vectorList[lt.y], vectorList[lt.z]);
+        Debug.Log(lastAngle + " " + (lastAngle >= straightAngle | lastAngle <= flatAngle));
+        if (lastAngle >= straightAngle | lastAngle <= flatAngle)
+        {           
+            Vector3Int A2 = ConvexPoly2D.GetDifferringVerticeAndOverlap(lt, pt);
+            Vector3Int A1 = ConvexPoly2D.GetDifferringVerticeAndOverlap(pt, lt);
+
+            triangles[triangles.Count - 1] = new Vector3Int(A2.x, A2.y, A1.x);
+            triangles.Add(new Vector3Int(A1.x, A1.y, A2.x));
+        }*/
+        
         //string sterrrrng = "";for (int i = 0; i < triangles.Count; i++) sterrrrng+= triangles[i].ToString() + " "; Debug.Log(sterrrrng);
         return triangles;
     }
+
+    public static List<Vector3Int> EarClipLimited(List<Vector2> vectorList, int limit)
+    {
+        List<Vector3Int> triangles = new List<Vector3Int>(vectorList.Count - 2);
+        List<int> indices = new List<int>(vectorList.Count);
+        for (int i = 0; i < vectorList.Count; i++) indices.Add(i);
+
+        int safety = 0;
+        while (safety < limit && indices.Count != 3)
+        {
+            safety += 1;
+            for (int i = 0; i < indices.Count; i++)
+            {
+                int A = indices[wrapAround(i, -1, indices.Count)];
+                int B = indices[i];
+                int C = indices[wrapAround(i, 1, indices.Count)];
+                float currAngle = Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]);
+                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;
+                if (MassContainPoint(A, B, C, vectorList)) continue;
+                triangles.Add(new Vector3Int(A, B, C));
+                indices.RemoveAt(i);
+                break;
+            }
+        }
+        if (safety < limit) triangles.Add(new Vector3Int(indices[0], indices[1], indices[2]));
+        return triangles;
+    }
+
 
     public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
     {
@@ -112,7 +158,7 @@ public static class Poly2DToolbox
             return (center - A[a]).magnitude.CompareTo((center - A[b]).magnitude);
         });
         currA = Aindices[0];
-
+        //DebugUtilities.DebugDrawLine(A[currA], B.vertices[currB], Color.pink);
         while (safety < 20)
         {
             safety += 1;
@@ -120,48 +166,71 @@ public static class Poly2DToolbox
             hasChanged = false;
             if (ReturnFirstIntersectingEdge(A[currA], B.vertices, currB, out int newB))
             {
+                //DebugUtilities.DebugDrawLine(B.vertices[currB], B.vertices[newB], Color.violet);
                 hasChanged = true;
                 currB = newB;
             }
-
             if (ReturnFirstIntersectingEdge(B.vertices[currB], A, currA, out int newA))
             {
+                //DebugUtilities.DebugDrawLine(A[currA], A[newA], Color.yellow);
                 hasChanged = true;
                 currA = newA;
             }
+            if (JumpCloserToTarget(A[currA], B.vertices, currB, out int jumpB))
+            {
+                hasChanged = true;
+                currB = jumpB;
+            }
+            if (JumpCloserToTarget(B.vertices[currB], A, currA, out int jumpA))
+            {
+                hasChanged = true;
+                currA = jumpA;
+            }
         }
+        //DebugUtilities.DebugDrawLine(A[currA], B.vertices[currB], Color.green);
         return (currA, currB);
     }
 
     public static bool DoesContainPoint(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
     {
+        float lowLine = 0.0f; float highLine = 1.0f;
         Vector2 v0 = B - A, v1 = C - A, v2 = P - A;
         float d00 = Vector2.Dot(v0, v0);
         float d01 = Vector2.Dot(v0, v1);
         float d11 = Vector2.Dot(v1, v1);
         float denom = d00 * d11 - d01 * d01;
-        if (denom == 0.0f) return false;
+        if (denom == 0.0f) return true;
         float d20 = Vector2.Dot(v2, v0);
         float d21 = Vector2.Dot(v2, v1);
         float v = (d11 * d20 - d01 * d21) / denom;
-        if (v < 0.0f || v > 1.0f) return false;
+        if (v < lowLine || v > highLine) return false;
         float w = (d00 * d21 - d01 * d20) / denom;
-        if (w < 0.0f || w > 1.0f) return false;
+        if (w < lowLine || w > highLine) return false;
         float u = 1.0f - v - w;
-        if (u < 0.0f || u > 1.0f) return false;
+        if (u < lowLine || u > highLine) return false;
         return true;
     }
+
+    public static bool IsPointInside(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
+    {
+        float AB = Vector2.SignedAngle(B - A, P - A);
+        float BC = Vector2.SignedAngle(C - B, P - B);
+        float CA = Vector2.SignedAngle(A - C, P - C);
+        //Debug.Log(AB + " " + BC + " " + CA);
+        if (AB <= -1.0f) return false;
+        if (BC <= -1.0f) return false;
+        if (CA <= -1.0f) return false;
+        return true;
+    }
+
 
     public static bool MassContainPoint(int A, int B, int C, List<Vector2> Points)
     {
         for (int i = 0; i < Points.Count; i++) {
             //Debug.Log(Points[A] + " " + Points[B] + " " + Points[C] + " " + Points[i]);
             if (PointSimilarity(Points[A], Points[i]) || PointSimilarity(Points[B], Points[i]) || PointSimilarity(Points[C], Points[i])) continue;
-            if (DoesContainPoint(Points[A], Points[B], Points[C], Points[i])) 
-            {
-                //Debug.Log(A + " " + B + " " + C + " " + i + " True");
-                return true; 
-            }
+            //if (DoesContainPoint(Points[A], Points[B], Points[C], Points[i])) return true;
+            if (IsPointInside(Points[A], Points[B], Points[C], Points[i])) return true;
         }
         //Debug.Log(A + " " + B + " " + C + " False");
         return false;
@@ -212,6 +281,7 @@ public static class Poly2DToolbox
     // Outsider is a point that does not belong to a Poly
     // Poly - is plygon
     // Pvert - vertex ID of some vertex that belongs to List P
+
     public static bool ReturnFirstIntersectingEdge(Vector2 Outsider, List<Vector2> Poly, int Pvert, out int Pa /*, out int Pb*/) // Pb = Pa +1
     { 
         for (int i = 0; i < Poly.Count; i++) 
@@ -225,6 +295,34 @@ public static class Poly2DToolbox
             }
         }
         Pa = -1;
+        return false;
+    }
+    // Делает ровно один прыжок на одну из соседних точек если та находится ближе к целевой точке
+    public static bool JumpCloserToTarget(Vector2 Outsider, List<Vector2> Poly, int Pvert, out int Pa /*, out int Pb*/) // Pb = Pa +1
+    {
+        int nextID = (Pvert + 1) % Poly.Count;
+        int prevID = (Pvert + 1 + Poly.Count) % Poly.Count;
+        Vector2 currP = Poly[Pvert];
+        Vector2 nextP = Poly[nextID];
+        Vector2 prevP = Poly[prevID];
+        float currM = (currP - Outsider).magnitude;
+        float nextM = (nextP - Outsider).magnitude;
+        float prevM = (prevP - Outsider).magnitude;
+        Pa = Pvert;
+        //Debug.Log(currM + " " + nextM + " " + prevM);
+        if (nextM < prevM)  {
+            if (nextM < currM)
+            {
+                Pa = nextID;
+                return true;
+            }
+        } else {
+            if (prevM < currM)
+            {
+                Pa = prevID;
+                return true;
+            }
+        }
         return false;
     }
 
@@ -335,7 +433,12 @@ public static class Poly2DToolbox
         interPoint = Vector2.zero;
         distance = 0;
         float det = (A.x - B.x) * (C.y - D.y) - (A.y - B.y) * (C.x - D.x);
-        if (Mathf.Abs(det) < Geo3D.epsilon) return false; 
+        //Debug.Log("hi");
+        if (Mathf.Abs(det) < Geo3D.epsilon) 
+        {
+            
+            return false;
+        }
         float X = (A.x * B.y - A.y * B.x) * (C.x - D.x) - (A.x - B.x) * (C.x * D.y - C.y * D.x);
         float Y = (A.x * B.y - A.y * B.x) * (C.y - D.y) - (A.y - B.y) * (C.x * D.y - C.y * D.x);
         det = 1 / det;

@@ -53,9 +53,7 @@ public class TestPolyContainment : MonoBehaviour
         if (showC) for (int i = 0; i < polygonCM.Count; i++) DebugUtilities.DebugDrawLine(polygonCM[i], polygonCM[(i + 1) % polygonCM.Count], Color.red);
         if (showD) for (int i = 0; i < polygonDM.Count; i++) DebugUtilities.DebugDrawLine(polygonDM[i], polygonDM[(i + 1) % polygonDM.Count], Color.red);
 
-        if (gigaP)
-        {
-            gigaPoly.DebugDraw();
-        }
+        if (gigaP) gigaPoly.DebugDraw();
+        gigaPoly.DebugDumpHierarchy();
     }
 }
