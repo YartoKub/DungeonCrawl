@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class FullMatrixGraph : GraphDataStorage
 {
-    public NavBoxInt[] vertices; // У родительского класса
+    public new NavBoxInt[] vertices; // У родительского класса
     //public int vCount; // У родительского касса
     public bool[] connections;
 
@@ -32,7 +32,7 @@ public class FullMatrixGraph : GraphDataStorage
         return this.connections[a_ID + b_ID * vCount];
     }
 
-    public override int NaiveBoxFinder(Transform asker)
+    public override int NaiveNodeFinder(Transform asker)
     {
         for (int i = 0; i < vCount; i++)
         {
@@ -130,7 +130,7 @@ public class FullMatrixGraph : GraphDataStorage
         }
     }
 
-    public override List<Vector3> DumpConnectionPairs(){
+    public List<Vector3> DumpConnectionPairs(){
         List<Vector3> pairs = new List<Vector3>();
         for (int i = 0; i < vCount; i++) {
             for (int j = 0; j < vCount; j++) {
@@ -140,6 +140,7 @@ public class FullMatrixGraph : GraphDataStorage
                 }
             }
         }
+
         return pairs;
     }
 }

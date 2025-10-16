@@ -83,14 +83,15 @@ public class GraphManager : MonoBehaviour
     }
     private void Update() {
         if (DebugDrawBoxes) foreach (NavBoxInt item in boxes) BoundsMathHelper.DebugDrawBox(item.A, item.size);
+
+        /*
         if (DebugDrawConnections) {
             List<Vector3> pairs = graph.DumpConnectionPairs();
             if (pairs.Count != 0) {
                 for (int i = 0; i < pairs.Count / 2; i++)
                     Debug.DrawLine(pairs[i * 2], pairs[i * 2 + 1], Color.yellow);
             }
-            
-        }
+        }*/
 
     }
 }

@@ -5,8 +5,9 @@ public class IntMatrixGraph : GraphDataStorage
 {
     //public int vCount; // У родительского касса
     public bool[] connections;
+    //public List<IGraphNode> vertices;
 
-    public IntMatrixGraph(List<NavBoxInt> _vertices)
+    public IntMatrixGraph(List<IGraphNode> _vertices)
     {
         vCount = _vertices.Count;
         connections = new bool[vCount * vCount];
@@ -43,9 +44,15 @@ public class IntMatrixGraph : GraphDataStorage
         return this.connections[a_ID + b_ID * vCount];
     }
     
-    public override int NaiveBoxFinder(Transform asker)
+    public override int NaiveNodeFinder(Transform asker)
     {
-        Debug.Log("UNILMPLEMENTED");
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            if (vertices[i].IDoesContainPoint(asker.position) )
+            {
+                return i;
+            }
+        }
         return -1;
     }
 
@@ -61,14 +68,13 @@ public class IntMatrixGraph : GraphDataStorage
 
     public override float[] GetSliceDistance(int rowID)
     {
-        /*
+        
         float[] toReturn = new float[vCount];
         for (int i = 0; i < vCount; i++)
         {
-            toReturn[i] = GetValue(i, rowID) ? BoundsMathHelper.CenterDistance(vertices[i].bounds, vertices[rowID].bounds) : float.PositiveInfinity;
-        }*/
-        Debug.Log("NOT IMPLEMENTED");
-        return new float[1];
+            toReturn[i] = GetValue(i, rowID) ? vertices[rowID].IGetDistance(vertices[i]) : float.PositiveInfinity;
+        }
+        return toReturn;
     }
 
     public override List<int> GetSliceIDList(int rowID)
@@ -96,22 +102,21 @@ public class IntMatrixGraph : GraphDataStorage
 
     protected override void establishConnections()
     { // пока идея в том что пути не будут меняться
-        /*
         for (int i = 0; i < vertices.Length; i++)
         {
             for (int j = i; j < vertices.Length; j++)
             {
-                NavBoxInt boxA = this.vertices[i];
-                NavBoxInt boxB = this.vertices[j];
-                this.SetValue(boxA.DoesIntersect(boxB.bounds), i, j);
+                IGraphNode nodeA = this.vertices[i];
+                IGraphNode nodeB = this.vertices[j];
+                this.SetValue(nodeA.ICheckAdjacency(nodeB), i, j);
             }
-        }*/
-        Debug.Log("Does not have an ability to establih commnenetsts");
+        }
     }
     protected override void setConnectionMatrix(bool newValue)
     {
-        for (int i = 0; i < connections.Length; i++)
-            connections[i] = newValue;
+        for (int i = 0; i < connections.Length; i++) connections[i] = newValue;
+        // Не самая полезная функция, по дефолту bool в C# равен false. 
+        // Наличие этой функции обусловленно наличием PTSD после работы с C++
     }
 
     public override void DumpSelf()
@@ -126,25 +131,5 @@ public class IntMatrixGraph : GraphDataStorage
             newString += "\n";
         }
         Debug.Log(newString);
-
-    }
-
-    public override List<Vector3> DumpConnectionPairs()
-    {
-        Debug.Log("Does not have an ability to establih commnenetsts");
-        List<Vector3> pairs = new List<Vector3>();
-        /*
-        for (int i = 0; i < vCount; i++)
-        {
-            for (int j = 0; j < vCount; j++)
-            {
-                if (GetValue(i, j))
-                {
-                    pairs.Add(this.vertices[i].bounds.center);
-                    pairs.Add(this.vertices[j].bounds.center);
-                }
-            }
-        }*/
-        return pairs;
     }
 }

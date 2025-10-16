@@ -808,6 +808,81 @@ Transform:
   m_Children: []
   m_Father: {fileID: 713682795}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &868887842
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 868887844}
+  - component: {fileID: 868887843}
+  m_Layer: 0
+  m_Name: LineJumper (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &868887843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 868887842}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e93f270ef3c7fad48a28374982a12bb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestOptimizedDecomposition
+  polygonA:
+  - {x: 7, y: 0}
+  - {x: 7, y: 4}
+  - {x: 0, y: 4}
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: 1, y: 3}
+  - {x: 2, y: 3}
+  - {x: 2, y: 0}
+  polygonAoffset: {x: 0, y: 0}
+  polygonB:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  - {x: 1, y: 0}
+  polygonBoffset: {x: 3, y: 0.3}
+  polygonAM: []
+  polygonBM: []
+  polygonCM: []
+  polyCMoffset: {x: 3.2, y: 1.4}
+  stitched: []
+  showA: 1
+  showB: 1
+  showC: 1
+  showCombined: 0
+  showTriangulation: 0
+  showVoronoi: 0
+  showConvexDecomposition: 0
+  ShowTriangle: 0
+  ShowVertice: 0
+  debugVector: {x: 0, y: 0, z: 0}
+--- !u!4 &868887844
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 868887842}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &877701137
 GameObject:
   m_ObjectHideFlags: 0
@@ -1205,9 +1280,10 @@ MonoBehaviour:
   polygonA:
   - {x: 7, y: 0}
   - {x: 7, y: 4}
-  - {x: 0, y: 4}
-  - {x: 0, y: 0}
-  - {x: 1, y: 0}
+  - {x: 2, y: 5}
+  - {x: -1, y: 4}
+  - {x: -0.5, y: -0.5}
+  - {x: 1.5, y: -0.5}
   - {x: 1, y: 3}
   - {x: 2, y: 3}
   - {x: 2, y: 0}
@@ -1221,13 +1297,13 @@ MonoBehaviour:
   polygonAM: []
   polygonBM: []
   polygonCM: []
-  polyCMoffset: {x: 5.2, y: 2.2}
+  polyCMoffset: {x: 3.2, y: 1.4}
   stitched: []
-  showA: 0
-  showB: 0
-  showC: 0
+  showA: 1
+  showB: 1
+  showC: 1
   showCombined: 0
-  showTriangulation: 1
+  showTriangulation: 0
   showVoronoi: 0
   showConvexDecomposition: 0
   ShowTriangle: 0
@@ -1803,7 +1879,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1634279668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1835,12 +1911,12 @@ MonoBehaviour:
   Bbool: 0
   polygonAM: []
   polygonBM: []
-  showA: 0
-  showB: 0
+  showA: 1
+  showB: 1
   showIntersections: 0
-  showStitch: 1
+  showStitch: 0
   showTriangulation: 0
-  iterationLimit: 0
+  iterationLimit: 50
   lightUpVert: -1
 --- !u!4 &1634279669
 Transform:
@@ -2226,4 +2302,5 @@ SceneRoots:
   - {fileID: 1634279669}
   - {fileID: 1075517778}
   - {fileID: 1006644821}
+  - {fileID: 868887844}
   - {fileID: 958635715}

@@ -110,7 +110,7 @@ public static class Geo3D
     {
         t = -1;
         float denom = Vector3.Dot(planeNormal, r1 - r0);
-        if (Mathf.Abs(denom) > 0.0001f) // your favorite epsilon
+        if (Mathf.Abs(denom) > epsilon) // your favorite epsilon
         {
             t = Vector3.Dot((pointOnPlane - r0), planeNormal) / denom;
             if (t >= 0) return true; // you might want to allow an epsilon here too
