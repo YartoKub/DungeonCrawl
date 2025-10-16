@@ -50,15 +50,24 @@ public class ComplexPolygon
     public ComplexPolygon(SuperPoly2D poly2D)
     {
         this.UnitePolygons(poly2D);
-        for (int i = 0; i < polygons.Count; i++)
-        {
-            Debug.Log(polygons[i].isHole);
-        }
-        EngulfEarclip(0);
-        EngulfEarclip(1);
-        EngulfEarclip(2);
+
     }
 
+    public List<Triangle> GetTriangulation()
+    {
+        List<Triangle> triangles = new List<Triangle> ();
+        for (int i = 0; i < this.polygons.Count; i++)
+        {
+            List<Triangle> t = EngulfEarclip(i);
+            //Debug.Log(t.Count);
+            triangles.AddRange(t);
+        }
+        return triangles;
+    }
+    public List<Vector2> GetVertices()
+    {
+        return new List<Vector2>(this.vertices);
+    }
 
     // Смысл в том чтобы объединить все вершины в один список, а все полигоны корректно модифицировать. 
     // Вершины ни на одном этапе вроде не добавляются и не отпадают, должно сработать.
@@ -96,8 +105,6 @@ public class ComplexPolygon
 
     public List<Triangle> EngulfEarclip(int thisPolyIndex)  // Объединяет бОльший полигон с его напрямую подчиненными. Полученный полигон нарезается на треугольники
     {
-        List<Triangle> result = new List<Triangle>();
-
         List<IndexPolygon> engulfed = new List<IndexPolygon>();
         for (int i = 0; i < this.polygons.Count; i++)
             if (thisPolyIndex == hierarchy[i])
@@ -132,7 +139,7 @@ public class ComplexPolygon
         for (int i = 0; i < combinedPoly.Count - 1; i++) { DebugUtilities.DebugDrawLine(vertices[combinedPoly[i]], vertices[combinedPoly[i + 1]], Color.violet); }
         DebugUtilities.DebugDrawLine(vertices[combinedPoly[combinedPoly.Count - 1]], vertices[combinedPoly[0]], Color.violet);*/
 
-        return result;
+        return triangles;
     }
 
     public List<int> CombinedPolygon(List<int> A, List<int> B)

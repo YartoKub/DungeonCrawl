@@ -13,7 +13,7 @@ public class TestOptimizedDecomposition : MonoBehaviour
     public List<Vector2> polygonCM;
     public Vector2 polyCMoffset;
 
-    public List<Vector2> stitched;
+
 
     public bool showA;
     public bool showB;
@@ -41,7 +41,8 @@ public class TestOptimizedDecomposition : MonoBehaviour
         sp.polygons.Add(new Poly2D(polygonCM));
         sp.Compile();
         ComplexPolygon complex = new ComplexPolygon(sp);
-
+        List<Triangle> triangles = complex.GetTriangulation();
+        List<Vector2> combined_points = complex.GetVertices();
 
         //stitched = Poly2DToolbox.UniteHoles(new Poly2D(polygonAM), new List<Poly2D>() { new Poly2D(polygonBM), new Poly2D(polygonCM) });
         //List<Vector3Int> triangles = Poly2DToolbox.EarClip(stitched);
@@ -50,37 +51,36 @@ public class TestOptimizedDecomposition : MonoBehaviour
         if (showA) for (int i = 0; i < polygonAM.Count; i++) DebugUtilities.DebugDrawLine(polygonAM[i], polygonAM[(i + 1) % polygonAM.Count], Color.red);
         if (showB) for (int i = 0; i < polygonBM.Count; i++) DebugUtilities.DebugDrawLine(polygonBM[i], polygonBM[(i + 1) % polygonBM.Count], Color.cyan);
         if (showC) for (int i = 0; i < polygonCM.Count; i++) DebugUtilities.DebugDrawLine(polygonCM[i], polygonCM[(i + 1) % polygonCM.Count], Color.blue);
-        if (showCombined) for (int i = 0; i < stitched.Count; i++) DebugUtilities.DebugDrawLine(stitched[i], stitched[(i + 1) % stitched.Count], Color.green);
 
-        /*
-        List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(stitched, triangles);
+        
+        List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(combined_points, triangles);
+        Debug.Log("Triangles: " + triangles.Count + " conn: " + connections.Count);
         if (showTriangulation)
         {
-            foreach (Vector3Int abc in triangles)
+            foreach (Triangle abc in triangles)
             {
-                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
-                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+                DebugUtilities.DebugDrawLine(combined_points[abc.a], combined_points[abc.b], Color.green);
+                DebugUtilities.DebugDrawLine(combined_points[abc.b], combined_points[abc.c], Color.green);
+                DebugUtilities.DebugDrawLine(combined_points[abc.c], combined_points[abc.a], Color.green);
+                DebugUtilities.DebugDrawCross((combined_points[abc.a] + combined_points[abc.b] + combined_points[abc.c]) / 3, Color.yellow);
             }
-            ConvexPoly2D.DrawPolygonConnections(connections, triangles, stitched);
+            ConvexPoly2D.DrawPolygonConnections(connections, triangles, combined_points);
         }
 
 
-        ConvexPoly2D.IterativeVoronoi(stitched, triangles, connections);
-
+        ConvexPoly2D.IterativeVoronoi(combined_points, triangles, connections);
         if (showVoronoi)
         {
-            foreach (Vector3Int abc in triangles)
+            foreach (Triangle abc in triangles)
             {
-                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
-                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+                DebugUtilities.DebugDrawLine(combined_points[abc.a], combined_points[abc.b], Color.green);
+                DebugUtilities.DebugDrawLine(combined_points[abc.b], combined_points[abc.c], Color.green);
+                DebugUtilities.DebugDrawLine(combined_points[abc.c], combined_points[abc.a], Color.green);
+                DebugUtilities.DebugDrawCross((combined_points[abc.a] + combined_points[abc.b] + combined_points[abc.c]) / 3, Color.yellow);
             }
-            ConvexPoly2D.DrawPolygonConnections(connections, triangles, stitched);
+            ConvexPoly2D.DrawPolygonConnections(connections, triangles, combined_points);
         }
-        
+        /*
         if (ShowTriangle >= 0 && ShowTriangle < triangles.Count)
         {
             Vector3Int triangle = triangles[ShowTriangle];
@@ -92,8 +92,8 @@ public class TestOptimizedDecomposition : MonoBehaviour
             DebugUtilities.DebugDrawCross(complex.vertices[ShowVertice], Color.purple);
         }
 
-        //ConvexPoly2D poly = new ConvexPoly2D(stitched, triangles, connections, debugVector);
-        //if (showConvexDecomposition) poly.DebugDrawSelf();
+        ConvexPoly2D poly = new ConvexPoly2D(combined_points, triangles, connections, debugVector);
+        if (showConvexDecomposition) poly.DebugDrawSelf();
         
     }
 }

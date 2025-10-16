@@ -25,7 +25,7 @@ public static class DebugUtilities
             v.x * Mathf.Sin(delta) + v.y * Mathf.Cos(delta)
         );
     }
-    public static void DebugDrawSquare(Vector2 point, Color color, float time = 0.01f, float size = 0.1f) {
+    public static void DebugDrawSquare(Vector2 point, Color color, float size = 0.1f, float time = 0.01f) {
         float x = point.x; float y = point.y;
         Debug.DrawLine(new Vector3(x - size, y - size), new Vector3(x - size, y + size), color, time);
         Debug.DrawLine(new Vector3(x - size, y + size), new Vector3(x + size, y + size), color, time);

@@ -22,11 +22,13 @@ public class ConvexPoly2D
     {
         public List<int> vertices;
         public List<int> absorbedTriangles;
+        public bool isHole;
         //public List<int> neighbours;
-        public TMPConvexPoly(bool dummy)
+        public TMPConvexPoly(bool isHole)
         {
             vertices = new List<int>();
             absorbedTriangles = new List<int>();
+            this.isHole = isHole;
             //neighbours = new List<int>();
         }
     }
@@ -67,7 +69,9 @@ public class ConvexPoly2D
             }
             Poly2D newPoly = new Poly2D(loc_vertices);
             newPoly.CalculateBBox();
+            newPoly.isHole = polys[i].isHole;
             newPoly.convex = true;
+    
             polygons.Add(newPoly);
         }
     }
@@ -93,6 +97,12 @@ public class ConvexPoly2D
                     //DebugUtilities.DebugDrawLine(B, A, Color.yellow);
                 }
             }
+        }
+        for (int i = 0; i < this.polygons.Count; i++)
+        {
+            Vector2 avg = polygons[i].AveragePoint();
+            DebugUtilities.DebugDrawSquare(avg, polygons[i].isHole ? Color.red : Color.green, 0.1f);
+            DebugUtilities.DebugDrawSquare(avg, polygons[i].isHole ? Color.red : Color.green, 0.15f);
         }
     }
 
@@ -122,7 +132,7 @@ public class ConvexPoly2D
     {
         //Debug.Log("BEGAN BUILDING POLY");
         int safety = 0;
-        TMPConvexPoly bigPoly = new TMPConvexPoly(true);
+        TMPConvexPoly bigPoly = new TMPConvexPoly(triangleList[seedT].isHole);
         //bigPoly.absorbedTriangles.Add(seedT);
         List<int> order = new List<int>();
         List<float> area = new List<float>();
@@ -222,8 +232,10 @@ public class ConvexPoly2D
     {
         // Get vertices involved in operation
         //Debug.Log(otherTid + " " + thisTid + " " + triangleList[otherTid] + " " + triangleList[thisTid]);
-        Vector3Int dirrerent = GetDifferringVerticeAndOverlap(triangleList[otherTid].vec3(), triangleList[thisTid].vec3());  // T that belongs to BigPoly
-        int C = GetDifferringVertice(triangleList[thisTid].vec3(), triangleList[otherTid].vec3());                        // New point to add
+        Triangle t1 = triangleList[thisTid]; Triangle t2 = triangleList[otherTid];
+        if (t1.isHole != t2.isHole) return false;
+        Vector3Int dirrerent = GetDifferringVerticeAndOverlap(t2.vec3(), t1.vec3());  // T that belongs to BigPoly
+        int C = GetDifferringVertice(t1.vec3(), t2.vec3());                        // New point to add
         int Bc = dirrerent.y;
         int Bn = bigPoly.vertices[GetPrevious(bigPoly.vertices, Bc)];
         int Dc = dirrerent.z;
@@ -412,12 +424,10 @@ public class ConvexPoly2D
     public static int VoronoiCheck(int T1, Vector3Int connection, List<Vector2> vectorList, List<Triangle> triangleList)
     {
         int[] ids = new int[] {connection.x, connection.y, connection.z};
-
         // Triangle 1
         Triangle triangle1 = triangleList[T1];
         Vector2 circle = Geo3D.CircumCenter(vectorList[triangle1.a], vectorList[triangle1.b], vectorList[triangle1.c]);
         float radius = Vector2.Distance(circle, vectorList[triangle1.a]);
-
 
         for (int i = 0; i < ids.Length; i++)        // Checks each connection
         {
