@@ -824,7 +824,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &868887843
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -856,16 +856,16 @@ MonoBehaviour:
   polygonAM: []
   polygonBM: []
   polygonCM: []
-  polyCMoffset: {x: 3.5, y: 2.5}
+  polyCMoffset: {x: 3.5, y: 2.4}
   showA: 0
   showB: 0
   showC: 0
   showCombined: 0
   showTriangulation: 0
-  showVoronoi: 1
+  showVoronoi: 0
   showConvexDecomposition: 1
-  ShowTriangle: 0
-  ShowVertice: 0
+  ShowTriangle: -1
+  ShowVertice: -1
   debugVector: {x: 0, y: 0, z: 0}
 --- !u!4 &868887844
 Transform:

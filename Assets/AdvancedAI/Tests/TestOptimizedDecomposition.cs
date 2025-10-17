@@ -80,20 +80,22 @@ public class TestOptimizedDecomposition : MonoBehaviour
             }
             ConvexPoly2D.DrawPolygonConnections(connections, triangles, combined_points);
         }
-        /*
-        if (ShowTriangle >= 0 && ShowTriangle < triangles.Count)
+        
+        
+
+        ConvexPoly2D poly = new ConvexPoly2D(combined_points, triangles, connections, debugVector);
+        if (showConvexDecomposition) poly.DebugDrawSelf();
+
+        if (ShowTriangle >= 0 && ShowTriangle < poly.polygons.Count)
         {
-            Vector3Int triangle = triangles[ShowTriangle];
-            DebugUtilities.DebugDrawCross((stitched[triangle.x] + stitched[triangle.y] + stitched[triangle.z]) / 3, Color.purple);
+            poly.DebugDrawSubject(ShowTriangle, Color.yellow);
+            poly.DebugDrawSubjectCenter(ShowTriangle, Color.cyan);
         }
-        */
+
         if (ShowVertice >= 0 && ShowVertice < complex.vertices.Count)
         {
             DebugUtilities.DebugDrawCross(complex.vertices[ShowVertice], Color.purple);
         }
 
-        ConvexPoly2D poly = new ConvexPoly2D(combined_points, triangles, connections, debugVector);
-        if (showConvexDecomposition) poly.DebugDrawSelf();
-        
     }
 }
