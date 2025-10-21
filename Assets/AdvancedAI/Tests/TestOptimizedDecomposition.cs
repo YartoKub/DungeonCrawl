@@ -35,7 +35,7 @@ public class TestOptimizedDecomposition : MonoBehaviour
         for (int i = 0; i < polygonB.Count; i++) polygonBM.Add(polygonB[i] + polygonBoffset);
         for (int i = 0; i < polygonB.Count; i++) polygonCM.Add(polygonB[i] + polyCMoffset);
 
-        SuperPoly2D sp = new SuperPoly2D();
+        HierarchicalPoly2D sp = new HierarchicalPoly2D();
         sp.polygons.Add(new Poly2D(polygonAM));
         sp.polygons.Add(new Poly2D(polygonBM));
         sp.polygons.Add(new Poly2D(polygonCM));

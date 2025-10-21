@@ -198,6 +198,7 @@ public static class Geo3D
     }
 
 
+
     /*
     public static bool BBoxCheck(BBox A, BBox B) {
         return  A.op0.x < B.op1.x && A.op1.x > B.op0.x &&

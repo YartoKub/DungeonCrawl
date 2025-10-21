@@ -31,7 +31,7 @@ public class ComplexPolygon
     // Комплексный полигон, состоящий из нескольких полигонов или дырок. 
     // Этот класс должен содержать в себе функции для саморазбиения на выпуклые треугольнички.
     // Этот класс отличается от SuperPoly2D тем что использует более оптимальные алгоритмы и несколько жесткотипизированных структур вместо векторов.
-    // Предполагается что SuperPoly2D будет удален когда я завершу работу над этим классом
+    // Предполагается что SuperPoly2D будет удален когда я завершу работу над этим классом - Ладно, удалять его не буду. Он нормально выполняет свою задачу
     // GHPolygonMerge - вроде бы хороший, нечего улучшить. Очень открыт, принимает чистые списки Vector2 точек и ничего больше.
     // Poly2DToolbox:
     // 1) Unite Holes (Сращивает полигоны оставляя шрамы) - Починено
@@ -39,7 +39,7 @@ public class ComplexPolygon
     // 3) HealScars  (Ненужная иперация которая производится из-за того что Unity Holdes работает так себе) - Починено                                                                                                                                                                                                           
     // 4) EstablishConnections (Не самая лучшая реализация)
     // 5) Iterative Voronoi (Вроде бы норм)
-    // 6) ConvexPoly2D -> VolumeGrowth (нормальная) -> GrowBigPolygon (ужас из костылей)
+    // 6) ConvexPoly2D -> VolumeGrowth (нормальная) -> GrowBigPolygon (ужас из костылей) - Ну теперь чуть лучше
 
     public List<Vector2> vertices;
     public List<IndexPolygon> polygons;
@@ -47,7 +47,7 @@ public class ComplexPolygon
     public int PolygonDepth;
 
     // 
-    public ComplexPolygon(SuperPoly2D poly2D)
+    public ComplexPolygon(HierarchicalPoly2D poly2D)
     {
         this.UnitePolygons(poly2D);
 
@@ -73,7 +73,7 @@ public class ComplexPolygon
     // Вершины ни на одном этапе вроде не добавляются и не отпадают, должно сработать.
     // Цель - превратить супер полигон в интовый список, а затем итеративно, идя снизу вверх по иерархии, отдельно earclipp-нуть каждый из полигонов
     // По итогу должна получиться триангуляция каждого уровня полигона. Так как список вершин общий, проверка на соседство не должна быть слишком сложной
-    public void UnitePolygons(SuperPoly2D poly2D) 
+    public void UnitePolygons(HierarchicalPoly2D poly2D) 
     {
         int totalCount = 0;
         int[] offsetList = new int[poly2D.polygons.Count];

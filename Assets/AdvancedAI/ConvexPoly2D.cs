@@ -13,11 +13,6 @@ public class ConvexPoly2D
 
     Bounds BBox;
 
-    public ConvexPoly2D()
-    {
-
-    }
-
     private struct TMPConvexPoly
     {
         public List<int> vertices;
@@ -140,6 +135,7 @@ public class ConvexPoly2D
         //Debug.Log("   BROKEN OUT!   ");
         return polys;
     }
+
     private static TMPConvexPoly GrowBigPoly(int seedT, bool[] isOccupied, List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug)
     {
         int safety = 0;
@@ -152,6 +148,7 @@ public class ConvexPoly2D
 
             isOccupied[currT] = true;
             // Проверка всех соседей и добавление подходящих в кандидаты
+            // Можно заменить CanConsume на сравнение по дырке, но тогда не будет проверки на угол и функция будет входить в бесконечный цикл добавления и удаления плохих треугольников
             if (connections[currT].x != -1 && !isOccupied[connections[currT].x] && CanConsume(currT, connections[currT].x, bigPoly, vectorList, triangleList))
             { t_id.Push(connections[currT].x); }
             if (connections[currT].y != -1 && !isOccupied[connections[currT].y] && CanConsume(currT, connections[currT].y, bigPoly, vectorList, triangleList))
@@ -219,9 +216,10 @@ public class ConvexPoly2D
         int Dn = bigPoly.vertices[GetNext(bigPoly.vertices, Dc)];
 
         float Bangle = Poly2DToolbox.SignedAngle(vectorList[Bn], vectorList[Bc], vectorList[C]);
-        float Dangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Dc], vectorList[Dn]);
+        if (Bangle >= Poly2DToolbox.straightAngle) return false;
 
-        return Bangle < Poly2DToolbox.straightAngle && Dangle < Poly2DToolbox.straightAngle;
+        float Dangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Dc], vectorList[Dn]);
+        return Dangle < Poly2DToolbox.straightAngle;
     }
 
 
@@ -252,13 +250,6 @@ public class ConvexPoly2D
         for (int i = 0; i < bigPolyVerts.Count; i++)
             if (bigPolyVerts[i] == vid)
                 return (i + 1) % bigPolyVerts.Count;
-        return -1;
-    }
-
-
-    // Picks next triangle to add to the Polygon
-    private static int PickOneToConsume(TMPConvexPoly bigP, List<Vector2> vectorList, List<Vector3Int> triangleList, List<Vector3Int> connections)
-    {
         return -1;
     }
 

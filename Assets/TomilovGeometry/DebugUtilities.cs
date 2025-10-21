@@ -50,8 +50,16 @@ public static class DebugUtilities
         Vector3 dir = (point2 - point1).normalized * coneLength;
         Vector3 leftHand = rotate(dir, 2.6f);
         Vector3 rightHand = rotate(dir, -2.6f);
+
         Debug.DrawLine(point2, point2 + leftHand, color, time);
         Debug.DrawLine(point2, point2 + rightHand, color, time);
+    }
+    public static void DebugUltraLineHedgehog(Vector3 point1, Vector3 point2, Color color, float time = 1f, float coneLength = 0.2f)
+    {
+        //time = time * 0.01f;
+        Debug.DrawLine(point1, point2, color, time);
+        if (coneLength == 0.0f) return;
+        DebugUltraHedgehog(point2, color, time, coneLength);
     }
 
     public static void DebugUltraHedgehog(Vector3 centerPoint, Color color, float time = 1f, float size = 0.2f)

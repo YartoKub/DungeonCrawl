@@ -12,11 +12,11 @@ public static class GHPolygonMerge
     // True/false --- A - B
     // False/True --- B - A
     // Желательно скармливать ему только полигоны без дырок
-    public static SuperPoly2D CompleteGH(List<Vector2> A, List<Vector2> B, bool Ainside, bool Binside, float local_epsilon = Geo3D.epsilon)
+    public static HierarchicalPoly2D CompleteGH(List<Vector2> A, List<Vector2> B, bool Ainside, bool Binside, float local_epsilon = Geo3D.epsilon)
     {
         // Разделение полигонов. Они связаны пересечениямм
         SubdividePolygons(A, B, local_epsilon, out List<Pair> intersections);
-        SuperPoly2D polyToReturn = new SuperPoly2D();
+        HierarchicalPoly2D polyToReturn = new HierarchicalPoly2D();
         if (intersections.Count == 0)
         {
             return polyToReturn;
