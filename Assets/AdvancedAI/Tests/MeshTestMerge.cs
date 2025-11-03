@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
+
 public class MeshTestMerge : MonoBehaviour
 {
     public GameObject A;
@@ -21,9 +23,11 @@ public class MeshTestMerge : MonoBehaviour
         volume_A = MeshVolume.FromMesh(filterA.mesh, A.transform);
 
         combined_mesh_filter.mesh = volume_A.GetMesh();
-        volume_A.OptimizeMesh();
 
-        
+        volume_A.OptimizeMesh();
+        Debug.Log("connections");
+        volume_A.UpdateConnections();
+        volume_A.connections.DumpSelf();
     }
 
     // Update is called once per frame

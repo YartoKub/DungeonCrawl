@@ -6,6 +6,7 @@ public class MeshVolume
 {
     public List<Poly3D> polygons;
     Bounds BBox;
+    public IntMatrixGraph connections;
     public MeshVolume()
     {
 
@@ -34,7 +35,8 @@ public class MeshVolume
         for (int i = 0; i < vertices.Length; i++)
         {
             BBox.Encapsulate(vertices[i]);
-        } 
+        }
+        //InitializeMesh();
     }
 
     public Mesh GetMesh()
@@ -57,11 +59,13 @@ public class MeshVolume
         mesh.SetTriangles(triangles, 0);
         return mesh;
     }
-    public void OptimizeMesh()
-    {
-        OptimizeMesh(this.polygons);
-    }
 
+    public void InitializeMesh() {
+        this.OptimizeMesh();
+        this.UpdateConnections();
+    }
+    public void OptimizeMesh() { OptimizeMesh(this.polygons); }
+    // Функция статическая потому что может понадобиться оптиимзировать полигоны не принадлежащие к объему
     public static void OptimizeMesh(List<Poly3D> polygons)
     {   // Цель - просто объединить полигоны и все, чтобы места чуть меньше жрали
         for (int i = 0; i < polygons.Count - 1; i++)
@@ -70,16 +74,30 @@ public class MeshVolume
             {
                 Poly3D A = polygons[i];
                 Poly3D B = polygons[j];
-                //if (!Poly3D.PlaneSimilarityPolyPoly(A, B)) continue;
-                //Debug.Log("Consume poly " + i + " " + j);
                 bool success = A.TryConsumePoly(B);
                 if (!success) continue;
-                polygons.RemoveAt(j);
+                polygons.RemoveAt(j); 
                 j -= 1;
             }
         }
-
     }
+    public void UpdateConnections() { UpdateConnections(this); }
+    public static void UpdateConnections(MeshVolume mv)
+    {
+        mv.connections = new IntMatrixGraph(mv.polygons.Count);
+        for (int a = 0; a < mv.polygons.Count - 1; a++)
+        {
+            for (int b = a + 1; b < mv.polygons.Count; b++)
+            {
+                (int a1, int a2, int b1, int b2) = Poly3D.ShareEdgePolyPoly(mv.polygons[a], mv.polygons[b]);
+                if (a1 == -1) continue; // ВЕсли одно == -1, то все остальные тоже
+                mv.connections.SetValueSafe(true, a, b);
+            }
+        }   // Самосвязь
+        for (int i = 0; i < mv.polygons.Count; i++)
+            mv.connections.SetValueSafe(true, i, i);
+    }
+
 
     public void DebugPoly(int poly_index)
     {
@@ -94,10 +112,20 @@ public class MeshVolume
         float r = 1.0f / (p.Count - 1);
         for (int i = 0; i < p.Count; i++)
         {
-            DebugUtilities.DebugUltraHedgehog(p[i], new Color(1 - r * i, 0, 0 + r * i), 0.01f, 0.05f);
+            DebugUtilities.DebugUltraHedgehog(p[i], new Color(1 - r * i, 0, 0 + r * i), 0.001f, 0.05f);
+        }
+        if (this.connections == null) return;
+
+        for (int b = 0; b < this.polygons.Count; b++)
+        {
+            if (b == poly_index) continue;
+            bool con = this.connections.GetValue(poly_index, b);
+            if (!con) continue;
+            Vector3 av_a = this.polygons[poly_index].AveragePoint();
+            Vector3 av_b = this.polygons[b].AveragePoint();
+            DebugUtilities.DebugUltraLine(av_a, av_b, Color.purple);
         }
     }
-
 }
     
 

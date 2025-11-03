@@ -5,7 +5,7 @@ public class IntMatrixGraph : GraphDataStorage
 {
     //public int vCount; // У родительского касса
     public bool[] connections;
-    //public List<IGraphNode> vertices;
+    //public List<IGraphNode> vertices; // У родлительского класса
 
     public IntMatrixGraph(List<IGraphNode> _vertices)
     {

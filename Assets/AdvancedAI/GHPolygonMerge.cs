@@ -190,7 +190,7 @@ public static class GHPolygonMerge
 
     private static void SubdividePolygons(List<Vector2> A, List<Vector2> B, float local_epsilon, out List<Pair> intersections)
     {
-        int safety = 0; int safety_limit = 500; // Мне не нравится когда зависает юнити
+        int safety = 0; int safety_limit = 1000; // Мне не нравится когда зависает юнити
         for (int a1 = 0; a1 < A.Count; a1++)
         { safety += 1; if (safety > safety_limit) break;
             int a2 = (a1 + 1) % A.Count;
@@ -219,6 +219,7 @@ public static class GHPolygonMerge
                 
             }
         }
+        //Debug.Log(safety);
         intersections = new List<Pair>();
 
         for (int a = 0; a < A.Count; a++)

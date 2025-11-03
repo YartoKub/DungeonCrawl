@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public class Poly3D
+public class Poly3D 
 {
     public List<Vector3> vertices;
     public Plane plane;
@@ -32,7 +32,7 @@ public class Poly3D
         plane = new Plane(_vertices[0], _vertices[1], _vertices[2]);
     }
 
-    private enum Type : byte
+    public enum Type : byte
     {
         SamePlane = 0,
         Front = 1,
@@ -160,19 +160,20 @@ public class Poly3D
     }
 
     public bool TryConsumePoly(Poly3D other)
-    {
+    {   // –аботает только с копланарными, однонаправленными полигонами
+        // ≈сли полигоны не имеют св€зи, то объединени€ не происходит
         if (this.isHole != other.isHole) return false;
         if (!Poly3D.PlaneSimilarityPolyPoly(this, other)) return false;
         (int i1, int i2, int j1, int j2) = Poly3D.ShareEdgePolyPolyExhaustive(this, other);
-        Debug.Log(i1 + " " + i2 + " " + j1 + " " + j2 );
+        /*Debug.Log(i1 + " " + i2 + " " + j1 + " " + j2 );
         Debug.Log(this.vertices[i1] + " " + this.vertices[i2]);
-        Debug.Log(other.vertices[j1] + " " + other.vertices[j2]);
+        Debug.Log(other.vertices[j1] + " " + other.vertices[j2]);*/
         if (i1 == -1) return false;
         ConsumePoly(i1, i2, j1, j2, other);
         return true;
     }
 
-    private static Type PlaneSide(Plane p, Vector3 v)
+    public static Type PlaneSide(Plane p, Vector3 v)
     {
         // Plane.GetSide() возвращает bool и кажетс€ не поддерживает проверки на копланарность
         float t = Vector3.Dot(p.normal, v) + p.distance;
@@ -182,9 +183,9 @@ public class Poly3D
     }
 
     public static bool IntersectionPolyPoly(Poly3D A, Poly3D B)
-    {
+    {   // Main purpose of this function is to filter out polys that are guaranteed to not intersect, to minisize strain on cutting funcs
         if (!A.BBox.Intersects(B.BBox)) return false;
-        Type typeA = 0; Type typeB = 0;     // If both types == Intersects, then there indeed is an intersection
+        Type typeA = 0; Type typeB = 0;     // If both types == Intersects, then there is a higher chace of intersection, othrwise it is zero
 
         for (int i = 0; i < A.vertices.Count; i++)
             typeA |= PlaneSide(B.plane, A.vertices[i]);
@@ -198,7 +199,8 @@ public class Poly3D
 
     public static (int, int, int, int) ShareEdgePolyPoly(Poly3D A, Poly3D B)
     {
-        if (PlaneSimilarityPolyPoly(A, B))
+        bool coplanar = PlaneSimilarityPolyPoly(A, B);
+        if (coplanar)
             return ShareEdgePolyPolyExhaustive(A, B);
 
         return ShareEdgePolyPolyDifferentPlanes(A, B);
@@ -208,24 +210,20 @@ public class Poly3D
     {
         Plane Ap = A.plane;
         Plane Bp = B.plane;
-        Vector3 direction = Vector3.Cross(Ap.normal, Bp.normal);
-        if (direction.magnitude < Geo3D.epsilon) return (-1, -1, -1, -1);
-        direction = direction.normalized;
 
-        float det = Ap.normal.x * Bp.normal.y - Ap.normal.y * Bp.normal.x;
-        if (Math.Abs(det) < Geo3D.epsilon) return (-1, -1, -1, -1);
+        (bool valid, Vector3 origin, Vector3 direction) = PlanePlaneIntersection(Ap, Bp);
+        if (!valid) return (-1, -1, -1, -1);
 
-        float x = (Ap.distance * Bp.normal.y - Bp.distance * Ap.normal.y) / det;
-        float y = (Ap.normal.x * Bp.distance - Bp.normal.x * Ap.distance) / det;
-        float z = 0.0f;
-        Vector3 origin = new Vector3(x, y, z);
-        // “еперь есть направление и точка отсчета, если вершана полигона не находитс€ на пересечении плоскостей, то она пропускаетс€
+        DebugUtilities.DebugUltraLine(origin, origin + direction, Color.red, 10f);         
 
         List<Vector3> Av = A.vertices;
         List<Vector3> Bv = B.vertices;
         for (int i = 0; i < Av.Count; i++)
         {
-            if (!PointBelongToLine(origin, direction, Av[i])) continue;
+            
+            bool collinear = PointBelongToLine(origin, direction, Av[i]);
+            Debug.Log(collinear);
+            if (!collinear) continue;
             for (int j = 0; j < Bv.Count; j++)
             {
                 // –аз эти точки равны значит здесь не нужно провер€ть принадлежность к линии
@@ -245,7 +243,22 @@ public class Poly3D
         return (-1, -1, -1, -1);
     }
 
-    private static bool PointBelongToLine(Vector3 origin, Vector3 direction, Vector3 point)
+
+    public static (bool solvable, Vector3 origin, Vector3 direction) PlanePlaneIntersection(Plane Ap, Plane Bp)
+    {
+        Vector3 direction = Vector3.Cross(Ap.normal, Bp.normal);
+        Vector3 answers = new Vector3(-Ap.distance, -Bp.distance, 0);
+
+        (bool solvable, Vector3 origin) = Matrix3x3.CramerABC(Ap.normal, Bp.normal, direction, answers);
+        return (solvable, origin, direction);
+    }
+
+    public static bool PointBelongToLine(Vector3 origin, Vector3 direction, Vector3 point)
+    {
+        return PointBelongToRay(origin, direction, point) | PointBelongToRay(origin, -direction, point);
+    }
+
+    private static bool PointBelongToRay(Vector3 origin, Vector3 direction, Vector3 point)
     {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
         Vector3 p_dir = (point - origin).normalized;
         if (Math.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
@@ -291,8 +304,86 @@ public class Poly3D
         return true;
     }
 
+    public static Poly3D CutSelfAgainstManyKeepInsides(Poly3D target, List<Poly3D> others)
+    {
+        return CutSelfAgainstMany(target, others, true);
+    }
+    public static Poly3D CutSelfAgainstManyKeepOutsides(Poly3D target, List<Poly3D> others)
+    {
+        return CutSelfAgainstMany(target, others, false);
+    }
 
 
+    public static Poly3D CutSelfAgainstMany(Poly3D target, List<Poly3D> others, bool keepInsides)
+    {
+        Poly3D new_poly = new Poly3D();
+
+
+        Debug.Log("Ќе реализовано, сначала нужно реализовать соседство внутри объема");
+        return new_poly;
+    }
+
+
+
+    /// <summary>
+    /// ¬озвращает точки наход€щиес€ на плоскости
+    /// </summary>
+    public void CutPolygonCoplanars(Poly3D other, List<Vector3> coplanars)
+    {
+        Type polyType = 0;
+        List<Type> types = new List<Type>();
+        Debug.Log("intersection не реализовано");
+        for (int i = 0; i < other.vertices.Count; i++)
+        {
+            Type type = PlaneSide(this.plane, other.vertices[i]);
+            polyType |= type;
+            types.Add(type);
+        }
+
+        switch (polyType)
+        {
+            case Type.Front: return;
+            case Type.Back: return;
+            case Type.SamePlane:
+                coplanars = new List<Vector3>(this.vertices);
+                return;
+            case Type.Intersects:
+
+                List<Vector3> f = new List<Vector3>();
+                List<Vector3> b = new List<Vector3>();
+
+                for (int i = 0; i < this.vertices.Count; i++)
+                {
+                    int j = (i + 1) % this.vertices.Count;
+                    Type ti = types[i], tj = types[j];
+                    Vector3 vi = this.vertices[i], vj = this.vertices[j];
+
+                    if (ti != Type.Back) f.Add(vi);
+                    if (ti != Type.Front) b.Add(vi);
+
+                    if ((ti | tj) == Type.Intersects)
+                    {
+                        float t = (-this.plane.distance - Vector3.Dot(this.plane.normal, vi)) / Vector3.Dot(this.plane.normal, vj - vi);
+                        Vector3 v = Vector3.Lerp(vi, vj, t);
+                        f.Add(v);
+                        b.Add(v);
+                    }
+                }
+                //front.AddRange(f);
+                //back.AddRange(b);
+                break;
+        }
+    }
+
+    public Vector3 AveragePoint()
+    {
+        Vector3 result = new Vector3();
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            result += vertices[i];
+        }
+        return result / vertices.Count;
+    }
 
 
 }

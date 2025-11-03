@@ -25,8 +25,8 @@ public struct Neighbours
 
 public static class Poly2DToolbox
 {
-    public static float straightAngle = 179.5f;
-    public static float flatAngle = 0.01f;
+    public const float straightAngle = 179.5f;
+    public const float flatAngle = 0.01f;
     
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
@@ -219,27 +219,31 @@ public static class Poly2DToolbox
             if (ReturnFirstIntersectingEdge(A[currA], B, currB, out int newB))
             {
                 hasChanged = true;
-                //DebugUtilities.DebugDrawLine(B[currB], B[newB], Color.violet);
+                //DebugUtilities.DebugDrawLine(B[currB], B[newB ], Color.blue);
                 currB = newB;
             }
             
             if (ReturnFirstIntersectingEdge(B[currB], A, currA, out int newA))
             {
                 hasChanged = true;
-                //DebugUtilities.DebugDrawLine(A[currA], A[newA], Color.yellow);
+                //DebugUtilities.DebugDrawLine(A[currA], A[newA ], Color.red );
                 currA = newA;
             }
-            if (JumpCloserToTarget(A[currA], B, currB, out int jumpB))
+            // Прыжок на соседнюю вершину, если она ближе чем текущая. Производится дополнительная проверка на пересечение для новой точки.
+            if (JumpCloserToTarget(A[currA], B, currB, out int jumpB) && ReturnFirstIntersectingEdge(A[currA], B, jumpB, out int dummyB))
             {
                 hasChanged = true;
+                //DebugUtilities.DebugDrawLine(B[currB], B[jumpB], Color.cyan);
                 currB = jumpB;
             }
-            if (JumpCloserToTarget(B[currB], A, currA, out int jumpA))
+            if (JumpCloserToTarget(B[currB], A, currA, out int jumpA) && ReturnFirstIntersectingEdge(B[currB], A, jumpA, out int dummyA))
             {
                 hasChanged = true;
+                //DebugUtilities.DebugDrawLine(A[currA], A[jumpA], Color.pink);
                 currA = jumpA;
             }
         }
+        //Debug.Log(safety);
         //DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.green);
         return (currA, currB);
     }
@@ -268,6 +272,7 @@ public static class Poly2DToolbox
                 smallBdistance = dist;
             }
         }
+        //DebugUtilities.DebugDrawLine(A[smallA], B[smallB], Color.yellow); Debug.Log("Debug draw here");
         if (smallB == -1) return UniteHole(A, B);
         return UniteHole(A, B, smallA, smallB);
     }

@@ -292,6 +292,23 @@ public static class BoundsMathHelper
         return BBoxLineEquation2D(BBox, GetLineEquation(L1, L2));
     }
 
+    public static bool DoesPlaneIntersectBox(Plane plane, Bounds BBox)
+    {
+        Vector3[] corvers = Get_8_Corners(BBox);
+        Poly3D.Type opposite = Poly3D.Type.SamePlane;
+        for (int i = 0; i < corvers.Length; i++)
+        {
+            Poly3D.Type type = Poly3D.PlaneSide(plane, corvers[i]);
+            if (type == Poly3D.Type.SamePlane) return true;
+            opposite |= type;
+            if (opposite == Poly3D.Type.Intersects) return true;
+
+        }
+
+        return false;
+    }
+
+
     // 
     public static Vector3 GetLineEquation(Vector2 a, Vector2 b)
     {

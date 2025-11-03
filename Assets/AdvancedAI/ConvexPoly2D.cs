@@ -28,9 +28,10 @@ public class ConvexPoly2D
         }
     }
 
-    public ConvexPoly2D(List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug)
+    public ConvexPoly2D(List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug, float straight_angle = Poly2DToolbox.straightAngle)
     {
-        List<TMPConvexPoly> polys = VolumeGrowth(vectorList, triangleList, connections, debug);
+        straight_angle = Mathf.Clamp(straight_angle, 90f, 190f); // Значения для отфильтвки глупых значений выпуклого угла
+        List<TMPConvexPoly> polys = VolumeGrowth(vectorList, triangleList, connections, debug, straight_angle);
 
         myMatrix = new IntMatrixGraph(polys.Count);
         // Каждый треугольник под своим ID получает значение равному большему полигону которому он принадлежит
@@ -118,7 +119,7 @@ public class ConvexPoly2D
         }
     }
 
-    private static List<TMPConvexPoly> VolumeGrowth(List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug) // Суть в том что полигоны растут
+    private static List<TMPConvexPoly> VolumeGrowth(List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug, float straight_angle = Poly2DToolbox.straightAngle) // Суть в том что полигоны растут
     {   // Желательно исползовать полигоны, прошедшие через триангуляцию Дюлонея/Вороного, т.к. эта триангуляция уменьшает максимальную грань,
         // Это приводит к тому что полигоны получаются более округлыми и менее вытянутыми
         int safety = 0;
@@ -130,13 +131,15 @@ public class ConvexPoly2D
             if (currT == -1) break;
 
             //List<Pair> edges = new List<Pair>(); // Edges, A - start, B - end, bool - является ли грань частью оригинальной границы
-            polys.Add(GrowBigPoly(currT, isOccupied, vectorList, triangleList, connections, debug));
+
+            polys.Add(GrowBigPoly(currT, isOccupied, vectorList, triangleList, connections, debug, straight_angle));
         }
         //Debug.Log("   BROKEN OUT!   ");
         return polys;
     }
 
-    private static TMPConvexPoly GrowBigPoly(int seedT, bool[] isOccupied, List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug)
+    private static TMPConvexPoly GrowBigPoly(int seedT, bool[] isOccupied, List<Vector2> vectorList, List<Triangle> triangleList, List<Vector3Int> connections, Vector3Int debug, 
+        float straight_angle = Poly2DToolbox.straightAngle)
     {
         int safety = 0;
         TMPConvexPoly bigPoly = new TMPConvexPoly(triangleList[seedT].isHole);
@@ -149,11 +152,11 @@ public class ConvexPoly2D
             isOccupied[currT] = true;
             // Проверка всех соседей и добавление подходящих в кандидаты
             // Можно заменить CanConsume на сравнение по дырке, но тогда не будет проверки на угол и функция будет входить в бесконечный цикл добавления и удаления плохих треугольников
-            if (connections[currT].x != -1 && !isOccupied[connections[currT].x] && CanConsume(currT, connections[currT].x, bigPoly, vectorList, triangleList))
+            if (connections[currT].x != -1 && !isOccupied[connections[currT].x] && CanConsume(currT, connections[currT].x, bigPoly, vectorList, triangleList, straight_angle))
             { t_id.Push(connections[currT].x); }
-            if (connections[currT].y != -1 && !isOccupied[connections[currT].y] && CanConsume(currT, connections[currT].y, bigPoly, vectorList, triangleList))
+            if (connections[currT].y != -1 && !isOccupied[connections[currT].y] && CanConsume(currT, connections[currT].y, bigPoly, vectorList, triangleList, straight_angle))
             { t_id.Push(connections[currT].y); }
-            if (connections[currT].z != -1 && !isOccupied[connections[currT].z] && CanConsume(currT, connections[currT].z, bigPoly, vectorList, triangleList))
+            if (connections[currT].z != -1 && !isOccupied[connections[currT].z] && CanConsume(currT, connections[currT].z, bigPoly, vectorList, triangleList, straight_angle))
             { t_id.Push(connections[currT].z); }
             if (t_id.Count == 0) break;
             // Выбор полигона внутри супер полигона, что соседствует с кандидатом на присоединение
@@ -182,7 +185,14 @@ public class ConvexPoly2D
 
             float Bangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Bc], vectorList[Bn]);
             float Dangle = Poly2DToolbox.SignedAngle(vectorList[Dn], vectorList[Dc], vectorList[C]);
-            /* if (debug.x == absorbed){
+            /*if (debug.x == seedT)
+            {
+                DebugUtilities.DebugDrawLine(vectorList[triangleList[seedT].a], vectorList[triangleList[seedT].b], Color.cyan);
+                DebugUtilities.DebugDrawLine(vectorList[triangleList[seedT].b], vectorList[triangleList[seedT].c], Color.cyan);
+                DebugUtilities.DebugDrawLine(vectorList[triangleList[seedT].c], vectorList[triangleList[seedT].a], Color.cyan);
+            }
+            if (debug.x == seedT && debug.y == safety)
+            {
                 Debug.Log(t_a.vec3() + " " + t.vec3() + " " + dirrerent);
                 DebugUtilities.DebugDrawLine(avgPoint(vectorList[t_a.a], vectorList[t_a.b], vectorList[t_a.c]), avgPoint(vectorList[t.a], vectorList[t.b], vectorList[t.c]), Color.cyan);
                 DebugUtilities.DebugDrawLine(vectorList[C], vectorList[Bc], Color.red);
@@ -191,18 +201,19 @@ public class ConvexPoly2D
                 DebugUtilities.DebugDrawLine(vectorList[Dc], vectorList[C], Color.orange);
                 Debug.Log(Bangle + " " + Dangle);
             }*/
-            if (Bangle < Poly2DToolbox.straightAngle && Dangle < Poly2DToolbox.straightAngle)
+            if (Bangle < straight_angle && Dangle < straight_angle)
             {
                 InjectVertice(bigPoly.vertices, C, Bc);
                 bigPoly.absorbedTriangles.Add(candidate);
                 currT = candidate;
             }
         }
+        if (debug.x == seedT)  Debug.Log(safety);
         return bigPoly;
     }
     
 
-    private static bool CanConsume(int thisTid, int otherTid, TMPConvexPoly bigPoly, List<Vector2> vectorList, List<Triangle> triangleList)
+    private static bool CanConsume(int thisTid, int otherTid, TMPConvexPoly bigPoly, List<Vector2> vectorList, List<Triangle> triangleList, float straight_angle = Poly2DToolbox.straightAngle)
     {
         // Get vertices involved in operation
         //Debug.Log(otherTid + " " + thisTid + " " + triangleList[otherTid] + " " + triangleList[thisTid]);
@@ -216,10 +227,10 @@ public class ConvexPoly2D
         int Dn = bigPoly.vertices[GetNext(bigPoly.vertices, Dc)];
 
         float Bangle = Poly2DToolbox.SignedAngle(vectorList[Bn], vectorList[Bc], vectorList[C]);
-        if (Bangle >= Poly2DToolbox.straightAngle) return false;
+        if (Bangle >= straight_angle) return false;
 
         float Dangle = Poly2DToolbox.SignedAngle(vectorList[C], vectorList[Dc], vectorList[Dn]);
-        return Dangle < Poly2DToolbox.straightAngle;
+        return Dangle < straight_angle;
     }
 
 
@@ -303,7 +314,7 @@ public class ConvexPoly2D
         //string strrr = ""; for (int i = 0; i < triangleList.Count; i++) { strrr += isValid[i] + " "; }; Debug.Log(strrr);
 
         int safety = 0;
-        while (reasonToLive & safety < 50) { safety += 1;
+        while (reasonToLive & safety < 49) { safety += 1;
             int currT = FirstTrue(isValid);     // current triangle
             if (currT == -1)
             {
@@ -396,7 +407,7 @@ public class ConvexPoly2D
             Triangle triangle2 = triangleList[ids[i]];
             if (triangle1.isHole != triangle2.isHole) continue;
             int vid = GetDifferringVertice(triangle1.vec3(), triangle2.vec3());
-            if (Vector2.Distance(circle, vectorList[vid]) > radius) continue;
+            if (Vector2.Distance(circle, vectorList[vid]) >= radius) continue;
             return ids[i];
         }
         return -1;

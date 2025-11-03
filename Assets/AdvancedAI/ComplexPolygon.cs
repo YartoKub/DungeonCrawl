@@ -112,6 +112,11 @@ public class ComplexPolygon
 
         List<int> combinedPoly = CombinePolygons(polygons[thisPolyIndex].vertices, engulfed);
 
+        // Draw combined polygon outline
+        //Debug.Log("Drawing is happening heere");
+        //for (int i = 0; i < combinedPoly.Count; i++)  DebugUtilities.DebugDrawLine(this.vertices[combinedPoly[i]], this.vertices[combinedPoly[(i + 1) % combinedPoly.Count]], Color.orange);
+        
+
         //string nstring = ""; for (int i = 0; i < combinedPoly.Count; i++) nstring += combinedPoly[i] + " "; Debug.Log(nstring);
 
         List<Vector2> cpv = new List<Vector2>(combinedPoly.Count);
@@ -193,6 +198,7 @@ public class ComplexPolygon
                 indexPolyToCheck = 0;
             }
         }
+
         return toReturn;
     }
 

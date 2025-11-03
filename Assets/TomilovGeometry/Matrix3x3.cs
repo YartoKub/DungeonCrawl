@@ -25,13 +25,15 @@ public struct Matrix3x3
         float ret = MD - OD;
         return ret;
     }
-    public static float Det3x3(Vector3 p0, Vector3 p1, Vector3 p2)
+
+    public static float Det3x3(Vector3 vx, Vector3 vy, Vector3 vz)
     {
-        float MD = (p0.x * p1.y * p2.z) + (p0.y * p1.z * p2.x) + (p0.z * p1.x * p2.y);
-        float OD = (p0.z * p1.y * p2.x) + (p0.y * p1.x * p2.z) + (p0.x * p1.z * p2.y);
+        float MD = (vx.x * vy.y * vz.z) + (vx.y * vy.z * vz.x) + (vx.z * vy.x * vz.y);
+        float OD = (vx.z * vy.y * vz.x) + (vx.y * vy.x * vz.z) + (vx.x * vy.z * vz.y);
         float ret = MD - OD;
         return ret;
     }
+
     public static float Det3x3(Matrix3x3 m) // хз зачем, пусть будет
     {
         return m.Det3x3();
@@ -98,7 +100,36 @@ public struct Matrix3x3
     {
         return new Matrix3x3(p0 + B.p0, p1 + B.p1, p2 + B.p2);
     }
+    /// <summary>
+    /// Каждый вектор содержит только значения соответствующие координатам
+    /// Для системы уравнений, линейных, плоскостей, используй CramerABC
+    /// </summary>
 
+    public static (bool, Vector3) CramerXYZ(Vector3 x, Vector3 y, Vector3 z, Vector3 answers)
+    {   
+        float det = Det3x3(x, y, z);
+        if (Mathf.Abs(det) < Geo3D.epsilon) return (false, Vector3.zero);
+
+        float dx = Det3x3(answers, y, z);
+        float dy = Det3x3(x, answers, z);
+        float dz = Det3x3(x, y, answers);
+
+        return (true, new Vector3(dx / det, dy /det, dz / det));
+    }
+    public static (bool, Vector3) CramerABC(Vector3 a, Vector3 b, Vector3 c, Vector3 answers)
+    {
+        Vector3 x = new Vector3(a.x, b.x, c.x);
+        Vector3 y = new Vector3(a.y, b.y, c.y);
+        Vector3 z = new Vector3(a.z, b.z, c.z);
+        float det = Det3x3(x, y, z);
+        if (Mathf.Abs(det) < Geo3D.epsilon) return (false, Vector3.zero);
+
+        float dx = Det3x3(answers, y, z);
+        float dy = Det3x3(x, answers, z);
+        float dz = Det3x3(x, y, answers);
+
+        return (true, new Vector3(dx / det, dy / det, dz / det));
+    }
 
 
 }

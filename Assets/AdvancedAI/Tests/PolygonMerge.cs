@@ -61,7 +61,8 @@ public class PolygonMerge : MonoBehaviour
                 break;
             }
         }
-        Debug.Log(canUniteHoles + " " + combined.PolygonDepth);
+        //Debug.Log(canUniteHoles + " " + combined.PolygonDepth);
+        
         if (!canUniteHoles | combined.PolygonDepth != 2)
         {
             Debug.Log("Bad polygons, can not triangulate!");
