@@ -247,7 +247,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &58379456
 Transform:
   m_ObjectHideFlags: 0
@@ -1997,6 +1997,50 @@ Transform:
   - {fileID: 254233112}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1266008485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1266008487}
+  - component: {fileID: 1266008486}
+  m_Layer: 0
+  m_Name: PolygonManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1266008486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266008485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 068744d680e308241ad271eac1265b55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
+--- !u!4 &1266008487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266008485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.87543, y: 0.41985, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1293271200
 GameObject:
   m_ObjectHideFlags: 0
@@ -2360,6 +2404,56 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 5.776166, y: 1, z: 1}
   m_Center: {x: -2.388083, y: 0, z: 0}
+--- !u!1 &1578657487
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1578657489}
+  - component: {fileID: 1578657488}
+  m_Layer: 0
+  m_Name: PointManagerTest
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1578657488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1578657487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1387c566c1bc044ba3ac8636f9832e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  points:
+  - {x: 6.1078835, y: 3.5863786}
+  - {x: 7.949623, y: -0.9933231}
+  - {x: -1.3155434, y: 3.01684}
+  - {x: 7.6139684, y: 1.1860392}
+  acceptNewPoints: 0
+--- !u!4 &1578657489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1578657487}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1634279667
 GameObject:
   m_ObjectHideFlags: 0
@@ -2424,6 +2518,58 @@ Transform:
   m_GameObject: {fileID: 1634279667}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.46291, y: 0.03447, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1661459091
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1661459093}
+  - component: {fileID: 1661459092}
+  m_Layer: 0
+  m_Name: PointInsidePolygonTest
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1661459092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1661459091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6de57e70b32a1b049afc263f4b7798cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PointInsidePolygontest
+  points:
+  - {x: 0, y: 3}
+  - {x: 3, y: 3}
+  - {x: 6, y: 0}
+  - {x: 1, y: 1}
+  point: {x: 0, y: 0}
+  isConvex: 0
+  isHole: 0
+--- !u!4 &1661459093
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1661459091}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 6.46291, y: 0.03447, z: 7.45}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2979,7 +3125,10 @@ SceneRoots:
   - {fileID: 1006644821}
   - {fileID: 868887844}
   - {fileID: 58379456}
+  - {fileID: 1661459093}
   - {fileID: 958635715}
   - {fileID: 139386792}
   - {fileID: 138994694}
   - {fileID: 153239260}
+  - {fileID: 1578657489}
+  - {fileID: 1266008487}

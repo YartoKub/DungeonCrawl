@@ -52,7 +52,7 @@ public static class Poly2DToolbox
                 int C = indices[wrapAround(i, 1, indices.Count)];
                 float currAngle = Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]);
                 //Debug.Log(currAngle + " " + (currAngle >= straightAngle | currAngle <= flatAngle));
-                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;
+                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;  // Тут могту появиться проблемы на очень больших полигонах, где все углы приближаются к 180. Но Это маловероятно
                 if (MassContainPoint(A, B, C, vectorList)) continue;
                 //if (ReturnFirstIntersectingEdge(vectorList, A, C)) { continue; }
                 triangles.Add(new Triangle(A, B, C, isHole));
@@ -508,6 +508,23 @@ public static class Poly2DToolbox
             (targetPoint.x < A.x + ((targetPoint.y - A.y) / (B.y - A.y)) * (B.x - A.x));
     }
 
+    public static bool IsInsidePolygonConvex(List<Vector2> vertices, Vector2 p, bool isHole)
+    {
+        if (isHole == true) // Ориентация часовой
+            for (int i = vertices.Count - 1; i < 0; i--)
+            {
+                int j = (i - 1 + vertices.Count) % vertices.Count;
+                if (isLeft(p, vertices[i], vertices[j])) return false;
+            }
+        else
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                int j = (i + 1) % vertices.Count;
+                if (isRight(p, vertices[i], vertices[j])) return false;
+            }
+        return true;
+    }
+
     public static bool AreCrossing(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out Vector2 crossing)
     {
         // Переписка кода вот отсюда: https://habr.com/ru/articles/267037/
@@ -547,12 +564,9 @@ public static class Poly2DToolbox
         interPoint = Vector2.zero;
         distance = 0;
         float det = (A.x - B.x) * (C.y - D.y) - (A.y - B.y) * (C.x - D.x);
-        //Debug.Log("hi");
-        if (Mathf.Abs(det) < Geo3D.epsilon) 
-        {
-            
-            return false;
-        }
+
+        if (Mathf.Abs(det) < Geo3D.epsilon)  return false;
+        
         float X = (A.x * B.y - A.y * B.x) * (C.x - D.x) - (A.x - B.x) * (C.x * D.y - C.y * D.x);
         float Y = (A.x * B.y - A.y * B.x) * (C.y - D.y) - (A.y - B.y) * (C.x * D.y - C.y * D.x);
         det = 1 / det;

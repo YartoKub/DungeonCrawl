@@ -61,11 +61,8 @@ public class Poly2D
 
     public void Orient(bool IsCounterClockwise)
     {
-        //Debug.Log(this.IsCounterClockwise() + " " + IsCounterClockwise + " " + SignedArea());
-        //Debug.Log(this.IsCounterClockwise() == IsCounterClockwise);
         if (this.IsCounterClockwise() == IsCounterClockwise) return;
         this.vertices.Reverse();
-        //Debug.Log(this.IsCounterClockwise() + " " + IsCounterClockwise + " " + SignedArea());
     }
     public float Area()
     {
@@ -98,6 +95,20 @@ public class Poly2D
             summ += vertices[i];
         }
         return summ / vertices.Count;
+    }
+
+    public bool IsInsidePolygon(Vector2 p)
+    {
+        if (this.convex) return Poly2DToolbox.IsInsidePolygonConvex(this.vertices, p, isHole);
+        else             return Poly2DToolbox.IsPointInsidePolygon(p, this.vertices);
+    }
+
+    public List<Vector3> GetMesh()
+    {
+        Debug.Log("Not implemented");
+        List<Vector3> meshList = new List<Vector3>();
+
+        return meshList;
     }
 
 }
