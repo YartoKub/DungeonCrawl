@@ -16,6 +16,7 @@ public class PolygonManager : MonoBehaviour
     }
 
     public List<Vector2> points;
+    public List<Poly2D> polygons = new List<Poly2D>();
 
     void Start()
     {
@@ -34,6 +35,10 @@ public class PolygonManager : MonoBehaviour
         {
             DebugUtilities.HandlesDrawCross(points[i], Color.cyan);
         }
+        for (int i = 0; i < polygons.Count; i++)
+        {
+            polygons[i].DebugDrawSelf(Color.blue);
+        }
     }
 
     public void AddPoint(Vector2 p)
@@ -44,6 +49,15 @@ public class PolygonManager : MonoBehaviour
     {
         if (p_index < 0 || p_index >= this.points.Count) return;
         this.points.RemoveAt(p_index);
+    }
+    public void AddPolygon(Poly2D p)
+    {
+        this.polygons.Add(p);
+    }
+    public void RemovePolygon(int p_index)
+    {
+        if (p_index < 0 || p_index >= this.polygons.Count) return;
+        this.polygons.RemoveAt(p_index);
     }
 
     public (int, float) ClosestPoint(Vector2 p)
