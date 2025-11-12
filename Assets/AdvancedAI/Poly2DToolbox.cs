@@ -617,6 +617,22 @@ public static class Poly2DToolbox
     {
         return ( A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y)) * 0.5f;
     }
+    public static bool SelfIntersectionNaive(List<Vector2> points)
+    {
+        for (int a = 0; a < points.Count - 1; a++)
+        {
+            int a2 = a + 1;
+            for (int b = a + 1; b < points.Count; b++)
+            {
+                int b2 = (b + 1) % points.Count;
+                if (LineLineIntersection(points[a], points[a2], points[b], points[b2], out Vector2 dummy))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     // Does A belong to B?
     // 1 B inside A / 0 even level / -1 A inside B
