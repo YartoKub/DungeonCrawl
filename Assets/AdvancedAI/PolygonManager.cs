@@ -52,14 +52,14 @@ public class PolygonManager : MonoBehaviour
     {
         this.points.Add(p);
         Poly2DToolbox.SortPoints(this.points);
-        CalculatePointBVH();
+        CalculatePointBVH_Naive();
     }
     public void RemovePoint(int p_index)
     {
         if (p_index < 0 || p_index >= this.points.Count) return;
         this.points.RemoveAt(p_index);
         Poly2DToolbox.SortPoints(this.points);
-        CalculatePointBVH();
+        CalculatePointBVH_Naive();
     }
     public void AddPolygon(Poly2D p)
     {
@@ -91,18 +91,33 @@ public class PolygonManager : MonoBehaviour
         return (min, min_d);
     }
 
-    public void CalculatePointBVH()
+    public void CalculatePointBVH_Naive()
     {
         List<Bounds> bounds_list = new List<Bounds>(points.Count);
         if (points.Count == 0)
         {
-            this.root = null; return;
+            this.root = null; 
+            return;
         }
         for (int i = 0; i < points.Count; i++)
-        {
             bounds_list.Add(new Bounds(points[i], Vector2.one));
-        }
+
         this.root = BinaryBBoxToolbox.BuildBHVNaive(bounds_list);
+        Debug.Log(this.root.max_depth);
+    }
+    public void CalculatePointBVH_SideGrowing()
+    {
+        List<Bounds> bounds_list = new List<Bounds>(points.Count);
+        if (points.Count == 0)
+        {
+            this.root = null; 
+            return;
+        }
+        
+        for (int i = 0; i < points.Count; i++)
+            bounds_list.Add(new Bounds(points[i], Vector2.one));
+        
+        this.root = BinaryBBoxToolbox.BuildBVHSideGrowing(bounds_list);
         Debug.Log(this.root.max_depth);
     }
     public void HandlesDrawHierarchy(int target)
