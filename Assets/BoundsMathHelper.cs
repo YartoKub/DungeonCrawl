@@ -35,6 +35,38 @@ public static class BoundsMathHelper
         intBounds.SetMinMax(toReturn[0], toReturn[1]);
         return intBounds;
     }
+    public static Bounds Intersect(Bounds roomA, Bounds roomB)
+    {
+        Vector3 myA = roomA.min; Vector3 myB = roomA.max;
+        Vector3 otherA = roomB.min; Vector3 otherB = roomB.max;
+
+        Vector3[] preview = new Vector3[2];
+        preview[0] = new Vector3(
+            Mathf.Clamp(myB.x, otherA.x, otherB.x),
+            Mathf.Clamp(myB.y, otherA.y, otherB.y),
+            Mathf.Clamp(myB.z, otherA.z, otherB.z)
+            );
+        preview[1] = new Vector3(
+            Mathf.Clamp(otherA.x, myA.x, myB.x),
+            Mathf.Clamp(otherA.y, myA.y, myB.y),
+            Mathf.Clamp(otherA.z, myA.z, myB.z)
+            );
+
+        Vector3[] toReturn = new Vector3[2];
+        toReturn[0] = new Vector3(
+            Mathf.Min(preview[0].x, preview[1].x),
+            Mathf.Min(preview[0].y, preview[1].y),
+            Mathf.Min(preview[0].z, preview[1].z)
+            );
+        toReturn[1] = new Vector3(
+            Mathf.Max(preview[0].x, preview[1].x),
+            Mathf.Max(preview[0].y, preview[1].y),
+            Mathf.Max(preview[0].z, preview[1].z)
+            );
+        Bounds intBounds = new Bounds();
+        intBounds.SetMinMax(toReturn[0], toReturn[1]);
+        return intBounds;
+    }
 
     public static BoundsInt ExpandToInclude(BoundsInt roomA, BoundsInt roomB)
     {

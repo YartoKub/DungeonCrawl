@@ -43,6 +43,7 @@ public static class DebugUtilities
         Debug.DrawLine(new Vector3(x + size, y + size), new Vector3(x + size, y - size), color, time);
         Debug.DrawLine(new Vector3(x + size, y - size), new Vector3(x - size, y - size), color, time);
     }
+
     public static void DrawPoopyCircle(Vector2 center, float R, int p, Color color)
     {
         float angle = Mathf.PI * 2 / p;
@@ -158,6 +159,78 @@ public static class DebugUtilities
         Handles.DrawLine(xyc, ayc);
         Handles.DrawLine(xyc, xbc);
         Handles.color = tmp_color;
+    }
+
+    public static void HandlesDrawRectangle(Vector2 p1, Vector2 p2, Color color, float time = 0.01f)
+    {
+        Color tmp_color = Handles.color;
+        Handles.color = color;
+        Handles.DrawLine(p1, new Vector3(p1.x, p2.y));
+        Handles.DrawLine(p1, new Vector3(p2.x, p1.y));
+        Handles.DrawLine(new Vector3(p1.x, p2.y), p2);
+        Handles.DrawLine(new Vector3(p2.x, p1.y), p2);
+        Handles.color = tmp_color;
+    }
+
+    public static Color RYG_Gradient(int current_depth, int max_depth)
+    {
+        max_depth = max_depth - 1;
+        float ratio = ((float)current_depth / max_depth);
+
+        if (ratio < 0.5f)
+            return new Color(1, ratio * 2, 0);
+        else
+            return new Color(1 - (ratio - 0.5f) * 2, 1, 0);
+    }
+    public static Color LerpGradient(Color a, Color b, int current_depth, int max_depth)
+    {
+        max_depth = max_depth - 1;
+        float ratio = ((float)current_depth / max_depth);
+        return Color.Lerp(a, b, ratio);
+    }
+
+    public static Color RainbowGradient_Looped(int current_depth, int max_depth)
+    {
+        max_depth = max_depth - 1;
+        float ratio = ((float)current_depth / max_depth);
+        return Color.HSVToRGB(ratio, 1, 1);
+    }
+    public static Color RainbowGradient_Red2Violet(int current_depth, int max_depth)
+    {
+        max_depth = max_depth - 1;
+        float ratio = ((float)current_depth / max_depth);
+        return Color.HSVToRGB(ratio * 0.833f, 1, 1);
+    }
+    /// <summary>
+    ///  Этот градиент работает странно, но работает.
+    ///  Я не знаю/мне лень делать его лучше
+    /// </summary>
+    public static Color HSVGradient(Color a, Color b, int current_depth, int max_depth)
+    {
+        Color.RGBToHSV(a, out float aH, out float aS, out float aV);
+        Color.RGBToHSV(b, out float bH, out float bS, out float bV);
+        max_depth = max_depth - 1;
+        float ratio = ((float)current_depth / max_depth);
+        float AB_distance = 0; float BA_distance = 0; float useable_distance;
+        if (aH > bH) {
+            AB_distance = 1.0f - aH + bH;
+            BA_distance = aH - bH;
+        } else {
+            AB_distance = bH - aH;
+            BA_distance = 1.0f - bH + aH;
+        }
+        if (AB_distance < BA_distance) useable_distance = AB_distance;
+        else useable_distance = -BA_distance;
+
+        float nH = aH + useable_distance * ratio;
+        nH = nH < 0.0f ? nH + 1.0f : nH;
+        float nS = aS + (bS - aS) * ratio;
+        float nV = aV + (bV - aV) * ratio;
+        //Debug.Log(aH + " " + aS + " " + aV);
+        //Debug.Log(bH + " " + bS + " " + bV);
+        //Debug.Log(nH + " " + nS + " " + nV);
+
+        return Color.HSVToRGB(nH, nS, nV) ;
     }
 
 

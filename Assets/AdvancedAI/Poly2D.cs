@@ -2,14 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEditor;
 
 
-public class Poly2D
+public class Poly2D : I_BBoxSupporter
 {
     public List<Vector2> vertices;
     public bool isHole;
     public bool convex;
-    public Bounds BBox;
+    public Bounds BBox; public Bounds i_bounds { get { return BBox; } set { BBox = value; } }
 
     public Poly2D(List<Vector2> _vertices)
     {
@@ -29,6 +30,23 @@ public class Poly2D
         vertices = new List<Vector2>();
         vertices.AddRange(_vertices);
         CalculateBBox();
+    }
+    private Poly2D()
+    {
+        // Dummy poly
+    }
+
+    public static bool CompilePolygon(List<Vector2> points, out Poly2D out_poly)
+    {
+        out_poly = new Poly2D();
+        if (points.Count < 3) return false;
+        if (Poly2DToolbox.SelfIntersectionNaive(points)) return false;
+
+        out_poly = new Poly2D(new List<Vector2>(points));
+        out_poly.isHole = out_poly.IsCounterClockwise();
+        out_poly.convex = Poly2DToolbox.IsConvex(out_poly.vertices, out_poly.isHole);
+        //Debug.Log(out_poly.convex);
+        return true;
     }
 
     public void CalculateBBox()
@@ -80,11 +98,23 @@ public class Poly2D
 
     public void DebugDrawSelf(Color color)
     {
+        //Debug.Log(vertices.Count);
         for (int i = 0; i < vertices.Count - 1; i++)
         {
             DebugUtilities.DebugDrawLine(vertices[i], vertices[i+1], color);
         }
         DebugUtilities.DebugDrawLine(vertices[vertices.Count - 1], vertices[0], color);
+    }
+    public void HandlesDrawSelf(Color color)
+    {
+        //Debug.Log(vertices.Count);
+        Color tmp = Handles.color;
+        Handles.color = color;
+        for (int i = 0; i < vertices.Count - 1; i++)
+            Handles.DrawLine(vertices[i], vertices[i + 1]);
+        
+        Handles.DrawLine(vertices[vertices.Count - 1], vertices[0]);
+        Handles.color = tmp;
     }
 
     public Vector2 AveragePoint()
@@ -109,6 +139,19 @@ public class Poly2D
         List<Vector3> meshList = new List<Vector3>();
 
         return meshList;
+    }
+
+    public static void SortListByCenters(List<Poly2D> list)
+    {
+        list.Sort(
+            (a, b) => {
+                Vector2 ac = a.BBox.center;
+                Vector2 bc = b.BBox.center;
+                int x_com = ac.x.CompareTo(bc.x);
+                if (x_com != 0) return x_com;
+                return ac.y.CompareTo(bc.y);
+                }
+            );
     }
 
 }

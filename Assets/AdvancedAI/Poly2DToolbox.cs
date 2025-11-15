@@ -508,6 +508,7 @@ public static class Poly2DToolbox
             (targetPoint.x < A.x + ((targetPoint.y - A.y) / (B.y - A.y)) * (B.x - A.x));
     }
 
+
     public static bool IsInsidePolygonConvex(List<Vector2> vertices, Vector2 p, bool isHole)
     {
         if (isHole == true) // ќриентаци€ часовой
@@ -619,16 +620,18 @@ public static class Poly2DToolbox
     }
     public static bool SelfIntersectionNaive(List<Vector2> points)
     {
-        for (int a = 0; a < points.Count - 1; a++)
+        if (points.Count < 3) return true;
+        if (points.Count == 3) return false;
+
+        for (int a = 0; a < points.Count; a++)
         {
-            int a2 = a + 1;
-            for (int b = a + 1; b < points.Count; b++)
+            int a2 = (a + 1) % points.Count;
+            for (int b = 2; b <= points.Count - 2; b++)
             {
-                int b2 = (b + 1) % points.Count;
-                if (LineLineIntersection(points[a], points[a2], points[b], points[b2], out Vector2 dummy))
-                {
-                    return true;
-                }
+                int b1 = (b + a + points.Count + 0) % points.Count;
+                int b2 = (b + a + points.Count + 1) % points.Count;
+                //Debug.Log("ab: " + a + " " + b + " a1 a2: " + a + " " + a2 + " b1 b2: " + b1 + " " + b2);
+                if (LineLineIntersection(points[a], points[a2], points[b1], points[b2], out Vector2 dummy))  return true;
             }
         }
         return false;
@@ -702,6 +705,34 @@ public static class Poly2DToolbox
         return SignedAngle(P2, P1, P3) > 180.0f;
     }
 
+    public static bool IsConvex(List<Vector2> points, bool isHole)
+    {
+        if (points.Count < 3) return false;
+        if (points.Count == 3) return true;
+        int pc = points.Count;
+        
+        for (int i = 0; i < pc; i++)
+        {
+            int a = i;
+            int b = (i + 1) % pc;
+            int c = (i + 2) % pc;
+            if (isHole) (a, c) = (c, a); // ћен€ютс€ местами дл€ установлени€ корректного пор€дка
+            float angle = SignedAngle(points[a], points[b], points[c]);
+            if (angle >= straightAngle) return false;
+        }
+        return true;
+    }
+
+    public static void SortPoints(List<Vector2> list)
+    {
+        list.Sort(
+            (a, b) => {
+                int x_com = a.x.CompareTo(b.x);
+                if (x_com != 0) return x_com;
+                return a.y.CompareTo(b.y);
+            }
+            );
+    }
 
 }
 

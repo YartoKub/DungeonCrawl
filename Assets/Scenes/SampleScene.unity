@@ -510,6 +510,54 @@ MonoBehaviour:
   size: {x: 1, y: 1, z: 3}
   KillYourself: 0
   ShowYourself: 0
+--- !u!1 &351206943
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 351206945}
+  - component: {fileID: 351206944}
+  m_Layer: 0
+  m_Name: GradientTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &351206944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 351206943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 987dfa68b6c4ebf4cb97ebeec2ab3fb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GradientTest
+  subdivisions: 30
+  option: 1
+  color1: {x: 1, y: 0, z: 1}
+  color2: {x: 0, y: 1, z: 0}
+--- !u!4 &351206945
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 351206943}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.05937, y: 0.18552, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &428874411
 GameObject:
   m_ObjectHideFlags: 0
@@ -2026,15 +2074,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 068744d680e308241ad271eac1265b55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
+  DisplayHierarchy: 1
+  HierarchyLevel: 2
+  PointHighlighter: -1
   points:
-  - {x: 5.029062, y: 2.8853097}
-  - {x: 1.9679314, y: -0.08900881}
-  - {x: -2.505767, y: 2.0665107}
-  - {x: -1.6961751, y: -0.12735367}
-  - {x: 3.0842984, y: 2.9764552}
-  - {x: 4.198961, y: 1.0638442}
-  - {x: 3.240266, y: -0.58449554}
-  - {x: 1.9970601, y: 1.3864594}
+  - {x: -1.6192098, y: -0.6114125}
+  - {x: -0.49423575, y: 0.7330959}
+  - {x: 0.18105388, y: 2.0414817}
+  - {x: 1.475052, y: 0.63693786}
+  - {x: 1.6721542, y: 2.8590298}
+  - {x: 1.7971032, y: 0.9393918}
+  - {x: 1.9691303, y: 1.9349446}
+  - {x: 3.2955441, y: -0.5862675}
+  - {x: 3.447199, y: 0.25780392}
+  - {x: 3.5447617, y: 2.4142876}
+  - {x: 5.8204603, y: 0.088246465}
+  - {x: 5.8390474, y: 1.9387903}
 --- !u!4 &1266008487
 Transform:
   m_ObjectHideFlags: 0
@@ -3089,4 +3144,5 @@ SceneRoots:
   - {fileID: 139386792}
   - {fileID: 138994694}
   - {fileID: 153239260}
+  - {fileID: 351206945}
   - {fileID: 1266008487}

@@ -45,6 +45,8 @@ public class PointManagerInspectorGUI : Editor
             if (stateMachine != null) stateMachine.EndStateMachine();
             ChangeState(current_action_index);
         }
+        if (GUILayout.Button("purge polygons")) ((PolygonManager)target).PurgePolygons();
+        if (GUILayout.Button("recalculate hierarchy")) ((PolygonManager)target).CalculatePointBVH();
         base.OnInspectorGUI();
     }
 
@@ -176,7 +178,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
 
         (int index, float distance) = manager.ClosestPoint(point);
         if (distance >= 0.25f) return this;
-        manager.HighLightPointHandles(index);
+        manager.HandlesHighLightPoint(index);
 
         if (!(e.type == EventType.MouseDown && e.button == 0)) return this;
         manager.RemovePoint(index);
@@ -220,7 +222,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
         {
             Debug.Log("Завершение постройки полигона");
             e.Use();
-            CompilePolygon();
+            CompilePolygon(manager);
             return new GUI_NothingMachine();
         }
         
@@ -233,23 +235,21 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
 
         if (!(e.type == EventType.MouseDown && e.button == 0)) return null;
         this.points.Add(new Vector2(point.x, point.y));
-        Debug.Log(points.Count);
         e.Use();
 
         return null;
     }
     
-    private void CompilePolygon()
+    private void CompilePolygon(PolygonManager manager)
     {
-        if (this.points.Count < 3) return;
-        if (Poly2DToolbox.SelfIntersectionNaive(this.points))
-        {
-            Debug.Log("Self intersection!");
-            return;
-        }
-        Debug.Log("No self intersection");
+        Poly2D poly;
+        bool has_compiled = Poly2D.CompilePolygon(this.points, out poly);
+        if (!has_compiled) return;
 
+        manager.AddPolygon(poly);
+        return;
     }
+
     private void DrawPolygon()
     {
         Color tmp_color = Handles.color;
@@ -266,8 +266,8 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
         Color point_color = (points.Count == 1) ? Color.red : (points.Count == 2 ? Color.orange : Color.green);
         for (int i = 0; i < points.Count; i++)
             DebugUtilities.HandlesDrawCross(points[i], point_color);
-        
     }
+
     public override void EndStateMachine() 
     {
         Debug.Log("Остановленна машина полигонов");

@@ -15,8 +15,13 @@ public class PolygonManager : MonoBehaviour
         return manager;
     }
 
-    public List<Vector2> points;
-    public List<Poly2D> polygons = new List<Poly2D>();
+    
+    [SerializeField] BinaryBBoxRoot root;
+    public bool DisplayHierarchy;
+    [Range(-1, 20)] public int HierarchyLevel;
+    [Range(-1, 100)] public int PointHighlighter;
+    [SerializeField] public List<Vector2> points;
+    [SerializeField] public List<Poly2D> polygons = new List<Poly2D>();
 
     void Start()
     {
@@ -37,27 +42,38 @@ public class PolygonManager : MonoBehaviour
         }
         for (int i = 0; i < polygons.Count; i++)
         {
-            polygons[i].DebugDrawSelf(Color.blue);
+            polygons[i].HandlesDrawSelf(polygons[i].isHole ? Color.red : Color.blue);
         }
+        HandlesDrawHierarchy(HierarchyLevel);
+        if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
     }
 
     public void AddPoint(Vector2 p)
     {
         this.points.Add(p);
+        Poly2DToolbox.SortPoints(this.points);
+        CalculatePointBVH();
     }
     public void RemovePoint(int p_index)
     {
         if (p_index < 0 || p_index >= this.points.Count) return;
         this.points.RemoveAt(p_index);
+        Poly2DToolbox.SortPoints(this.points);
+        CalculatePointBVH();
     }
     public void AddPolygon(Poly2D p)
     {
         this.polygons.Add(p);
+        p.isHole = p.IsCounterClockwise();
     }
     public void RemovePolygon(int p_index)
     {
         if (p_index < 0 || p_index >= this.polygons.Count) return;
         this.polygons.RemoveAt(p_index);
+    }
+    public void PurgePolygons()
+    {
+        this.polygons.Clear();
     }
 
     public (int, float) ClosestPoint(Vector2 p)
@@ -75,14 +91,49 @@ public class PolygonManager : MonoBehaviour
         return (min, min_d);
     }
 
-    public void HighLightPoint(int index)
+    public void CalculatePointBVH()
     {
-        //Handles.DrawWireCube(points[index], Vector3.one * 0.2f);
-        DebugUtilities.DrawCube(points[index], Vector3.one * 0.2f, Color.white);
+        List<Bounds> bounds_list = new List<Bounds>(points.Count);
+        if (points.Count == 0)
+        {
+            this.root = null; return;
+        }
+        for (int i = 0; i < points.Count; i++)
+        {
+            bounds_list.Add(new Bounds(points[i], Vector2.one));
+        }
+        this.root = BinaryBBoxToolbox.BuildBHVNaive(bounds_list);
+        Debug.Log(this.root.max_depth);
     }
-    public void HighLightPointHandles(int index)
+    public void HandlesDrawHierarchy(int target)
     {
-        DebugUtilities.HandlesDrawCube(points[index], Vector3.one * 0.2f, Color.yellow);
+        if (this.root == null) return;
+        if (!DisplayHierarchy) return;
+        if (target == -1) HandlesDrawHierarchyFull(root.bbox, 0);
+        HandlesDrawHierarchyLevel(root.bbox, 0, target);
     }
+    public void HandlesDrawHierarchyLevel(BinaryBBox b, int cur_depth, int target)
+    {
+        if (cur_depth > 20) return; 
+        if (cur_depth == target) {
+            DebugUtilities.HandlesDrawRectangle(b.BBox.min, b.BBox.max, DebugUtilities.RYG_Gradient(cur_depth, this.root.max_depth));
+            return;
+        }
+        if (b.child1 != null) HandlesDrawHierarchyLevel(b.child1, cur_depth + 1, target);
+        if (b.child2 != null) HandlesDrawHierarchyLevel(b.child2, cur_depth + 1, target);
+    }
+    public void HandlesDrawHierarchyFull(BinaryBBox b, int cur_depth)
+    {
+        if (cur_depth > 20) return;
+        DebugUtilities.HandlesDrawRectangle(b.BBox.min, b.BBox.max, DebugUtilities.RYG_Gradient(cur_depth, this.root.max_depth));
+
+        if (b.child1 != null) HandlesDrawHierarchyFull(b.child1, cur_depth + 1);
+        if (b.child2 != null) HandlesDrawHierarchyFull(b.child2, cur_depth + 1);
+    }
+    public void DebugHighLightPoint(int index) { DebugUtilities.DrawCube(points[index], Vector3.one * 0.2f, Color.white); }
+    public void HandlesHighLightPoint(int index) { DebugUtilities.HandlesDrawCube(points[index], Vector3.one * 0.2f, Color.yellow); }
+
+
+
 }
 
