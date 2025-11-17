@@ -103,11 +103,9 @@ public static class BinaryBBoxToolbox
     {
         BinaryBBox nBBox = new BinaryBBox();
         if (end_i - beg_i == 0 | depth > 15) return (null, depth);
-
         if (end_i - beg_i == 1)
         {
             nBBox.BBox = sorted_leafs[beg_i].BBox;
-            //Debug.Log(beg_i + " " + end_i +  " покинута рекурсия");
             nBBox.index = beg_i;
             return (nBBox, depth + 1);
         }
@@ -115,8 +113,6 @@ public static class BinaryBBoxToolbox
         nBBox.BBox = GrowBounds(sorted_leafs, beg_i, end_i);
 
         int middle_point = beg_i + (end_i - beg_i) / 2;
-        Debug.Log(beg_i + " " + end_i + " " + middle_point);
-
         (BinaryBBox child1, int d1) = BuildBVH(sorted_leafs, beg_i, middle_point, depth + 1);
         (BinaryBBox child2, int d2) = BuildBVH(sorted_leafs, middle_point, end_i, depth + 1);
         nBBox.child1 = child1;
@@ -183,7 +179,7 @@ public static class BinaryBBoxToolbox
             (Bounds Ay, Bounds By, int middle_point_y) = SplitStrategySideGrowing(boxesY, BBoxWrapper.SortSetting.Y_center);
             float X_overlap = OverlapArea(Ax, Bx);
             float Y_overlap = OverlapArea(Ay, By);
-            Debug.Log(X_overlap + " " + Y_overlap);
+            //Debug.Log(X_overlap + " " + Y_overlap);
             if (Y_overlap < X_overlap) { A = Ay; B = By; middle_point = middle_point_y; boxes = boxesY; }
             else { A = Ax; B = Bx; middle_point = middle_point_x; }
         } else (A, B, middle_point) = SplitStrategySideGrowing(boxes, BBoxWrapper.SortSetting.X_center);
@@ -203,7 +199,7 @@ public static class BinaryBBoxToolbox
         int safety = 0;
         Bounds A = boxes[0].BBox; Bounds B = boxes[boxes.Count - 1].BBox;
         int beg_i = 1; int end_i = boxes.Count - 1;
-        int step = stepFormula(end_i - beg_i);
+        int step = stepFormula_Fraction(end_i - beg_i);
         //Debug.Log("Boxes count " + boxes.Count + " step: " + step);
         while (safety < 50) { safety += 1;
             if (end_i == beg_i) break;
@@ -217,29 +213,18 @@ public static class BinaryBBoxToolbox
         }
         return (A, B, beg_i);
     }
-    private static int stepFormula(int range) { return range > 5 ? (int)Mathf.Ceil(Mathf.Pow(range, 0.75f)) : 1; }
+    private static int stepFormula(int range) { return range > 10 ? (int)Mathf.Ceil(Mathf.Pow(range, 0.66f)) : 1; }
+    private static int stepFormula_Fraction(int range) { return Mathf.CeilToInt(range > 12 ? range * 0.1f : 1); }
     // Step Split Strategy
-    private static bool SSS_SideGrowing(Bounds A, Bounds B, Bounds Aplus, Bounds Bplus)
+    private static bool SSS_SideGrowingDemanding(Bounds A, Bounds B, Bounds Aplus, Bounds Bplus)
     {   // true = A, false = B // This strategy prioritizes growth, and discourages big boxes from gobbling up smaller boxes
         Bounds ACombined = A; ACombined.Encapsulate(Aplus);
         Bounds BCombined = B; BCombined.Encapsulate(Bplus);
-        float A_extra_area = ACombined.size.x * ACombined.size.y - A.size.x * A.size.y;
-        float B_extra_area = BCombined.size.x * BCombined.size.y - B.size.x * B.size.y;
-        float A_overlap_area = OverlapArea(A, Aplus);
-        float B_overlap_area = OverlapArea(B, Bplus);
-        //Debug.Log(A_extra_area + " " + B_extra_area + " " + A_overlap_area + " " + B_overlap_area);
-        if (A_extra_area - A_overlap_area >= B_extra_area - B_overlap_area) return true;
-        return false;
-    }
-    private static bool SSS_SideGrowingDemanding(Bounds A, Bounds B, Bounds Aplus, Bounds Bplus, float overlap_punishment = 0.5f)
-    {   // true = A, false = B // This strategy prioritizes growth, and discourages big boxes from gobbling up smaller boxes
-        Bounds ACombined = A; ACombined.Encapsulate(Aplus);
-        Bounds BCombined = B; BCombined.Encapsulate(Bplus);
-        float A_overlap_area = OverlapArea(A, Aplus);
-        float B_overlap_area = OverlapArea(B, Bplus);
+        float A_overlap_area = OverlapArea(A, Aplus) * 2;
+        float B_overlap_area = OverlapArea(B, Bplus) * 2;
 
-        float A_extra_area = (ACombined.size.x * ACombined.size.y - A.size.x * A.size.y) * (A_overlap_area == 0 ? overlap_punishment : 1);
-        float B_extra_area = (BCombined.size.x * BCombined.size.y - B.size.x * B.size.y) * (B_overlap_area == 0 ? overlap_punishment : 1);
+        float A_extra_area = ACombined.size.x * ACombined.size.y;
+        float B_extra_area = BCombined.size.x * BCombined.size.y;
         //Debug.Log(A_extra_area + " " + B_extra_area + " " + A_overlap_area + " " + B_overlap_area);
         if (-A_extra_area - A_overlap_area >= -B_extra_area - B_overlap_area) return true;
         return false;
@@ -259,26 +244,19 @@ public static class BinaryBBoxToolbox
         if (beg_i < 0 | end_i > to_consume.Count) throw new ArgumentException("Отрицательные или запредельные значения в векторе beg_end");
         Bounds copy = to_consume[beg_i].BBox;
         for (int i = beg_i + 1; i < end_i; i++)
-        {
-            //Debug.Log("iteration " + i);
+        {   //Debug.Log("iteration " + i);
             copy.Encapsulate(to_consume[i].BBox);
         }
-            
         return copy;
     }
-    /*
-    private static Bounds MergeBounds(List<BBoxWrapper> sorted_leafs, int beg_i, int end_i)
-    {
-        Bounds nBBox = sorted_leafs[beg_i].BBox;
-        for (int i = beg_i; i < end_i; i++)
-            nBBox.Encapsulate(sorted_leafs[i].BBox);
-        return nBBox;
-    }*/
+
 
     private static float OverlapArea(Bounds a, Bounds b)
     {
-        if (!a.Intersects(b)) return 0.0f;
         Bounds o = BoundsMathHelper.Intersect(a, b);
-        return o.size.x * o.size.y;
+        //DebugUtilities.DebugDrawSquare(o.min, o.max, a.Intersects(b) ? Color.white : Color.pink, 10.0f);
+        //Debug.Log(o.size.x * o.size.y * (a.Intersects(b) ? 1 : -1));
+        //if (!a.Intersects(b)) return 0.0f;
+        return o.size.x * o.size.y * (a.Intersects(b) ? 1 : -1);
     }
 }

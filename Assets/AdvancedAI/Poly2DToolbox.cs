@@ -484,6 +484,30 @@ public static class Poly2DToolbox
 
         return result;
     }
+    /// <summary>
+    /// Ќаходит  линию или же точку если вершина находитс€ на границе полигона
+    /// </summary>
+    /// <param name="point"></param>
+    /// <param name="points"></param>
+    /// <returns>(-1, -1) - “очка не найдена <br/>
+    /// (n, -1) - “очка равн€етс€ точке n внутри полигона<br/>
+    /// (n, m) - “очка коллинеарна линии (n, m), и лежит между этими двум€ точками
+    /// </returns>
+    public static (int, int) PointOnBorder(Vector2 point, List<Vector2> points)
+    {   // Ќаходит линию или же точку если вершина находитс€ на границе полигона
+        // ¬озвращает пару индексов верин полигона. ≈сли пара равна (n, -1) значит точка равна точке n
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (Poly2DToolbox.PointSimilarity(point, points[i])) return (i, -1);
+            int j = (i + 1) % points.Count;
+            Edge2D edge = new Edge2D(points[i], points[j]);
+            
+            if (!PointBelongToRay2D(points[i], (points[j] - points[i]).normalized, point, out float t))  continue;
+            if (t >= 1.0f) continue;
+            return (i, j);
+        }
+        return (-1, -1);
+    }
 
     // Returns FALSE if point is outside, and TRUE if inside
     public static bool IsPointInsidePolygon(Vector2 point, List<Vector2> points)
@@ -677,6 +701,28 @@ public static class Poly2DToolbox
         //P.BBox.
         return false;
     }
+    public static bool PointBelongToLine2D(Vector2 origin, Vector2 direction, Vector2 point)
+    {
+        return PointBelongToRay2D(origin, direction, point) | PointBelongToRay2D(origin, -direction, point);
+    }
+    private static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point)
+    {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        return true;
+    }
+    private static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point, out float t)
+    {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
+        t = 0;
+        if (direction.x <= Geo3D.epsilon | direction.y <= Geo3D.epsilon) return false;
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        if (direction.x > Geo3D.epsilon) t = p_dir.x / direction.x; 
+        else if (direction.x > Geo3D.epsilon) t = p_dir.y / direction.y;
+        return true;
+    }
 
     public static float TriangleCross(Vector2 p1, Vector2 p2, Vector2 p3)
     {   // 0 - collinear
@@ -693,6 +739,7 @@ public static class Poly2DToolbox
     {
         return TriangleCross(Q, p1, p2) > Geo3D.epsilon;
     }
+    //public static bool Coll
 
     public static float SignedAngle(Vector2 P2, Vector2 P1, Vector2 P3)
     {   // я помню что реализовывал эту функцию, куда она потер€лась?
@@ -723,16 +770,13 @@ public static class Poly2DToolbox
         return true;
     }
 
-    public static void SortPoints(List<Vector2> list)
+
+    public static void ConvexHull(List<Vector2> polygon)
     {
-        list.Sort(
-            (a, b) => {
-                int x_com = a.x.CompareTo(b.x);
-                if (x_com != 0) return x_com;
-                return a.y.CompareTo(b.y);
-            }
-            );
-    }
+        //List<int> points = 
+    } 
+
+
 
 }
 

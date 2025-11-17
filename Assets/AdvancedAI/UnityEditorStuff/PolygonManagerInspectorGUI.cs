@@ -46,8 +46,10 @@ public class PointManagerInspectorGUI : Editor
             ChangeState(current_action_index);
         }
         if (GUILayout.Button("purge polygons")) ((PolygonManager)target).PurgePolygons();
-        if (GUILayout.Button("recalculate hierarchy, naive")) ((PolygonManager)target).CalculatePointBVH_Naive();
-        if (GUILayout.Button("recalculate hierarchy, side growing")) ((PolygonManager)target).CalculatePointBVH_SideGrowing();
+        if (GUILayout.Button("Point BVH, naive")) ((PolygonManager)target).CalculatePointBVH_Naive();
+        if (GUILayout.Button("Point BVH, side growing")) ((PolygonManager)target).CalculatePointBVH_SideGrowing();
+        if (GUILayout.Button("Polygon BVH, naive")) ((PolygonManager)target).CalculatePolygonBVH_Naive();
+        if (GUILayout.Button("Polygon BVH, side growing")) ((PolygonManager)target).CalculatePolygonBVH_SideGrowing();
         base.OnInspectorGUI();
     }
 

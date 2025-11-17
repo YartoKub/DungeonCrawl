@@ -43,6 +43,13 @@ public static class DebugUtilities
         Debug.DrawLine(new Vector3(x + size, y + size), new Vector3(x + size, y - size), color, time);
         Debug.DrawLine(new Vector3(x + size, y - size), new Vector3(x - size, y - size), color, time);
     }
+    public static void DebugDrawSquare(Vector2 p1, Vector2 p2, Color color, float time = 0.01f)
+    {
+        Debug.DrawLine(p1, new Vector3(p1.x, p2.y), color, time);
+        Debug.DrawLine(p1, new Vector3(p2.x, p1.y), color, time);
+        Debug.DrawLine(new Vector3(p1.x, p2.y), p2, color, time);
+        Debug.DrawLine(new Vector3(p2.x, p1.y), p2, color, time);
+    }
 
     public static void DrawPoopyCircle(Vector2 center, float R, int p, Color color)
     {
@@ -171,10 +178,26 @@ public static class DebugUtilities
         Handles.DrawLine(new Vector3(p2.x, p1.y), p2);
         Handles.color = tmp_color;
     }
+    public enum GradientOption { RYG, Lerp, HSVGradient, Rainbow_Looped, Rainbow_Red2Violet };
+    public static Color PickGradient(int current_depth, int max_depth, GradientOption option)
+    {
+        switch (option)
+        {
+            case DebugUtilities.GradientOption.RYG:
+                return DebugUtilities.RYG_Gradient(current_depth, max_depth);
 
+            case DebugUtilities.GradientOption.Rainbow_Looped:
+                return DebugUtilities.RainbowGradient_Looped(current_depth, max_depth);
+
+            case DebugUtilities.GradientOption.Rainbow_Red2Violet:
+                return DebugUtilities.RainbowGradient_Red2Violet(current_depth, max_depth);
+            default:
+                return Color.black;
+        }
+    }
     public static Color RYG_Gradient(int current_depth, int max_depth)
     {
-        max_depth = max_depth - 1;
+        //max_depth = max_depth - 1;
         float ratio = ((float)current_depth / max_depth);
 
         if (ratio < 0.5f)
@@ -191,15 +214,16 @@ public static class DebugUtilities
 
     public static Color RainbowGradient_Looped(int current_depth, int max_depth)
     {
-        max_depth = max_depth - 1;
+        //max_depth = max_depth;
         float ratio = ((float)current_depth / max_depth);
         return Color.HSVToRGB(ratio, 1, 1);
     }
     public static Color RainbowGradient_Red2Violet(int current_depth, int max_depth)
     {
-        max_depth = max_depth - 1;
+        //max_depth = max_depth;
         float ratio = ((float)current_depth / max_depth);
-        return Color.HSVToRGB(ratio * 0.833f, 1, 1);
+        //Debug.Log(ratio + " " + max_depth + " " + current_depth);
+        return Color.HSVToRGB(ratio * 0.833f, 1.0f, 1.0f);
     }
     /// <summary>
     ///  Этот градиент работает странно, но работает.

@@ -15,6 +15,11 @@ public struct Edge2D
 {
     public Vector2 A;
     public Vector2 B;
+    public Edge2D(Vector2 A, Vector2 B)
+    {
+        this.A = A;
+        this.B = B;
+    }
 
     public Vector2 sideCenter() {
         return A + (B - A) / 2;

@@ -221,7 +221,7 @@ public class Poly3D
         for (int i = 0; i < Av.Count; i++)
         {
             
-            bool collinear = PointBelongToLine(origin, direction, Av[i]);
+            bool collinear = Geo3D.PointBelongToLine3D(origin, direction, Av[i]);
             Debug.Log(collinear);
             if (!collinear) continue;
             for (int j = 0; j < Bv.Count; j++)
@@ -253,19 +253,7 @@ public class Poly3D
         return (solvable, origin, direction);
     }
 
-    public static bool PointBelongToLine(Vector3 origin, Vector3 direction, Vector3 point)
-    {
-        return PointBelongToRay(origin, direction, point) | PointBelongToRay(origin, -direction, point);
-    }
 
-    private static bool PointBelongToRay(Vector3 origin, Vector3 direction, Vector3 point)
-    {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
-        Vector3 p_dir = (point - origin).normalized;
-        if (Math.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
-        if (Math.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
-        if (Math.Abs(p_dir.z - direction.z) > Geo3D.epsilon) return false;
-        return true;
-    }
 
     // ¬озврат: i, next i, j, next j
     public static (int, int, int, int) ShareEdgePolyPolyExhaustive(Poly3D A, Poly3D B)

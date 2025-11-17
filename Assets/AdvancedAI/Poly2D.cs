@@ -4,7 +4,7 @@ using UnityEngine;
 using System;
 using UnityEditor;
 
-
+[System.Serializable]
 public class Poly2D : I_BBoxSupporter
 {
     public List<Vector2> vertices;
@@ -52,8 +52,8 @@ public class Poly2D : I_BBoxSupporter
     public void CalculateBBox()
     {
         Bounds newBounds = new Bounds();
-        newBounds.SetMinMax(vertices[0], vertices[1]);
-        for (int i = 2; i < vertices.Count; i++)
+        newBounds.SetMinMax(vertices[0], vertices[0]);
+        for (int i = 1; i < vertices.Count; i++)
         {
             newBounds.Encapsulate(vertices[i]);
         }

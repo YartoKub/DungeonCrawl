@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 // Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 
@@ -195,6 +196,30 @@ public static class Geo3D
         float Angle = Vector2.Angle(A - start, B - start);
         Angle = Angle / 180 * Mathf.PI;
         return A + (B - A) * Angle;
+    }
+
+    public static void SortPoints(List<Vector2> list)
+    {
+        list.Sort(
+            (a, b) => {
+                int x_com = a.x.CompareTo(b.x);
+                if (x_com != 0) return x_com;
+                return a.y.CompareTo(b.y);
+        });
+    }
+
+    public static bool PointBelongToLine3D(Vector3 origin, Vector3 direction, Vector3 point)
+    {
+        return PointBelongToRay3D(origin, direction, point) | PointBelongToRay3D(origin, -direction, point);
+    }
+
+    public static bool PointBelongToRay3D(Vector3 origin, Vector3 direction, Vector3 point)
+    {   // Просто сравниваю направления векторов, если они слишком разнятся то точка не принадлежит линии
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.z - direction.z) > Geo3D.epsilon) return false;
+        return true;
     }
 
 
