@@ -243,8 +243,13 @@ public static class BoundsMathHelper
         Debug.DrawLine(xyc, ayc, color);
         Debug.DrawLine(xyc, xbc, color);
     }
-
-
+    // Smaller box is completelly surrounded by the larger box 
+    public static bool Encompassed(Bounds small_box, Bounds larger_box)
+    {
+        if (small_box.min.x < larger_box.min.x | small_box.min.y < larger_box.min.y) return false;
+        if (small_box.max.x > larger_box.max.x | small_box.max.y > larger_box.max.y) return false;
+        return true;
+    }
 
     public static bool Intersects(BoundsInt a, BoundsInt b)
     { // Почему у boundsint нет intersect-а?

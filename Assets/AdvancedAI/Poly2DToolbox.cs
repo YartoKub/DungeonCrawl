@@ -82,6 +82,8 @@ public static class Poly2DToolbox
         return triangles;
     }
 
+    
+
     public static List<Vector3Int> EarClipLimited(List<Vector2> vectorList, int limit)
     {
         List<Vector3Int> triangles = new List<Vector3Int>(vectorList.Count - 2);
@@ -513,16 +515,13 @@ public static class Poly2DToolbox
     public static bool IsPointInsidePolygon(Vector2 point, List<Vector2> points)
     { // я кидаю луч с лева (-1) на право до точки. 
         bool intersection_counter = false; // я его просто флипаю, а не инкрементриурю. »наче в конце придетс€ сделать IC % 2
-        //int debug_counter = 0;
         for (int i = 0; i < points.Count; i++)
         {
             if (PointInsidePolygonHorizontalRaycast(points[i], points[(i + 1) % points.Count], point))
             {
                 intersection_counter = !intersection_counter;
-                //debug_counter += 1;
             }
         }
-        //Debug.Log(debug_counter);
         return intersection_counter;
     }
 
@@ -698,24 +697,36 @@ public static class Poly2DToolbox
 
     public static bool DoesLineIntersectPolygon(Vector2 A, Vector2 B, Poly2D P)
     {
+        Debug.Log("Not implemented function");
         //P.BBox.
         return false;
     }
-    public static bool PointBelongToLine2D(Vector2 origin, Vector2 direction, Vector2 point)
-    {
-        return PointBelongToRay2D(origin, direction, point) | PointBelongToRay2D(origin, -direction, point);
-    }
-    private static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point)
+    //public static bool PointBelongToLine2D(Vector2 origin, Vector2 direction, Vector2 point) { return PointBelongToRay2D(origin, direction, point) | PointBelongToRay2D(origin, -direction, point); }
+    public static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point)
     {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
         Vector3 p_dir = (point - origin).normalized;
         if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
         if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
         return true;
     }
-    private static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point, out float t)
+    public static bool PointBelongToLine2D(Vector2 p1, Vector2 p2, Vector2 point)
+    {
+        if (Mathf.Abs(Cross(p1 - point, p2 - point)) >= Geo3D.epsilon) return false;
+        Vector2 dp = p2 - p1;
+        if (Mathf.Abs(dp.x) > Mathf.Abs(dp.y)) {
+            return (dp.x > 0) ?
+                p1.x <= point.x && point.x <= p2.x :
+                p2.x <= point.x && point.x <= p1.x;
+        }  else {
+            return (dp.y > 0) ?
+                p1.y <= point.y && point.y <= p2.y :
+                p2.y <= point.y && point.y <= p1.y;
+        }
+    }
+    public static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point, out float t)
     {   // ѕросто сравниваю направлени€ векторов, если они слишком разн€тс€ то точка не принадлежит линии
         t = 0;
-        if (direction.x <= Geo3D.epsilon | direction.y <= Geo3D.epsilon) return false;
+        if (direction.x <= Geo3D.epsilon & direction.y <= Geo3D.epsilon) return false;
         Vector3 p_dir = (point - origin).normalized;
         if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
         if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;

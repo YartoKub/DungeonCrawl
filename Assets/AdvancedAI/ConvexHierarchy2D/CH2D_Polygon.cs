@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 
-
+[Serializable]
 public class CH2D_Polygon : I_BBoxSupporter
 {
     public List<CH2D_P_Index> vertices;

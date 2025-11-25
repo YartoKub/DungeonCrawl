@@ -1080,6 +1080,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 713682795}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &732822484
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 732822486}
+  - component: {fileID: 732822485}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &732822485
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732822484}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6de57e70b32a1b049afc263f4b7798cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PointInsidePolygontest
+  PolyPoints:
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  - {x: 1, y: 0}
+  pointsToCheck: []
+  point: {x: 0, y: 0}
+  isConvex: 0
+  isHole: 0
+  GridTest: 1
+--- !u!4 &732822486
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 732822484}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 6.46291, y: 0.03447, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &733601416
 GameObject:
   m_ObjectHideFlags: 0
@@ -2061,7 +2115,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1266008486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2074,8 +2128,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 068744d680e308241ad271eac1265b55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
-  DisplayHierarchy: 1
-  HierarchyLevel: 3
+  DisplayHierarchy: 0
+  HierarchyLevel: 0
   PointHighlighter: -1
   option: 0
   points:
@@ -2100,79 +2154,12 @@ MonoBehaviour:
   - {x: -4.865952, y: 4.2541304}
   - {x: -4.7265677, y: 2.8689473}
   - {x: -4.527446, y: 0.17854702}
-  - {x: -4.228777, y: 5.12074}
   - {x: -4.0495553, y: -4.35833}
   - {x: -3.8902752, y: 4.158262}
   - {x: -3.5915859, y: -3.5327258}
   - {x: -3.591585, y: -3.9545016}
   - {x: -3.053966, y: -4.6147823}
-  polygons:
-  - vertices:
-    - {x: -2.8856287, y: 1.219178}
-    - {x: -3.1885688, y: -1.6342558}
-    - {x: 0.18421812, y: -1.8222282}
-    - {x: 2.3048306, y: -0.75300807}
-    - {x: 1.9210968, y: 1.4249585}
-    - {x: 0.30539116, y: 1.1118433}
-    - {x: 0.2851979, y: -0.72169197}
-    - {x: -1.8354168, y: -0.54824644}
-    - {x: -1.4516888, y: 0.7776967}
-    isHole: 0
-    convex: 0
-    BBox:
-      m_Center: {x: -0.44186926, y: -0.19863486, z: 0}
-      m_Extent: {x: 2.7466998, y: 1.6235933, z: 0}
-  - vertices:
-    - {x: 1.8403064, y: 4.4803166}
-    - {x: 0.34577715, y: 5.084488}
-    - {x: 0.103425026, y: 2.822112}
-    - {x: 1.6787386, y: 2.7887223}
-    isHole: 0
-    convex: 1
-    BBox:
-      m_Center: {x: 0.9718657, y: 3.936605, z: 0}
-      m_Extent: {x: 0.8684407, y: 1.1478828, z: 0}
-  - vertices:
-    - {x: 4.183083, y: 2.7596688}
-    - {x: 3.5973864, y: 4.7329774}
-    - {x: 6.5056577, y: 4.542836}
-    - {x: 6.5460534, y: 3.1577585}
-    isHole: 1
-    convex: 1
-    BBox:
-      m_Center: {x: 5.07172, y: 3.746323, z: 0}
-      m_Extent: {x: 1.4743334, y: 0.9866543, z: 0}
-  - vertices:
-    - {x: 6.3238993, y: -0.46941796}
-    - {x: 6.3037057, y: -2.1399808}
-    - {x: 4.950553, y: -2.7370725}
-    - {x: 4.082107, y: -0.62248296}
-    - {x: 5.1929035, y: 0.44202352}
-    isHole: 1
-    convex: 1
-    BBox:
-      m_Center: {x: 5.203003, y: -1.1475245, z: 0}
-      m_Extent: {x: 1.1208963, y: 1.589548, z: 0}
-  - vertices:
-    - {x: 10.443944, y: 3.6444983}
-    - {x: 10.241976, y: 5.3955107}
-    - {x: 9.090786, y: 5.3901377}
-    - {x: 8.666667, y: 3.2491431}
-    isHole: 0
-    convex: 1
-    BBox:
-      m_Center: {x: 9.5553055, y: 4.3223267, z: 0}
-      m_Extent: {x: 0.888639, y: 1.0731838, z: 0}
-  - vertices:
-    - {x: 12.40299, y: 1.9220595}
-    - {x: 12.503975, y: -0.50168574}
-    - {x: 9.797668, y: -0.55506116}
-    - {x: 7.475087, y: 1.2064242}
-    isHole: 1
-    convex: 1
-    BBox:
-      m_Center: {x: 9.989531, y: 0.68349916, z: 0}
-      m_Extent: {x: 2.5144439, y: 1.2385603, z: 0}
+  polygons: []
 --- !u!4 &1266008487
 Transform:
   m_ObjectHideFlags: 0
@@ -2650,14 +2637,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6de57e70b32a1b049afc263f4b7798cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PointInsidePolygontest
-  points:
-  - {x: 0, y: 3}
-  - {x: 3, y: 3}
-  - {x: 6, y: 0}
-  - {x: 1, y: 1}
+  PolyPoints: []
+  pointsToCheck: []
   point: {x: 0, y: 0}
   isConvex: 0
   isHole: 0
+  GridTest: 0
 --- !u!4 &1661459093
 Transform:
   m_ObjectHideFlags: 0
@@ -3223,6 +3208,7 @@ SceneRoots:
   - {fileID: 868887844}
   - {fileID: 58379456}
   - {fileID: 1661459093}
+  - {fileID: 732822486}
   - {fileID: 958635715}
   - {fileID: 139386792}
   - {fileID: 138994694}

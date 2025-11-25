@@ -2,22 +2,46 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 // Границы чанка определены Convex Hull, также чанк имеет BBox, просто чтобы был
+// Внутри чанка не должно быть пересекающихся полигонов, все полигоны находятся на одном уровне, в общем графе
+[Serializable]
 public class CH2D_Chunk
 {
     public List<CH2D_Polygon> polygons;
     public IntMatrixGraph connections;
-    public const int MaxVertices = 1000; //UInt16.MaxValue; // Если число вершин выходит за пределы этого числа, чанк нужно разбить на меньшие части
-    public List<Vector2> vertices;
+    public const UInt16 MaxVertices = 1000; //UInt16.MaxValue; // Если число вершин выходит за пределы этого числа, чанк нужно разбить на меньшие части
+    [SerializeField] public List<Vector2> vertices;
     public List<CH2D_P_Index> ConvexHull;
 
+    public CH2D_Chunk()
+    {
+        polygons = new List<CH2D_Polygon>();
+        vertices = new List<Vector2>();
+        ConvexHull = new List<CH2D_P_Index>();
+    }
 
     public void AddPolygon(Poly2D poly)
     {
+        //Debug.Log("Not implementes");
         for (int i = 0; i < polygons.Count; i++)
         {
             
         }
+    }
+
+    public void AddPolygonTrusted(Poly2D poly)
+    {   // Используя эту функцию я доверяю себе что введу внутрь чанка нормальный полигон, а не говно.
+        CH2D_Polygon int_poly = new CH2D_Polygon();
+        int_poly.isHole = poly.isHole;
+        int_poly.convex = poly.convex;
+        int_poly.BBox = poly.BBox;
+        CH2D_P_Index[] vertices = new CH2D_P_Index[poly.vertices.Count];
+        for (int i = 0; i < poly.vertices.Count; i++)
+            vertices[i] = AddPoint(poly.vertices[i]);
+        int_poly.vertices = new List<CH2D_P_Index>(vertices);
+        this.polygons.Add(int_poly);
+
     }
     /// <summary>
     /// Проверяет, какие полигоны пересекаются с точкой.
@@ -32,6 +56,7 @@ public class CH2D_Chunk
     {
         if (this.vertices.Count + 1 >= MaxVertices) throw new Exception("Больше вершин чем разрешено");
         this.vertices.Add(point);
+        Debug.Log(vertices.Count);
         return new CH2D_P_Index( this.vertices.Count - 1);
     }
     public CH2D_P_Index AddPointIfNew(Vector2 point)
@@ -93,9 +118,6 @@ public class CH2D_Chunk
     }
     public bool DoPolygonsShareEdge(int polyA, int polyB, CH2D_P_Index start, CH2D_P_Index end)
     {   // Сравнивает индексы вершин. Если их значение isHole равны, то грани смотрят в противоположные стороны, если isHole разнятся - то грани смотрят в одну сторону
-        int AVCount = this.polygons[polyA].vertices.Count;
-        int BVCount = this.polygons[polyB].vertices.Count;
-
         (bool a_success, int a_prev_i, CH2D_P_Index a_prev_v, int a_curr_i, CH2D_P_Index a_curr_v, int a_next_i, CH2D_P_Index a_next_v) = GetSurrounds(polyA, start);
         if (!a_success) return false;
         if (a_next_v != end) return false;
@@ -107,7 +129,7 @@ public class CH2D_Chunk
             return b_next_v == end;
     }
     /// <summary>
-    /// Волшебная функция, которая находит точку Point в полигоне, и возвращает ее index, а также index-ы и значения своих соседей.
+    /// Волшебная функция, которая находит точку Point в полигоне, и возвращает ее index, а также индексы и значения своих соседей.
     /// </summary>
     /// <param name="Poly"></param>
     /// <param name="Point"></param>
@@ -164,6 +186,112 @@ public class CH2D_Chunk
         return (false, new CH2D_P_Index(0), new CH2D_P_Index(0));
     }
 
+    public void DebugDrawSelf()
+    {
+        foreach (var poly in polygons)
+        {
+            for (int i = 0; i < poly.vertices.Count - 1; i++)
+                Debug.DrawLine(this.vertices[poly.vertices[i]], this.vertices[poly.vertices[i + 1]], Color.blue);
+            Debug.DrawLine(this.vertices[poly.vertices[poly.vertices.Count - 1]], this.vertices[poly.vertices[0]], Color.blue);
+        }
+    }
+
+    public void HandlesDrawSelf()
+    {
+        Color tmp = Handles.color;
+        Handles.color = Color.blue;
+
+        //Debug.Log(polygons.Count);
+        foreach (var poly in polygons)
+        {
+            for (int i = 0; i < poly.vertices.Count - 1; i++)
+                Handles.DrawLine(this.vertices[poly.vertices[i]], this.vertices[poly.vertices[i + 1]]);
+            Handles.DrawLine(this.vertices[poly.vertices[poly.vertices.Count - 1]], this.vertices[poly.vertices[0]]);
+            DebugUtilities.HandlesDrawRectangle(poly.BBox.min, poly.BBox.max, Color.cyan);
+        }
+        Handles.color = tmp;
+    }
+    // Идея в том чтобы найти все пересечения и добавить точки в список
+    public void DebugGetIntersections()
+    {
+        if (this.polygons.Count < 2) return;
+        List<CH2D_Intersection> intersections = GetPolyPolyIntersections(0, 1);
+        Debug.Log(intersections.Count);
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            DebugUtilities.DebugDrawCross(intersections[i].pos, Color.red, 10.0f);
+        }
+    }
+
+    private List<CH2D_Intersection> GetPolyPolyIntersections(int new_poly, int old_poly)
+    {   // Ожидается что новый полигон больше чем старый
+        List<CH2D_Intersection> intersections = new List<CH2D_Intersection>();
+        // TODO: тут надо бы провести проверку принадлежности точек полигона к лучу, но это лучше сделать как предварительную подготовку
+        //for (int i = 0; i < points.Count; i++) { if (Poly2DToolbox.PointBelongToRay2D(A, A - B, points[i])) }
+        // Предполагается что пересечение с одной из уже существующих точек невозможно, т.к. на это ранее была произведена проверка
+        Bounds old_BBox = this.polygons[old_poly].BBox;
+        Bounds new_BBox = this.polygons[new_poly].BBox;
+
+        //if (BoundsMathHelper.Encompassed(this.polygons[new_poly].BBox, old_BBox)) new_poly_p = this.polygons[old_poly].vertices;
+        List<CH2D_Edge> new_poly_edges = EdgesInsideBounds(this.polygons[new_poly].vertices, old_BBox);
+        List<CH2D_Edge> old_poly_edges = EdgesInsideBounds(this.polygons[old_poly].vertices, new_BBox);
+
+        Debug.Log(new_poly_edges.Count + " " + old_poly_edges.Count);
+        for (int a = 0; a < old_poly_edges.Count; a++)
+        {
+            for (int b = 0; b < new_poly_edges.Count; b++)
+            {
+                CH2D_P_Index a1 = old_poly_edges[a].A;
+                CH2D_P_Index a2 = old_poly_edges[a].B;
+                CH2D_P_Index b1 = new_poly_edges[b].A;
+                CH2D_P_Index b2 = new_poly_edges[b].B;
+                Debug.Log(a + " " + b + " " + a1 + " " + a2 + " " + b1 + " " + b2);
+                if (Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t))
+                {
+                    intersections.Add(new CH2D_Intersection(new_poly, old_poly, a1, a2, inter, t));
+                }
+            }
+        } 
+        return intersections;
+    }
+
+    private List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
+    {
+       return polyA.FindAll(p => bounds.Contains(this.vertices[polyA[p]]));
+    }
+    private List<CH2D_Edge> EdgesInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
+    {
+        List< CH2D_Edge > edges = new List<CH2D_Edge>();
+        int c = polyA.Count;
+        for (int i = 0; i < c; i++)
+        {
+            int j = (i + 1) % c;
+            if (!BoundsMathHelper.DoesLineIntersectBoundingBox2D(this.vertices[polyA[i]], this.vertices[polyA[j]], bounds)) continue;
+            edges.Add(new CH2D_Edge(polyA[i], polyA[j]));
+        }
+        return edges;
+        //return polyA.FindAll(p => BoundsMathHelper.DoesLineIntersectBoundingBox2D(this.vertices[p], this.vertices[(p+1)%c], bounds));
+    }
+
+    private struct CH2D_Intersection
+    {
+        public int polyA;
+        public int polyB;
+        public CH2D_P_Index e1;
+        public CH2D_P_Index e2;
+        public float distance_from_e1;
+        public Vector2 pos;
+        public CH2D_Intersection(int polyA, int polyB, CH2D_P_Index e1, CH2D_P_Index e2, Vector2 pos, float distance_from_e1)
+        {
+            //this.new_point = new_point;
+            this.polyA = polyA;
+            this.polyB = polyB;
+            this.e1 = e1;
+            this.e2 = e2;
+            this.pos = pos;
+            this.distance_from_e1 = distance_from_e1;
+        }
+    }
 
 
 }

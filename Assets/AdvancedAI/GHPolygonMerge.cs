@@ -213,7 +213,6 @@ public static class GHPolygonMerge
                 A.Insert(a1 + 1, intersection);
                 B.Insert(b1 + 1, intersection);
 
-
                 a1 = a1 - 1;// Программа делает шаг назад и заново начинает проверки
                 break; // Т.К. Произошло разделение грани a1a2 на a1X / Xa2. Каждая из этих граней может иметь свои пересечения с полигоном B 
                 

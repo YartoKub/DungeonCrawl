@@ -10,11 +10,12 @@ public struct CH2D_Edge
 // Тут кода дофига, но на самом деле тут ничего умного нет. 
 // Это просто обертка для ushort, с поддержкой операторов вроде +-, а также сравнений
 // Тоесть CH2D_Index можно использовать как любое другое число в большинстве случаев
+[Serializable]
 public struct CH2D_P_Index
 {
-    public UInt16 i;
+    [SerializeField] public UInt16 i;
     public CH2D_P_Index(UInt16 i) { this.i = i; }
-    public CH2D_P_Index(int i) { if (i >= UInt16.MinValue && i <= UInt16.MaxValue) throw new ArgumentOutOfRangeException(); else this.i = (UInt16)i; }
+    public CH2D_P_Index(int i) { if (i < UInt16.MinValue && i >= UInt16.MaxValue) throw new ArgumentOutOfRangeException(); else this.i = (UInt16)i; }
     public override string ToString() => i.ToString();
     // Преобразования
     public static implicit operator int(CH2D_P_Index id) => id.i;

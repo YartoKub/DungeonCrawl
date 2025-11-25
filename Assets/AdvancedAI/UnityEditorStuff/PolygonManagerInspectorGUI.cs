@@ -45,11 +45,17 @@ public class PointManagerInspectorGUI : Editor
             if (stateMachine != null) stateMachine.EndStateMachine();
             ChangeState(current_action_index);
         }
+        EditorGUILayout.LabelField("Purging");
         if (GUILayout.Button("purge polygons")) ((PolygonManager)target).PurgePolygons();
+        if (GUILayout.Button("Purge Chunk")) ((PolygonManager)target).PurgeChunk();
+        EditorGUILayout.LabelField("Binary Hierarchies");
         if (GUILayout.Button("Point BVH, naive")) ((PolygonManager)target).CalculatePointBVH_Naive();
         if (GUILayout.Button("Point BVH, side growing")) ((PolygonManager)target).CalculatePointBVH_SideGrowing();
         if (GUILayout.Button("Polygon BVH, naive")) ((PolygonManager)target).CalculatePolygonBVH_Naive();
         if (GUILayout.Button("Polygon BVH, side growing")) ((PolygonManager)target).CalculatePolygonBVH_SideGrowing();
+        EditorGUILayout.LabelField("Debug Tests");
+        if (GUILayout.Button("Get Intersections of 0 and 1")) ((PolygonManager)target).DebugIntersection();
+
         base.OnInspectorGUI();
     }
 
@@ -147,6 +153,7 @@ public class GUI_TestPlacePointStateMachine : GUIStateMachine
         Debug.Log(t + " " + point);
         DebugUtilities.DebugDrawCross(point, Color.red, 2.0f);
         manager.AddPoint(point);
+        EditorUtility.SetDirty(manager);
 
         e.Use();
 
@@ -185,6 +192,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
 
         if (!(e.type == EventType.MouseDown && e.button == 0)) return this;
         manager.RemovePoint(index);
+        EditorUtility.SetDirty(manager);
         e.Use();
 
         return this;
@@ -250,6 +258,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
         if (!has_compiled) return;
 
         manager.AddPolygon(poly);
+        EditorUtility.SetDirty(manager);
         return;
     }
 

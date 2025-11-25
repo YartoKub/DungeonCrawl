@@ -23,13 +23,18 @@ public class PolygonManager : MonoBehaviour
     [SerializeField] public DebugUtilities.GradientOption option;
     [SerializeField] public List<Vector2> points;
     [SerializeField] public List<Poly2D> polygons;
+
+    CH2D_Chunk my_chunk;
+
     private PolygonManager()
     {
+        my_chunk = new CH2D_Chunk();
         this.polygons = new List<Poly2D>();
         manager = this;
     }
     void Awake()
     {
+        if (my_chunk == null) my_chunk = new CH2D_Chunk();
         if (polygons == null) polygons = new List<Poly2D>();
     }
     void Start()
@@ -56,6 +61,8 @@ public class PolygonManager : MonoBehaviour
             
         HandlesDrawHierarchy(HierarchyLevel);
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
+
+        this.my_chunk.HandlesDrawSelf();
     }
 
     public void AddPoint(Vector2 p)
@@ -71,10 +78,21 @@ public class PolygonManager : MonoBehaviour
         Geo3D.SortPoints(this.points);
         //CalculatePointBVH_Naive();
     }
+    public void PurgeChunk()
+    {
+        this.my_chunk = new CH2D_Chunk();
+    }
+    public void DebugIntersection()
+    {
+        this.my_chunk.DebugGetIntersections();
+    }
     public void AddPolygon(Poly2D p)
     {
+        this.my_chunk.AddPolygonTrusted(p);
+        /*
         this.polygons.Add(p);
         CalculatePolygonBVH_Naive();
+        */
     }
     public void RemovePolygon(int p_index)
     {
