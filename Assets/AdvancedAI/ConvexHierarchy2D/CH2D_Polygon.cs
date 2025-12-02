@@ -17,24 +17,34 @@ public class CH2D_Polygon : I_BBoxSupporter
         for (int i = 0; i < this.vertices.Count; i++)
             if (this.vertices[i] == A)
             {
-                a_pos = A;
+                a_pos = i;
                 break;
             }
         if (a_pos == -1) throw new Exception("Не получилось добавить точку, такой точки A нет в этом полигоне");
         int prev_b = (a_pos - 1 + this.vertices.Count) % this.vertices.Count;
-        int next_b = (a_pos + 1) % this.vertices.Count;
+        int next_b = (a_pos + 1                      ) % this.vertices.Count;
+        //string pdesk = "Before: VCount (" + this.vertices.Count + ") "; for (int i = 0; i < vertices.Count; i++) pdesk += " " + vertices[i]; Debug.Log(pdesk);
+        //Debug.Log( "NP: " + new_point + " A " + A + " B " + B + " Prev: " + prev_b + " (" + this.vertices[prev_b] + ") Curr: " + a_pos + " (" + this.vertices[a_pos] + ") Next: " + next_b + " (" + this.vertices[next_b] + ")");
         if (this.vertices[prev_b] == B)
-        {
-            this.vertices.Insert(prev_b, new_point);
-            return;
-        }
-        if (this.vertices[next_b] == B)
         {
             this.vertices.Insert(a_pos, new_point);
             return;
         }
+        if (this.vertices[next_b] == B)
+        {
+            this.vertices.Insert(next_b, new_point);
+            return;
+        }
         throw new Exception("Не было совпадения по B, полигоны соприкасаются только в одной точке");
-
     }
+
+    public CH2D_Edge GetEdge(int e)
+    {
+        if (e < 0 | e >= this.vertices.Count) throw new Exception("Плохое ребро!!!!");
+        return new CH2D_Edge(this.vertices[e], this.vertices[(e + 1) % vertices.Count]);
+    }
+
+    // Встраивает коллинеарные точки в структуру полигона
+
 
 }

@@ -150,6 +150,7 @@ public class CH2D_Chunk
 
     public (bool found, CH2D_P_Index A , CH2D_P_Index B) GetSharedEdge(int polyA, int polyB)
     {
+        Debug.Log("Перепиши меня чтобы имспользовать EdgesInsideBounds()!!!");
         Bounds boundsA = this.polygons[polyA].BBox;
         Bounds boundsB = this.polygons[polyB].BBox;
         if (!boundsA.Intersects(boundsB)) return (false, new CH2D_P_Index(0), new CH2D_P_Index(0));
@@ -212,14 +213,62 @@ public class CH2D_Chunk
         Handles.color = tmp;
     }
     // Идея в том чтобы найти все пересечения и добавить точки в список
-    public void DebugGetIntersections()
+    public void DebugGetIntersections(bool DrawIntersections, bool FindInnsAndOuts)
     {
         if (this.polygons.Count < 2) return;
+
+        Incorporate_Bvertice_To_PolyA(0, 1);
+        //Incorporate_Bvertice_To_PolyA(1, 0);
+        // Point incorporations
         List<CH2D_Intersection> intersections = GetPolyPolyIntersections(0, 1);
         Debug.Log(intersections.Count);
+        if (DrawIntersections)
+            for (int i = 0; i < intersections.Count; i++)
+            {
+                CH2D_Intersection ii = intersections[i];
+                Debug.Log(ii.a_e1 + " " + ii.a_e2 + " " + ii.b_e1 + " " + ii.b_e2);
+                DebugUtilities.DebugDrawCross(intersections[i].pos, Color.red, 10.0f);
+            }
+        if (!FindInnsAndOuts) return;
+
+        List<Pair> pairs = new List<Pair>(intersections.Count);
         for (int i = 0; i < intersections.Count; i++)
         {
-            DebugUtilities.DebugDrawCross(intersections[i].pos, Color.red, 10.0f);
+            pairs.Add(new Pair(intersections[i].a_e1, intersections[i].a_e2, false));
+        }
+
+        GHPolygonMerge.GH_IntList(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs);
+    }
+
+    public void DebugAddTestPolygon()
+    {
+        Poly2D degenerate1 = new Poly2D(new List<Vector2>() { new Vector2(0, 0), new Vector2(0, 2), new Vector2(2, 2), new Vector2(2, 0) });
+        Poly2D degenerate2 = new Poly2D(new List<Vector2>() { new Vector2(1, 0), new Vector2(1, 2), new Vector2(3, 2), new Vector2(3, 0) });
+        this.AddPolygonTrusted(degenerate1);
+        this.AddPolygonTrusted(degenerate2);
+    }
+
+    // Incorporate collinear vertices
+    // Совпадающие вершины должны 
+    public void Incorporate_Bvertice_To_PolyA(int A, int B)
+    {
+        //List<Vector2> av = GetPolyVertices(A);
+        //List<Vector2> bv = GetPolyVertices(B);
+
+        for (int a = 0; a < polygons[A].vertices.Count; a++)
+        {
+            CH2D_Edge ae = polygons[A].GetEdge(a);
+            for (int b = 0; b < polygons[B].vertices.Count; b++)
+            {
+                CH2D_P_Index bv = polygons[B].vertices[b];
+                if (bv == ae.A | bv == ae.B) continue;
+                Debug.Log(bv + " " + ae.A + " " + ae.B);
+                bool success = Poly2DToolbox.PointBelongToLine2D(vertices[ae.A], vertices[ae.B], vertices[bv]);
+                if (!success) continue;
+                polygons[A].InsertPointIntoPolygon(bv, ae.A, ae.B);
+                //a = a - 1;
+                break;
+            }
         }
     }
 
@@ -248,7 +297,7 @@ public class CH2D_Chunk
                 Debug.Log(a + " " + b + " " + a1 + " " + a2 + " " + b1 + " " + b2);
                 if (Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t))
                 {
-                    intersections.Add(new CH2D_Intersection(new_poly, old_poly, a1, a2, inter, t));
+                    intersections.Add(new CH2D_Intersection(new_poly, old_poly, a1, a2, b1, b2, inter, t));
                 }
             }
         } 
@@ -277,17 +326,21 @@ public class CH2D_Chunk
     {
         public int polyA;
         public int polyB;
-        public CH2D_P_Index e1;
-        public CH2D_P_Index e2;
+        public CH2D_P_Index a_e1;
+        public CH2D_P_Index a_e2;
+        public CH2D_P_Index b_e1;
+        public CH2D_P_Index b_e2;
         public float distance_from_e1;
         public Vector2 pos;
-        public CH2D_Intersection(int polyA, int polyB, CH2D_P_Index e1, CH2D_P_Index e2, Vector2 pos, float distance_from_e1)
+        public CH2D_Intersection(int polyA, int polyB, CH2D_P_Index a_e1, CH2D_P_Index a_e2, CH2D_P_Index b_e1, CH2D_P_Index b_e2, Vector2 pos, float distance_from_e1)
         {
             //this.new_point = new_point;
             this.polyA = polyA;
             this.polyB = polyB;
-            this.e1 = e1;
-            this.e2 = e2;
+            this.a_e1 = a_e1;
+            this.a_e2 = a_e2;
+            this.b_e1 = b_e1;
+            this.b_e2 = b_e2;
             this.pos = pos;
             this.distance_from_e1 = distance_from_e1;
         }

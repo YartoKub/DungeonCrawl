@@ -11,6 +11,10 @@ public class PointInsidePolygontest : MonoBehaviour
     public bool isHole;
 
     public bool GridTest;
+
+    public Vector2Int grid_pos;
+    public Vector2Int grid_size;
+    public float grid_step;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -37,15 +41,15 @@ public class PointInsidePolygontest : MonoBehaviour
 
         if (GridTest)
         {
-            for (int x = 0; x < 7; x++)
+            for (int x = grid_pos.x; x < grid_size.x; x++)
             {
-                for (int y = 0; y < 7; y++)
+                for (int y = grid_pos.y; y < grid_size.y; y++)
                 {
-                    PointJavaWWCheck(new Vector2(-1 + x * 0.5f, -1 + y * 0.5f));
+                    PointJavaWWCheck(new Vector2(x * grid_step, y * grid_step));
                 }
             }
         }
-        bool isInside = WindingNumberAngle(point, PolyPoints) < 0;
+        bool isInside = WindingNumber(point, PolyPoints);
         DebugUtilities.DebugDrawCross(point, isInside ? Color.green : Color.red);
     }
 
@@ -56,7 +60,7 @@ public class PointInsidePolygontest : MonoBehaviour
     }
     public void PointJavaWWCheck(Vector2 p)
     {
-        bool isInside = Alciatore(p, PolyPoints);
+        bool isInside = Poly2DToolbox.IsPointInsidePolygon(p, PolyPoints);
         DebugUtilities.DebugDrawCross(p, isInside ? Color.green : Color.red);
     }
 

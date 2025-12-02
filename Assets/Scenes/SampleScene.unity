@@ -1096,7 +1096,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &732822485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1118,7 +1118,10 @@ MonoBehaviour:
   point: {x: 0, y: 0}
   isConvex: 0
   isHole: 0
-  GridTest: 1
+  GridTest: 0
+  grid_pos: {x: 0, y: 0}
+  grid_size: {x: 0, y: 0}
+  grid_step: 0
 --- !u!4 &732822486
 Transform:
   m_ObjectHideFlags: 0
@@ -2115,7 +2118,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1266008486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2129,7 +2132,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
   DisplayHierarchy: 0
-  HierarchyLevel: 0
+  HierarchyLevel: -1
   PointHighlighter: -1
   option: 0
   points:
@@ -2637,12 +2640,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6de57e70b32a1b049afc263f4b7798cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PointInsidePolygontest
-  PolyPoints: []
+  PolyPoints:
+  - {x: 0, y: 0}
+  - {x: 2, y: 0}
+  - {x: 4, y: 0}
+  - {x: 6, y: 0}
+  - {x: 6, y: 2}
+  - {x: 0, y: 2}
   pointsToCheck: []
   point: {x: 0, y: 0}
   isConvex: 0
   isHole: 0
   GridTest: 0
+  grid_pos: {x: 0, y: 0}
+  grid_size: {x: 0, y: 0}
+  grid_step: 0
 --- !u!4 &1661459093
 Transform:
   m_ObjectHideFlags: 0

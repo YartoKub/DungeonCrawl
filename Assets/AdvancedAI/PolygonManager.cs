@@ -84,7 +84,15 @@ public class PolygonManager : MonoBehaviour
     }
     public void DebugIntersection()
     {
-        this.my_chunk.DebugGetIntersections();
+        this.my_chunk.DebugGetIntersections(true, false);
+    }
+    public void HighlightInnsAndOuts()
+    {
+        this.my_chunk.DebugGetIntersections(false, true);
+    }
+    public void DebugAddTestPolygon()
+    {
+        this.my_chunk.DebugAddTestPolygon();
     }
     public void AddPolygon(Poly2D p)
     {

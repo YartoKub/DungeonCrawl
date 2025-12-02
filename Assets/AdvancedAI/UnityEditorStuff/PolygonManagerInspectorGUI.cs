@@ -55,6 +55,8 @@ public class PointManagerInspectorGUI : Editor
         if (GUILayout.Button("Polygon BVH, side growing")) ((PolygonManager)target).CalculatePolygonBVH_SideGrowing();
         EditorGUILayout.LabelField("Debug Tests");
         if (GUILayout.Button("Get Intersections of 0 and 1")) ((PolygonManager)target).DebugIntersection();
+        if (GUILayout.Button("Get PolyPoly of 0 and 1")) ((PolygonManager)target).HighlightInnsAndOuts();
+        if (GUILayout.Button("Debug degenerate polygons")) ((PolygonManager)target).DebugAddTestPolygon();
 
         base.OnInspectorGUI();
     }

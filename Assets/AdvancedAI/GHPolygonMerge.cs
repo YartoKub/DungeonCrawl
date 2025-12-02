@@ -6,6 +6,62 @@ using UnityEngine;
 // Кажется эта штука работает. С ней в целом проблем много быть не должно. 
 public static class GHPolygonMerge
 {
+    // Списки A and B уже должны быть поделены друг на друга
+    // A и B - корректные полигоны, без самопересечений и вершин-дубликатов
+    // A и B содержат общие вершины, и полигоны А и B могут полностью совпадать
+    // Цель: Найти все пересечения и все разница как отдельные полигоны
+    const int inn_point = -1;
+    const int out_point = -2;
+    const int used_point = -3;
+
+
+    public static (List<Poly2D> intersect, List<Poly2D> onlyA, List<Poly2D> onlyB) GH_IntList(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    {
+        Debug.Log("Not implemented");
+        List<Poly2D> polyToReturn = new List<Poly2D>();
+        if (intersections.Count == 0) return (polyToReturn, polyToReturn, polyToReturn);
+
+        (int[] defAside, int[] defBside) = MarkPoints(V, A, B, Ap, Bp, intersections);
+
+        for (int i = 0; i < defAside.Length; i++)
+        {
+            if (defAside[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red);
+            if (defAside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue);
+        }
+
+
+
+
+        return (polyToReturn, polyToReturn, polyToReturn);
+    }
+
+    private static (int[] Aside, int[] Bside) MarkPoints(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    {
+        int[] Ainter = new int[A.Count]; // default value - 0
+        int[] Binter = new int[B.Count];
+        for (int i = 0; i < Ainter.Length; i++) Ainter[i] = used_point;
+        for (int i = 0; i < Binter.Length; i++) Binter[i] = used_point;
+
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            Ainter[intersections[i].A] = intersections[i].B;
+            Binter[intersections[i].B] = intersections[i].A;
+        }
+        for (int i = 0; i < Ainter.Length; i++)
+        {
+            if (Ainter[i] != used_point) continue;
+            Ainter[i] = Poly2DToolbox.IsPointInsidePolygon(V[A[i]], Bp) ? inn_point : out_point;
+        }
+        for (int i = 0; i < Binter.Length; i++)
+        {
+            if (Binter[i] != used_point) continue;
+            Binter[i] = Poly2DToolbox.IsPointInsidePolygon(V[B[i]], Ap) ? inn_point : out_point;
+        }
+
+        return (Ainter, Binter);
+    }
+
+
     // Ainside/Binside - what side to keep, the one outside other polygon, or one isnide
     // True/True --- intersection
     // False/False --- union

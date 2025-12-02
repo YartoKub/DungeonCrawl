@@ -503,9 +503,9 @@ public static class Poly2DToolbox
             if (Poly2DToolbox.PointSimilarity(point, points[i])) return (i, -1);
             int j = (i + 1) % points.Count;
             Edge2D edge = new Edge2D(points[i], points[j]);
-            
-            if (!PointBelongToRay2D(points[i], (points[j] - points[i]).normalized, point, out float t))  continue;
-            if (t >= 1.0f) continue;
+
+            if (!PointBelongToLine2D(points[i], points[j], point)) continue;
+            if (Poly2DToolbox.PointSimilarity(point, points[j])) return (j, -1);
             return (i, j);
         }
         return (-1, -1);
