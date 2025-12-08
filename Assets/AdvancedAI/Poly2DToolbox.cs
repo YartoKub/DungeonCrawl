@@ -532,7 +532,7 @@ public static class Poly2DToolbox
     }
 
 
-    public static bool IsInsidePolygonConvex(List<Vector2> vertices, Vector2 p, bool isHole)
+    public static bool IsPointInsidePolygonConvex(List<Vector2> vertices, Vector2 p, bool isHole)
     {
         if (isHole == true) // Ориентация часовой
             for (int i = vertices.Count - 1; i < 0; i--)
@@ -582,7 +582,7 @@ public static class Poly2DToolbox
         return a.x * b.y - a.y * b.x;
     }
     // Возвращает точку пересечения между линией AB и CD.
-    // Также возвращает расстояние от точки А до точки пересечения.
+    // Также возвращает расстояние от точки А до точки пересечения, это не нормализированное расстояние, поэтому оно не очень полезно
     public static bool LineLineIntersection(Vector2 A, Vector2 B, Vector2 C, Vector2 D, out Vector2 interPoint, out float distance)
     {   // Выдернуто из другого проекта
         interPoint = Vector2.zero;

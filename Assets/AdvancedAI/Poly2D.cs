@@ -129,7 +129,7 @@ public class Poly2D : I_BBoxSupporter
 
     public bool IsInsidePolygon(Vector2 p)
     {
-        if (this.convex) return Poly2DToolbox.IsInsidePolygonConvex(this.vertices, p, isHole);
+        if (this.convex) return Poly2DToolbox.IsPointInsidePolygonConvex(this.vertices, p, isHole);
         else             return Poly2DToolbox.IsPointInsidePolygon(p, this.vertices);
     }
 

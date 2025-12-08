@@ -16,10 +16,9 @@ public struct CH2D_P_Index
     [SerializeField] public UInt16 i;
     public CH2D_P_Index(UInt16 i) { this.i = i; }
     public CH2D_P_Index(int i) { if (i < UInt16.MinValue && i >= UInt16.MaxValue) throw new ArgumentOutOfRangeException(); else this.i = (UInt16)i; }
-    public override string ToString() => i.ToString();
+    public override string ToString() {return "ch" + i.ToString(); }
     // Преобразования
     public static implicit operator int(CH2D_P_Index id) => id.i;
-
     // Сравнения
     public bool Equals(CH2D_P_Index other) { return i == other.i; }
     public override bool Equals(object obj) { return obj is CH2D_P_Index other && Equals(other); }
@@ -48,4 +47,5 @@ public struct CH2D_P_Index
     }
     public static CH2D_P_Index operator +(CH2D_P_Index left, int right) { return new CH2D_P_Index(checked((ushort)(left.i + right))); }
     public static CH2D_P_Index operator -(CH2D_P_Index left, int right) { return new CH2D_P_Index(checked((ushort)(left.i - right))); }
+   
 }

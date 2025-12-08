@@ -28,6 +28,18 @@ public static class DebugUtilities
         Debug.DrawLine(point2, point2 + leftHand, color, time);
         Debug.DrawLine(point2, point2 + rightHand, color, time);
     }
+    public static void HandlesDrawLine(Vector2 point1, Vector2 point2, Color color, float coneLength = 0.2f)
+    {
+        Color tmp = Handles.color;
+        Handles.color = color;
+        Handles.DrawLine(point1, point2);
+        Vector2 dir = (point2 - point1).normalized * coneLength;
+        Vector2 leftHand = rotate(dir, 2.6f);
+        Vector2 rightHand = rotate(dir, -2.6f);
+        Handles.DrawLine(point2, point2 + leftHand);
+        Handles.DrawLine(point2, point2 + rightHand);
+        Handles.color = tmp;
+    }
 
 
     public static Vector2 rotate(Vector2 v, float delta) {

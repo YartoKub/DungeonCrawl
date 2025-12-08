@@ -4,7 +4,12 @@ using System.Collections.Generic;
 [CustomEditor(typeof(PolygonManager))]
 public class PointManagerInspectorGUI : Editor
 {
-    public GUIStateMachine[] stateMachines = {new GUI_NothingMachine(), new GUI_TestPlacePointStateMachine(), new GUI_TestDeletePointStateMachine(), new GUI_AddPolygonStateMachine()};
+    public GUIStateMachine[] stateMachines = {
+        new GUI_NothingMachine(), 
+        new GUI_TestPlacePointStateMachine(), 
+        new GUI_TestDeletePointStateMachine(), 
+        new GUI_AddPolygonStateMachine(), 
+        new GUI_SelectPolygonStateMachine()};
     // Ёто начальные машины состо€ний которые можно выбрать через меню.
     // ≈сть недоступные машины состо€ний, доступ к которым производитс€ толькко взаимодейству€ с этиим машинами.
 
@@ -17,17 +22,18 @@ public class PointManagerInspectorGUI : Editor
     //Inspector
     public override void OnInspectorGUI()
     {
+        PolygonManager manager = (PolygonManager)target;
         Event e = Event.current;
         if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape 
             && stateMachine.GetType() != new GUI_NothingMachine().GetType())
         {
             Debug.Log("«авершена постройка полигона");
             e.Use();
-            ChangeState(0);
+            ChangeState(0, manager);
         }
 
         options = PopupOptions();
-        if (stateMachine == null) ChangeState(0);
+        if (stateMachine == null) ChangeState(0, manager);
 
         GUIStyle wrappedTextStyle = new GUIStyle(EditorStyles.textField);
         wrappedTextStyle.wordWrap = true;
@@ -42,21 +48,22 @@ public class PointManagerInspectorGUI : Editor
         if (prev_action_index != current_action_index)
         {
             Debug.Log("inner state machine change");
-            if (stateMachine != null) stateMachine.EndStateMachine();
-            ChangeState(current_action_index);
+            if (stateMachine != null) stateMachine.EndStateMachine(manager);
+            ChangeState(current_action_index, manager);
         }
         EditorGUILayout.LabelField("Purging");
-        if (GUILayout.Button("purge polygons")) ((PolygonManager)target).PurgePolygons();
-        if (GUILayout.Button("Purge Chunk")) ((PolygonManager)target).PurgeChunk();
+        if (GUILayout.Button("purge polygons")) manager.PurgePolygons();
+        if (GUILayout.Button("Purge Chunk")) manager.PurgeChunk();
         EditorGUILayout.LabelField("Binary Hierarchies");
-        if (GUILayout.Button("Point BVH, naive")) ((PolygonManager)target).CalculatePointBVH_Naive();
-        if (GUILayout.Button("Point BVH, side growing")) ((PolygonManager)target).CalculatePointBVH_SideGrowing();
-        if (GUILayout.Button("Polygon BVH, naive")) ((PolygonManager)target).CalculatePolygonBVH_Naive();
-        if (GUILayout.Button("Polygon BVH, side growing")) ((PolygonManager)target).CalculatePolygonBVH_SideGrowing();
+        if (GUILayout.Button("Point BVH, naive")) manager.CalculatePointBVH_Naive();
+        if (GUILayout.Button("Point BVH, side growing")) manager.CalculatePointBVH_SideGrowing();
+        if (GUILayout.Button("Polygon BVH, naive")) manager.CalculatePolygonBVH_Naive();
+        if (GUILayout.Button("Polygon BVH, side growing")) manager.CalculatePolygonBVH_SideGrowing();
         EditorGUILayout.LabelField("Debug Tests");
-        if (GUILayout.Button("Get Intersections of 0 and 1")) ((PolygonManager)target).DebugIntersection();
-        if (GUILayout.Button("Get PolyPoly of 0 and 1")) ((PolygonManager)target).HighlightInnsAndOuts();
-        if (GUILayout.Button("Debug degenerate polygons")) ((PolygonManager)target).DebugAddTestPolygon();
+        if (GUILayout.Button("Dump Chunk Data")) manager.my_chunk.DebugDumpChunkData();
+        if (GUILayout.Button("Get Intersections of 0 and 1")) manager.DebugIntersection();
+        if (GUILayout.Button("Get PolyPoly of 0 and 1")) manager.HighlightInnsAndOuts();
+        if (GUILayout.Button("Test degenerate polygons")) manager.DebugAddTestPolygon();
 
         base.OnInspectorGUI();
     }
@@ -68,16 +75,16 @@ public class PointManagerInspectorGUI : Editor
         return options;
     }
 
-    public void ChangeState(int ca_index)
+    public void ChangeState(int ca_index, PolygonManager target)
     {
         if (ca_index < 0 | ca_index >= stateMachines.Length) ca_index = 0;
         stateMachine = stateMachines[ca_index];
         current_comment = stateMachine.GetDescription();
         current_action_index = ca_index;
-        stateMachine.InitStateMachine();
+        stateMachine.InitStateMachine(target);
     }
 
-    public void ChangeState(GUIStateMachine guism)
+    public void ChangeState(GUIStateMachine guism, PolygonManager target)
     {
         if (guism == null) return;
         stateMachine = guism;
@@ -86,7 +93,7 @@ public class PointManagerInspectorGUI : Editor
         {
             if (guism.GetType() == stateMachines[i].GetType()) current_action_index = i;
         }
-        stateMachine.InitStateMachine();
+        stateMachine.InitStateMachine(target);
     }
 
     void OnSceneGUI()
@@ -96,20 +103,22 @@ public class PointManagerInspectorGUI : Editor
         {
             GUIStateMachine sm = stateMachine.OnSceneGUI(manager);
             if (stateMachine.NeedRefresh()) { SceneView.RepaintAll(); }
-            if (sm != null) this.ChangeState(sm);
-        }
+            if (sm != null) this.ChangeState(sm, manager);
+            if (stateMachine.description_changed) { stateMachine.description_changed = false; current_comment = stateMachine.GetDescription(); }
+        } 
     }
-
+    private void OnDestroy() => stateMachine.EndStateMachine((PolygonManager)target);
 }
 
 public abstract class GUIStateMachine
 {
+    public bool description_changed = false;
     public virtual bool NeedRefresh() { return false; }
     public abstract string GetDescription();
     public abstract string GetOptionName();
-    public abstract void InitStateMachine();// ќбнуление переменных
+    public abstract void InitStateMachine(PolygonManager manager);// ќбнуление переменных
     public abstract GUIStateMachine OnSceneGUI(PolygonManager manager);
-    public abstract void EndStateMachine(); // «авершение сложной операции и сохранение всего
+    public abstract void EndStateMachine(PolygonManager manager); // «авершение сложной операции и сохранение всего
 }
 
 public class GUI_NothingMachine : GUIStateMachine
@@ -118,9 +127,9 @@ public class GUI_NothingMachine : GUIStateMachine
     public override string GetDescription() { return generic_description; }
     private const string generic_option = "None";
     public override string GetOptionName() { return generic_option; }
-    public override void InitStateMachine() { return; }
+    public override void InitStateMachine(PolygonManager manager) { return; }
     public override GUIStateMachine OnSceneGUI(PolygonManager manager){ return this;}
-    public override void EndStateMachine() { return; }
+    public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
 public class GUI_GrabStateMachine : GUIStateMachine
@@ -129,9 +138,9 @@ public class GUI_GrabStateMachine : GUIStateMachine
     public override string GetDescription(){ return generic_description; }
     private const string generic_option = "Grab";
     public override string GetOptionName() { return generic_option; }
-    public override void InitStateMachine() { return; }
+    public override void InitStateMachine(PolygonManager manager) { return; }
     public override GUIStateMachine OnSceneGUI(PolygonManager manager) { return null; }
-    public override void EndStateMachine() { return; }
+    public override void EndStateMachine(PolygonManager manager) { return; }
 }
 public class GUI_TestPlacePointStateMachine : GUIStateMachine
 {
@@ -139,7 +148,7 @@ public class GUI_TestPlacePointStateMachine : GUIStateMachine
     public override string GetDescription() { return generic_description; }
     private const string generic_option = "Place";
     public override string GetOptionName() { return generic_option; }
-    public override void InitStateMachine() { return; }
+    public override void InitStateMachine(PolygonManager manager) { return; }
     public override GUIStateMachine OnSceneGUI(PolygonManager manager)
     {
         Event e = Event.current;
@@ -161,7 +170,7 @@ public class GUI_TestPlacePointStateMachine : GUIStateMachine
 
         return null;
     }
-    public override void EndStateMachine() { return; }
+    public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
 public class GUI_TestDeletePointStateMachine : GUIStateMachine
@@ -171,7 +180,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
     public override string GetDescription() { return generic_description; }
     private const string generic_option = "Delete";
     public override string GetOptionName() { return generic_option; }
-    public override void InitStateMachine() { return; }
+    public override void InitStateMachine(PolygonManager manager) { return; }
     public override GUIStateMachine OnSceneGUI(PolygonManager manager)
     {
         Event e = Event.current;
@@ -199,7 +208,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
 
         return this;
     }
-    public override void EndStateMachine() { return; }
+    public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
 public class GUI_AddPolygonStateMachine : GUIStateMachine
@@ -214,7 +223,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
     private const string generic_option = "Draw Polygon";
     public override string GetOptionName() { return generic_option; }
     private List<Vector2> points;
-    public override void InitStateMachine() 
+    public override void InitStateMachine(PolygonManager manager) 
     {
         if (points == null) points = new List<Vector2>();
         points.Clear();
@@ -282,9 +291,59 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
             DebugUtilities.HandlesDrawCross(points[i], point_color);
     }
 
-    public override void EndStateMachine() 
+    public override void EndStateMachine(PolygonManager manager) 
     {
         Debug.Log("ќстановленна машина полигонов");
         return; 
+    }
+}
+public class GUI_SelectPolygonStateMachine : GUIStateMachine
+{
+    private const string generic_description =
+        "State: <b><color=green>Select Polygon</color></b> \nClick to select a polygon and see it's data" +
+        "\nLeft click to select a polygon" +
+        "\nPress <b><color=red>Delete</color></b> or <b><color=red>Backspace</color></b> to delete a polygon (cancels tool)" +
+        "\nPress <b><color=white>Escape</color></b> to cancel this tool\n";
+    public override string GetDescription() { return generic_description + PolygonData; }
+    private const string generic_option = "Select Polygon";
+    public override string GetOptionName() { return generic_option; }
+
+    public override void InitStateMachine(PolygonManager manager)
+    {
+        Debug.Log("state machine initialized");
+    }
+    public string PolygonData = "";
+
+    public override GUIStateMachine OnSceneGUI(PolygonManager manager)
+    {
+
+        Event e = Event.current;
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+        {
+            Debug.Log("ќтмена действи€");
+            e.Use();
+            return new GUI_NothingMachine();
+        }
+
+        Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
+        Plane planeXY = new Plane(new Vector3(0, 0, 1), 0);
+
+        if (!planeXY.Raycast(ray, out float t)) return new GUI_NothingMachine();
+        Vector3 point = ray.direction * t + ray.origin;
+
+        if (!(e.type == EventType.MouseDown && e.button == 0)) return null;
+        manager.SelectPolygon(point);
+        PolygonData = manager.GetPolygonDataDelegate();
+        e.Use();
+        this.description_changed = true;
+
+        return null;
+    }
+
+    public override void EndStateMachine(PolygonManager manager)
+    {
+        manager.SelectionPurge();
+        Debug.Log("ќстановленна машина выбора полигонов");
+        return;
     }
 }

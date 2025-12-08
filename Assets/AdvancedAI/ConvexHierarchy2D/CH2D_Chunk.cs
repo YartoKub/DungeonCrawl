@@ -32,16 +32,35 @@ public class CH2D_Chunk
 
     public void AddPolygonTrusted(Poly2D poly)
     {   // Используя эту функцию я доверяю себе что введу внутрь чанка нормальный полигон, а не говно.
+        // Подохреваю что некоторую безопасность, такую как MutualVerticeIncorporation, можно оставить лишь на конечном этапе. Но мне лень это проверять
         CH2D_Polygon int_poly = new CH2D_Polygon();
         int_poly.isHole = poly.isHole;
         int_poly.convex = poly.convex;
         int_poly.BBox = poly.BBox;
-        CH2D_P_Index[] vertices = new CH2D_P_Index[poly.vertices.Count];
+        List<CH2D_P_Index> vertices = new List<CH2D_P_Index>(poly.vertices.Count);
+        // Регистрация всех вершин
         for (int i = 0; i < poly.vertices.Count; i++)
-            vertices[i] = AddPoint(poly.vertices[i]);
+            vertices.Add(AddPointIfNew(poly.vertices[i]));
+        // Встройка всех коллинеарных вершин 
+        List<int> p_overlap = BBoxOverlapList(poly.BBox);
+        for (int i = 0; i < p_overlap.Count; i++)
+        {
+            //Incorporate_Bvertice_To_PolyA(vertices, this.polygons[p_overlap[i]].vertices);
+            MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
+        }
+        string n = "poly so far: "; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
+
+        // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
+        for (int i = 0; i < p_overlap.Count; i++)
+            PolyPolyOnlineIntersectionOnesided(vertices, this.polygons[p_overlap[i]].vertices);
+        
+        // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
+        for (int i = 0; i < p_overlap.Count; i++)
+            Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, vertices);
+        
+
         int_poly.vertices = new List<CH2D_P_Index>(vertices);
         this.polygons.Add(int_poly);
-
     }
     /// <summary>
     /// Проверяет, какие полигоны пересекаются с точкой.
@@ -61,32 +80,68 @@ public class CH2D_Chunk
     }
     public CH2D_P_Index AddPointIfNew(Vector2 point)
     {
-        (int poly, Nullable<CH2D_P_Index> a, Nullable<CH2D_P_Index> b) = DoesChunkHavePoint(point);
-        if (poly == -1 | a == null) return AddPoint(point);
-        if (b == null) return a.Value;
-
-        // add and edit
-
-        return new CH2D_P_Index(-1);
-    }
-    public (int, Nullable<CH2D_P_Index>, Nullable<CH2D_P_Index>) DoesChunkHavePoint(Vector2 point)
-    {
-        List<int> containers = new List<int>();
-        for (int i = 0; i < polygons.Count; i++)
-            if (polygons[i].BBox.Contains(point)) containers.Add(i);
-
-        Nullable<CH2D_P_Index> a = null; Nullable<CH2D_P_Index> b = null; int p = -1;
-        for (int i = 0; i < containers.Count; i++)
+        for (int i = 0; i < this.polygons.Count; i++)
         {
-            List<Vector2> border = GetPolyVertices(containers[i]);
-            (int int_a, int int_b) = Poly2DToolbox.PointOnBorder(point, border);
-            if (int_a == -1) continue;
-            a = polygons[containers[i]].vertices[int_a];
-            b = int_b == -1 ? null : polygons[containers[i]].vertices[int_b];
-            p = containers[i];
-            break;
+            if (!this.polygons[i].BBox.Contains(point)) continue;
+            for (int j = 0; j < this.polygons[i].vertices.Count; j++)
+            {
+                CH2D_P_Index p = this.polygons[i].vertices[j];
+                if (Poly2DToolbox.PointSimilarity(point, this.vertices[p])) return p;
+            }
         }
-        return (p, a, b);
+        return AddPoint(point);
+    }
+    // Кажется теперь это бесполезная функция, то что она делает решается при помощи MutualVerticeIncorporation(A, B)
+    public CH2D_P_Index AddPointIfNewConvoluted(Vector2 point)
+    {
+        List <(int poly, Nullable<CH2D_P_Index> a, Nullable<CH2D_P_Index> b)> polys = DoesChunkHavePoint(point);
+        if (polys.Count == 0) { Debug.Log("Добавлнеа НЕсуществующая точка"); return AddPoint(point); } // Нет похожего, создание новой точки
+        // Похожая точка уже существует
+        for (int i = 0; i < polys.Count; i++) // Похожая точка содержится в полигоне, возвращаем ее индекс
+        {
+            if (polys[i].b == null) { Debug.Log("Добавлена существующая точка точка " + polys[i].a.Value); return polys[i].a.Value; }
+        }
+        // Точка сидит на границе, тут редактируются один или два полигона с общей гранью
+        Debug.Log("Добавлена точка на пересечении");
+        CH2D_P_Index new_p = AddPoint(point);
+        for (int i = 0; i < polys.Count; i++)
+        {
+            polygons[polys[i].poly].InsertPointIntoPolygon(new_p, polys[i].a.Value, polys[i].b.Value);
+        }
+        return new_p;
+    }
+    // Проверяет полигоны, чьи BBox содержат точку. 
+    // Проверяет все грани этих полигонов, находит грани между которыми эта точка лежит.
+    // Так как это Vector2 точка, а не Ch2D_P_index, то эта точка нова для полигонов
+    // Следовательно она находится либо на границе с один полигоном, либо на границе между двемя полигонами.
+    private List<(int, Nullable<CH2D_P_Index>, Nullable<CH2D_P_Index>)> DoesChunkHavePoint(Vector2 point)
+    {   
+        List<(int, Nullable<CH2D_P_Index>, Nullable<CH2D_P_Index>)> borderers = new List<(int, Nullable<CH2D_P_Index>, Nullable<CH2D_P_Index>)>(2);
+        for (int i = 0; i < polygons.Count; i++)
+        {
+            if (!polygons[i].BBox.Contains(point)) continue;
+            (Nullable<CH2D_P_Index> a, Nullable<CH2D_P_Index> b) = PointOnBorder(i, point);
+            if (a == null) continue; // Тут может быть лишь два варианта: либо null+null, либо a+b.
+            if (borderers.Count == 2) break;
+            borderers.Add((i, a, b));
+        }
+        return borderers;
+    }
+    public (Nullable<CH2D_P_Index>, Nullable<CH2D_P_Index>) PointOnBorder(int poly, Vector2 point)
+    {
+        Nullable<CH2D_P_Index> a = null; Nullable<CH2D_P_Index> b = null;
+        List<Vector2> border = GetPolyVertices(poly);
+        (int int_a, int int_b) = Poly2DToolbox.PointOnBorder(point, border);
+        if (int_a == -1) return (a, b);
+        a = polygons[poly].vertices[int_a];
+        b = int_b == -1 ? null : polygons[poly].vertices[int_b];
+        return (a, b);
+    }
+    public List<int> BBoxOverlapList(Bounds BBox)
+    {   // Возвращает полигоны, чьи BBox пересекаются с этим BBox. Сложность O(N)
+        List<int> result = new List<int>();
+        for (int i = 0; i < polygons.Count; i++) if (polygons[i].BBox.Intersects(BBox)) result.Add(i);
+        return result;
     }
 
     public List<Vector2> GetPolyVertices(int PolyID)
@@ -147,6 +202,19 @@ public class CH2D_Chunk
             curr_i, Point,
             next_i, new CH2D_P_Index(this.polygons[Poly].vertices[next_i]));
     }
+    /// <summary>
+    /// Предполагается что будут даны полигоны, полученные в результате проверки BBoxOverlapList пересечения или же 
+    /// </summary>
+    public List<int> GetPolygonsOwningPoint(CH2D_P_Index point, List<int> loc_polygons)
+    {
+        List<int> to_return = new List<int>();
+        for (int i = 0; i < loc_polygons.Count; i++)
+        {
+            CH2D_Polygon p = this.polygons[loc_polygons[i]];
+            if (p.vertices.Contains(point)) to_return.Add(i);
+        }
+        return to_return;
+    }
 
     public (bool found, CH2D_P_Index A , CH2D_P_Index B) GetSharedEdge(int polyA, int polyB)
     {
@@ -203,22 +271,55 @@ public class CH2D_Chunk
         Handles.color = Color.blue;
 
         //Debug.Log(polygons.Count);
-        foreach (var poly in polygons)
-        {
-            for (int i = 0; i < poly.vertices.Count - 1; i++)
-                Handles.DrawLine(this.vertices[poly.vertices[i]], this.vertices[poly.vertices[i + 1]]);
-            Handles.DrawLine(this.vertices[poly.vertices[poly.vertices.Count - 1]], this.vertices[poly.vertices[0]]);
-            DebugUtilities.HandlesDrawRectangle(poly.BBox.min, poly.BBox.max, Color.cyan);
-        }
+        for (int i = 0; i < this.polygons.Count; i++)
+            HandlesDrawPolyOutline(i, Color.blue);
+        
         Handles.color = tmp;
+    }
+    public void HandlesDrawPolyOutline(int p, Color color)
+    {
+        Color tmp = Handles.color;
+        Handles.color = color;
+        List<CH2D_P_Index> v = this.polygons[p].vertices;
+        for (int i = 0; i < v.Count - 1; i++)
+            Handles.DrawLine(this.vertices[v[i]], this.vertices[v[i + 1]]);
+        Handles.DrawLine(this.vertices[v[v.Count - 1]], this.vertices[v[0]]);
+        Handles.color = tmp;
+    }
+    public void HandlesDrawPolyOutlineDirected(int p, Color filled_color, Color hole_color)
+    {
+        Color c = this.polygons[p].isHole ? hole_color : filled_color;
+        List<CH2D_P_Index> v = this.polygons[p].vertices;
+        for (int i = 0; i < v.Count - 1; i++)
+            DebugUtilities.HandlesDrawLine(this.vertices[v[i]], this.vertices[v[i + 1]], c, 0.2f);
+        DebugUtilities.HandlesDrawLine(this.vertices[v[v.Count - 1]], this.vertices[v[0]], c, 0.2f);
+    }
+    public void HandlesDrawPolyBBox(int p, Color color) { DebugUtilities.HandlesDrawRectangle(this.polygons[p].BBox.min, this.polygons[p].BBox.max, color); }
+    public void HandlesDrawPolyPoints(int p, Color color) { for (int i = 0; i < this.polygons[p].vertices.Count; i++) DebugUtilities.HandlesDrawCross(this.vertices[this.polygons[p].vertices[i]], color); }
+    public void DebugDumpChunkData()
+    {
+        string ret = "DebugChunkData: PolyCount: " + this.polygons.Count + " \n";
+        for (int i = 0; i < polygons.Count; i++)
+        {
+            ret += "(P" + i + ") ";
+            if (polygons[i].vertices == null) throw new Exception("Полигон с index " + i + " не имеет списка вершин!");
+            ret += " (VCount: " + polygons[i].vertices.Count + " ) ";
+            ret += " { ";
+            for (int v = 0; v < polygons[i].vertices.Count; v++)
+            {
+                ret += polygons[i].vertices[v] + " ";
+            }
+            ret += "} \n";
+        }
+        Debug.Log(ret);
     }
     // Идея в том чтобы найти все пересечения и добавить точки в список
     public void DebugGetIntersections(bool DrawIntersections, bool FindInnsAndOuts)
     {
         if (this.polygons.Count < 2) return;
 
-        Incorporate_Bvertice_To_PolyA(0, 1);
-        //Incorporate_Bvertice_To_PolyA(1, 0);
+        Incorporate_Bvertice_To_PolyA(this.polygons[0].vertices, this.polygons[1].vertices);
+        Incorporate_Bvertice_To_PolyA(this.polygons[1].vertices, this.polygons[0].vertices);
         // Point incorporations
         List<CH2D_Intersection> intersections = GetPolyPolyIntersections(0, 1);
         Debug.Log(intersections.Count);
@@ -250,58 +351,96 @@ public class CH2D_Chunk
 
     // Incorporate collinear vertices
     // Совпадающие вершины должны 
-    public void Incorporate_Bvertice_To_PolyA(int A, int B)
+    public void Incorporate_Bvertice_To_PolyA(List<CH2D_P_Index> a_v, List<CH2D_P_Index> b_v)
     {
-        //List<Vector2> av = GetPolyVertices(A);
-        //List<Vector2> bv = GetPolyVertices(B);
-
-        for (int a = 0; a < polygons[A].vertices.Count; a++)
+        for (int a = 0; a < a_v.Count; a++)
         {
-            CH2D_Edge ae = polygons[A].GetEdge(a);
-            for (int b = 0; b < polygons[B].vertices.Count; b++)
+            CH2D_Edge ae = new CH2D_Edge(a_v[a], a_v[(a + 1) % a_v.Count]);
+            for (int b = 0; b < b_v.Count; b++)
             {
-                CH2D_P_Index bv = polygons[B].vertices[b];
+                CH2D_P_Index bv = b_v[b];
                 if (bv == ae.A | bv == ae.B) continue;
-                Debug.Log(bv + " " + ae.A + " " + ae.B);
+                //Debug.Log(bv + " " + ae.A + " " + ae.B);
                 bool success = Poly2DToolbox.PointBelongToLine2D(vertices[ae.A], vertices[ae.B], vertices[bv]);
                 if (!success) continue;
-                polygons[A].InsertPointIntoPolygon(bv, ae.A, ae.B);
+                CH2D_Polygon.InsertPointIntoPolygon(a_v, bv, ae.A, ae.B);// polygons[A].InsertPointIntoPolygon(bv, ae.A, ae.B);
                 //a = a - 1;
                 break;
             }
         }
     }
-
-    private List<CH2D_Intersection> GetPolyPolyIntersections(int new_poly, int old_poly)
-    {   // Ожидается что новый полигон больше чем старый
-        List<CH2D_Intersection> intersections = new List<CH2D_Intersection>();
-        // TODO: тут надо бы провести проверку принадлежности точек полигона к лучу, но это лучше сделать как предварительную подготовку
-        //for (int i = 0; i < points.Count; i++) { if (Poly2DToolbox.PointBelongToRay2D(A, A - B, points[i])) }
-        // Предполагается что пересечение с одной из уже существующих точек невозможно, т.к. на это ранее была произведена проверка
-        Bounds old_BBox = this.polygons[old_poly].BBox;
-        Bounds new_BBox = this.polygons[new_poly].BBox;
-
-        //if (BoundsMathHelper.Encompassed(this.polygons[new_poly].BBox, old_BBox)) new_poly_p = this.polygons[old_poly].vertices;
-        List<CH2D_Edge> new_poly_edges = EdgesInsideBounds(this.polygons[new_poly].vertices, old_BBox);
-        List<CH2D_Edge> old_poly_edges = EdgesInsideBounds(this.polygons[old_poly].vertices, new_BBox);
-
-        Debug.Log(new_poly_edges.Count + " " + old_poly_edges.Count);
-        for (int a = 0; a < old_poly_edges.Count; a++)
+    public void MutualVerticeIncorporation(List<CH2D_P_Index> a_v, List<CH2D_P_Index> b_v)
+    {
+        Incorporate_Bvertice_To_PolyA(a_v, b_v);
+        Incorporate_Bvertice_To_PolyA(b_v, a_v);
+    }
+    public void MutualVerticeIncorporation(int a_i, int b_i)
+    {
+        MutualVerticeIncorporation(this.polygons[a_i].vertices, this.polygons[b_i].vertices);
+    }
+    public void PolyPolyIntersection(int A, int B)
+    {
+        List<CH2D_Intersection> intersections = GetPolyPolyIntersections(A, B);
+        for (int i = 0; i < intersections.Count; i++)
         {
-            for (int b = 0; b < new_poly_edges.Count; b++)
+            CH2D_P_Index p_i = AddPointIfNew(intersections[i].pos);
+            this.polygons[A].InsertPointIntoPolygon(p_i, intersections[i].a_e1, intersections[i].a_e2);
+            this.polygons[B].InsertPointIntoPolygon(p_i, intersections[i].b_e1, intersections[i].b_e2);
+        }
+    }
+    // Бля, а оба полигона должны существовать, тоесть эта штука неприменима во время добавления нового полигона, которого еще нет в спискe
+    private List<CH2D_Intersection> GetPolyPolyIntersections(int a_p, int b_p)
+    {
+        return GetPolyPolyIntersections(this.polygons[a_p].vertices, this.polygons[b_p].vertices, this.polygons[a_p].BBox, this.polygons[b_p].BBox, a_p, b_p);
+    }
+    private List<CH2D_Intersection> GetPolyPolyIntersections(List<CH2D_P_Index> a_v, List<CH2D_P_Index> b_v, Bounds a_bbox, Bounds b_bbox, int a_i, int b_i)
+    {
+        List<CH2D_Intersection> intersections = new List<CH2D_Intersection>();
+
+        List<CH2D_Edge> a_edges = EdgesInsideBounds(a_v, b_bbox);
+        List<CH2D_Edge> b_edges = EdgesInsideBounds(b_v, a_bbox);
+
+        for (int a = 0; a < a_edges.Count; a++)
+        {
+            for (int b = 0; b < b_edges.Count; b++)
             {
-                CH2D_P_Index a1 = old_poly_edges[a].A;
-                CH2D_P_Index a2 = old_poly_edges[a].B;
-                CH2D_P_Index b1 = new_poly_edges[b].A;
-                CH2D_P_Index b2 = new_poly_edges[b].B;
-                Debug.Log(a + " " + b + " " + a1 + " " + a2 + " " + b1 + " " + b2);
-                if (Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t))
-                {
-                    intersections.Add(new CH2D_Intersection(new_poly, old_poly, a1, a2, b1, b2, inter, t));
-                }
+                CH2D_P_Index a1 = a_edges[a].A;
+                CH2D_P_Index a2 = a_edges[a].B;
+                CH2D_P_Index b1 = b_edges[b].A;
+                CH2D_P_Index b2 = b_edges[b].B;
+                //Debug.Log(a + " " + b + " " + a1 + " " + a2 + " " + b1 + " " + b2);
+                if (!Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t)) continue;
+                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[b1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[b2])) continue;
+                intersections.Add(new CH2D_Intersection(a_i, b_i, a1, a2, b1, b2, inter, t));
             }
-        } 
+        }
         return intersections;
+    }
+    // Делит полигон А об полигон В, добавляет в полигон А новые точки по мере поиска пересечений. 
+    private void PolyPolyOnlineIntersectionOnesided(List<CH2D_P_Index> A, List<CH2D_P_Index> B)
+    {
+        string n = "New points added: ";
+        for (int a = 0; a < A.Count; a++)
+        {
+            int a1 = A[a];
+            int a2 = A[(a + 1) % A.Count];
+            for (int b = 0; b < B.Count; b++)
+            {
+                int b1 = B[b];
+                int b2 = B[(b + 1) % B.Count];
+                Debug.Log(a1 + " " + a2 + " " + b1 + " " + b2);
+                if (!Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t)) { Debug.Log(inter); continue; }
+                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[b1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[b2])) { Debug.Log("similar to B"); continue; }
+                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[a1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[a2])) { Debug.Log("similar to A"); continue; }
+                CH2D_P_Index np = AddPoint(inter);
+                Debug.Log(a2);
+                A.Insert(a + 1, np);
+                n += "( " + np + " " + inter + " ) ";
+                a--;
+                break;
+            }
+        }
+        Debug.Log(n);
     }
 
     private List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
@@ -320,6 +459,18 @@ public class CH2D_Chunk
         }
         return edges;
         //return polyA.FindAll(p => BoundsMathHelper.DoesLineIntersectBoundingBox2D(this.vertices[p], this.vertices[(p+1)%c], bounds));
+    }
+    private List<CH2D_Edge> EdgesInsideBounds(int p_i, Bounds bounds)
+    {
+        List<CH2D_Edge> edges = new List<CH2D_Edge>();
+        int c = polygons[p_i].vertices.Count;
+        for (int i = 0; i < c; i++)
+        {
+            int j = (i + 1) % c;
+            if (!BoundsMathHelper.DoesLineIntersectBoundingBox2D(this.vertices[polygons[p_i].vertices[i]], this.vertices[polygons[p_i].vertices[j]], bounds)) continue;
+            edges.Add(new CH2D_Edge(polygons[p_i].vertices[i], polygons[p_i].vertices[j]));
+        }
+        return edges;
     }
 
     private struct CH2D_Intersection
@@ -346,6 +497,38 @@ public class CH2D_Chunk
         }
     }
 
+    public List<int> PolygonPointIntersection(Vector2 p)
+    {
+        List<int> result = new List<int>();
+        for (int i = 0; i < polygons.Count; i++)
+        {
+            if (!polygons[i].BBox.Contains(p)) continue;
+            List<Vector2> points = GetPolyVertices(i);
+            if (Poly2DToolbox.IsPointInsidePolygon(p, points)) result.Add(i);
+        }
+        return result;
+    }
+
+    public string GetDebugData(int p)
+    {
+        if (p < 0 | p >= polygons.Count) return "No polygon selected\n";
+        List<Vector2> points = GetPolyVertices(p);
+        string to_return = "Polygon index: " + p + (this.polygons[p].isHole ? " <color=red>Hole</color>" : " <color=green>Fill</color>" + "\n");
+        string p_list = "{";
+        for (int i = 0; i < this.polygons[p].vertices.Count; i++) p_list += this.polygons[p].vertices[i] + " ";
+        p_list += "}\n";
+        string area = "Area: " + Poly2DToolbox.AreaShoelace(points) + "\n";
+
+        return to_return + p_list + area;
+    }
+
+    // Функция для уничтожения точек что не принадлежат ни одному полигону.
+    // Цель - снизу вверх уничтожать по одной точке, переименовывая точки в полигонах
+    // Блин, задача удаления точки из списка точек - на удивление одна из самых дорогих задач в этьом коде
+    public void PurgeUnusedPoints()
+    {
+
+    }
 
 }
 

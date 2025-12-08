@@ -24,7 +24,9 @@ public class PolygonManager : MonoBehaviour
     [SerializeField] public List<Vector2> points;
     [SerializeField] public List<Poly2D> polygons;
 
-    CH2D_Chunk my_chunk;
+    public CH2D_Chunk my_chunk;
+    public int selected;
+    private List<int> selection;
 
     private PolygonManager()
     {
@@ -63,6 +65,7 @@ public class PolygonManager : MonoBehaviour
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
 
         this.my_chunk.HandlesDrawSelf();
+        HandlesDrawSelection();
     }
 
     public void AddPoint(Vector2 p)
@@ -180,6 +183,13 @@ public class PolygonManager : MonoBehaviour
         this.root = BinaryBBoxToolbox.BuildBVHSideGrowing(bounds_list);
         //Debug.Log(this.root.max_depth);
     }
+    public void HandlesDrawSelection()
+    {
+        if (selected == -1 | selected > my_chunk.polygons.Count) return;
+        my_chunk.HandlesDrawPolyBBox(selected, Color.yellow);
+        my_chunk.HandlesDrawPolyOutlineDirected(selected, Color.green, Color.red);
+        my_chunk.HandlesDrawPolyPoints(selected, Color.cyan);
+    }
     public void HandlesDrawHierarchy(int target)
     {
         if (this.root == null) return;
@@ -208,7 +218,56 @@ public class PolygonManager : MonoBehaviour
     public void DebugHighLightPoint(int index) { DebugUtilities.DrawCube(points[index], Vector3.one * 0.2f, Color.white); }
     public void HandlesHighLightPoint(int index) { DebugUtilities.HandlesDrawCube(points[index], Vector3.one * 0.2f, Color.yellow); }
 
-
-
+    private bool SelectionSimilar(List<int> new_selection)
+    {
+        if (new_selection == null | this.selection == null) return false;
+        if (new_selection.Count != selection.Count) return false;
+        bool different = false;
+        for (int i = 0; i < new_selection.Count; i++)
+        {
+            different |= (new_selection[i] != selection[i]);
+        }
+        return !different;
+    }
+    public void SelectPolygon(Vector2 point)
+    {
+        List<int> new_selection = my_chunk.PolygonPointIntersection(point);
+        if (new_selection == null) { SelectionPurge(); return; }
+        if (new_selection.Count == 0) { SelectionPurge(); return; }
+        //string n = "old selection "; for (int i = 0; i < selection.Count; i++) n += selection[i] + " "; Debug.Log(n);
+        //n = "new selection "; for (int i = 0; i < new_selection.Count; i++) n += new_selection[i] + " "; Debug.Log(n);
+        if (SelectionSimilar(new_selection))
+        {   // Выборка идентична предыдущей, значит чювак спускается вниз по списку полигонов. Надо найти текущий полигон в выборке, и выбрать следующий.
+            if (selected == -1) { SetSelection(new_selection[0], new_selection); return; }
+            int old_index = -1;
+            for (int i = 0; i < new_selection.Count; i++)
+            {
+                Debug.Log(selected + " " + new_selection[i]);
+                if (selected == new_selection[i]) { old_index = i; break; }
+            }
+            Debug.Log(old_index);
+            int new_index = (old_index + 1) % new_selection.Count;
+            SetSelection(new_selection[new_index], new_selection);
+        }
+        else
+        {   // Выборки разнятся, просто выбираем самый первый полигон
+            SetSelection(new_selection[0], new_selection);
+            return;
+        }
+        return;
+    }
+    public string GetPolygonDataDelegate()
+    {
+        return my_chunk.GetDebugData(selected);
+    }
+    private void SetSelection(int new_selected, List<int> new_selection)
+    {
+        this.selected = new_selected;
+        this.selection = new_selection;
+    }
+    public void SelectionPurge()
+    {
+        selected = -1; selection = null;
+    }
 }
 
