@@ -428,19 +428,19 @@ public class CH2D_Chunk
             {
                 int b1 = B[b];
                 int b2 = B[(b + 1) % B.Count];
-                Debug.Log(a1 + " " + a2 + " " + b1 + " " + b2);
-                if (!Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t)) { Debug.Log(inter); continue; }
-                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[b1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[b2])) { Debug.Log("similar to B"); continue; }
-                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[a1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[a2])) { Debug.Log("similar to A"); continue; }
+                //Debug.Log(a1 + " " + a2 + " " + b1 + " " + b2);
+                if (!Poly2DToolbox.LineLineIntersection(this.vertices[a1], this.vertices[a2], this.vertices[b1], this.vertices[b2], out Vector2 inter, out float t)) { /*Debug.Log(inter);*/ continue; }
+                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[b1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[b2])) { /*Debug.Log("similar to B");*/ continue; }
+                if (Poly2DToolbox.PointSimilarity(inter, this.vertices[a1]) | Poly2DToolbox.PointSimilarity(inter, this.vertices[a2])) { /*Debug.Log("similar to A");*/ continue; }
                 CH2D_P_Index np = AddPoint(inter);
-                Debug.Log(a2);
+
                 A.Insert(a + 1, np);
                 n += "( " + np + " " + inter + " ) ";
                 a--;
                 break;
             }
         }
-        Debug.Log(n);
+
     }
 
     private List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
@@ -517,19 +517,69 @@ public class CH2D_Chunk
         string p_list = "{";
         for (int i = 0; i < this.polygons[p].vertices.Count; i++) p_list += this.polygons[p].vertices[i] + " ";
         p_list += "}\n";
-        string area = "Area: " + Poly2DToolbox.AreaShoelace(points) + "\n";
+        string area = "Area: " + Poly2DToolbox.AreaShoelace(points) + "sqr\n";
 
-        return to_return + p_list + area;
+        return to_return + area + p_list;
     }
 
     // Функция для уничтожения точек что не принадлежат ни одному полигону.
     // Цель - снизу вверх уничтожать по одной точке, переименовывая точки в полигонах
+    // Надо составить словарь из старого названия точки и нового названия точки. Так для переписи внутри полигонов нужно будет сделать лишь один проход
     // Блин, задача удаления точки из списка точек - на удивление одна из самых дорогих задач в этьом коде
+
+    // Можно упростить задачу если каждую точку представить как подчанк+точку, а подчанки сделать кластерами близких точек
+    // В этом случае надо будет определить подчанки которые оказываются изменены, и переписать только привязанные к подчанкам полигоны
+    public bool DeletePolygon(int p)
+    {
+        if (p < 0 | p >= this.polygons.Count) return false;
+        this.polygons.RemoveAt(p);
+        PurgeUnusedPoints();
+        return true;
+    }
     public void PurgeUnusedPoints()
     {
+        (int to_delete, CH2D_P_Index[] new_point_array) = GetUsabilityDictionary();
+        // Вырезка выпавших точек из Vector2 списка
+        
+        List<Vector2> new_vertices_list = new List<Vector2>(this.vertices.Count - to_delete);
+        //string n = ""; for (int i = 0; i < this.vertices.Count; i++) n += this.vertices[i] + " "; Debug.Log(n);
+        for (int i = 0; i < new_point_array.Length; i++)
+        {
+            if (new_point_array[i].i == ushort.MaxValue) continue;
+            new_vertices_list.Add(this.vertices[i]);
+        }
+        //n = ""; for (int i = 0; i < new_vertices_list.Count; i++) n += new_vertices_list[i] + " "; Debug.Log(n);
+        // Редактура всех полигонов в соответствии со словарем vertices:new_vertices_array
 
+        for (int p = 0; p < this.polygons.Count; p++)
+        {
+            CH2D_Polygon poly = this.polygons[p];
+            for (int v = 0; v < poly.vertices.Count; v++) 
+                poly.vertices[v] = new_point_array[poly.vertices[v]];
+        }
+
+        this.vertices = new_vertices_list.ToList();
     }
 
+    public (int to_delete, CH2D_P_Index[] new_point_array) GetUsabilityDictionary()
+    {
+        CH2D_P_Index[] new_point_list = new CH2D_P_Index[this.vertices.Count];
+        for (int i = 0; i < new_point_list.Length; i++) new_point_list[i] = new CH2D_P_Index(ushort.MaxValue); 
+        // Проврка всех полигонов, точки не участвующие в полигонах остаются равными ushort.maxvalue
+        for (int i = 0; i < this.polygons.Count; i++)
+            for (int j = 0; j < this.polygons[i].vertices.Count; j++)
+                new_point_list[this.polygons[i].vertices[j]] = this.polygons[i].vertices[j];
+        
+        int unused_p = 0;
+        for (int i = 0; i < new_point_list.Length; i++)
+        {
+            if (new_point_list[i].i == ushort.MaxValue) { unused_p += 1; }
+            else { new_point_list[i] = new CH2D_P_Index(i - unused_p); } 
+        }
+        string n = ""; for (int i = 0; i < new_point_list.Length; i++) n += new_point_list[i] + " "; Debug.Log(n);
+
+        return (unused_p, new_point_list);
+    }
 }
 
 

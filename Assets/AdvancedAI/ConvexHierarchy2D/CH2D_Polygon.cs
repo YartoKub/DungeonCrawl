@@ -18,9 +18,9 @@ public class CH2D_Polygon : I_BBoxSupporter
 
     public static void InsertPointIntoPolygon(List<CH2D_P_Index> points, CH2D_P_Index new_point, CH2D_P_Index A, CH2D_P_Index B)
     {
-        Debug.Log(new_point + " " + A + " " +  B);
-        string n = "";
-        for (int i = 0; i < points.Count; i++) n += points[i] + " "; Debug.Log(n);
+        //Debug.Log(new_point + " " + A + " " +  B);
+
+        //string n = ""; for (int i = 0; i < points.Count; i++) n += points[i] + " "; Debug.Log(n);
 
         int a_pos = -1;
         for (int i = 0; i < points.Count; i++)

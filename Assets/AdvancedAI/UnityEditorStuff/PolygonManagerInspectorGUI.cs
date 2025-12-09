@@ -103,7 +103,7 @@ public class PointManagerInspectorGUI : Editor
         {
             GUIStateMachine sm = stateMachine.OnSceneGUI(manager);
             if (stateMachine.NeedRefresh()) { SceneView.RepaintAll(); }
-            if (sm != null) this.ChangeState(sm, manager);
+            if (sm != null) {this.stateMachine.EndStateMachine(manager); this.ChangeState(sm, manager); }
             if (stateMachine.description_changed) { stateMachine.description_changed = false; current_comment = stateMachine.GetDescription(); }
         } 
     }
@@ -302,7 +302,7 @@ public class GUI_SelectPolygonStateMachine : GUIStateMachine
     private const string generic_description =
         "State: <b><color=green>Select Polygon</color></b> \nClick to select a polygon and see it's data" +
         "\nLeft click to select a polygon" +
-        "\nPress <b><color=red>Delete</color></b> or <b><color=red>Backspace</color></b> to delete a polygon (cancels tool)" +
+        "\nPress <b><color=red>letter D</color></b> to delete a polygon (cancels tool)" +
         "\nPress <b><color=white>Escape</color></b> to cancel this tool\n";
     public override string GetDescription() { return generic_description + PolygonData; }
     private const string generic_option = "Select Polygon";
@@ -322,6 +322,15 @@ public class GUI_SelectPolygonStateMachine : GUIStateMachine
         {
             Debug.Log("Отмена действия");
             e.Use();
+            return new GUI_NothingMachine();
+        }
+
+        if (e.type == EventType.KeyDown && (e.keyCode == KeyCode.D))
+        {
+            Debug.Log("Удаление полигона");
+            e.Use();
+            manager.DeleteSelectedPolygon();
+            
             return new GUI_NothingMachine();
         }
 

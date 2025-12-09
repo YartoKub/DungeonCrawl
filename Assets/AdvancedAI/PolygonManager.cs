@@ -185,7 +185,7 @@ public class PolygonManager : MonoBehaviour
     }
     public void HandlesDrawSelection()
     {
-        if (selected == -1 | selected > my_chunk.polygons.Count) return;
+        if (selected == -1 | selected >= my_chunk.polygons.Count) return;
         my_chunk.HandlesDrawPolyBBox(selected, Color.yellow);
         my_chunk.HandlesDrawPolyOutlineDirected(selected, Color.green, Color.red);
         my_chunk.HandlesDrawPolyPoints(selected, Color.cyan);
@@ -255,6 +255,10 @@ public class PolygonManager : MonoBehaviour
             return;
         }
         return;
+    }
+    public void DeleteSelectedPolygon()
+    {
+        my_chunk.DeletePolygon(selected);
     }
     public string GetPolygonDataDelegate()
     {
