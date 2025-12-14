@@ -9,8 +9,20 @@ public class CH2D_Polygon : I_BBoxSupporter
     public List<CH2D_P_Index> vertices;
     public bool isHole;
     public bool convex;
+    public bool initialized;
     public Bounds BBox; public Bounds i_bounds { get { return BBox; } set { BBox = value; }}
 
+    public CH2D_Polygon()
+    {
+    }
+    public CH2D_Polygon(List<CH2D_P_Index> vertices)
+    {
+        this.vertices = vertices;
+        isHole = false;
+        convex = false;
+        initialized = false;
+        BBox = new Bounds();
+    }
     public void InsertPointIntoPolygon(CH2D_P_Index new_point, CH2D_P_Index A, CH2D_P_Index B)
     {
         InsertPointIntoPolygon(this.vertices, new_point, A, B);

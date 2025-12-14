@@ -39,18 +39,21 @@ public class CH2D_Chunk
         List<int> p_overlap = BBoxOverlapList(poly.BBox);
         for (int i = 0; i < p_overlap.Count; i++)
         {
-            //Incorporate_Bvertice_To_PolyA(vertices, this.polygons[p_overlap[i]].vertices);
-            MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
+            Incorporate_Bvertice_To_PolyA(vertices, this.polygons[p_overlap[i]].vertices);
+            //MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
         }
         string n = "poly so far: "; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
 
         // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
         for (int i = 0; i < p_overlap.Count; i++)
             PolyPolyOnlineIntersectionOnesided(vertices, this.polygons[p_overlap[i]].vertices);
-        
+
         // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
-        for (int i = 0; i < p_overlap.Count; i++)
+        for (int i = 0; i < p_overlap.Count; i++) { 
             Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, vertices);
+            //MutualVerticeIncorporation(this.polygons[p_overlap[i]].vertices, vertices);
+            Debug.Log(p_overlap[i]);
+        }
         //Все прошло хорошо, состалось только GH-подразбить полигоны
         // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
         // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
@@ -64,8 +67,16 @@ public class CH2D_Chunk
         
 
         int_poly.vertices = new List<CH2D_P_Index>(vertices);
+        int_poly.initialized = true;
         this.polygons.Add(int_poly);
     }
+
+    public void PolyMergeDelegate(int A, int B)
+    {
+        List<Pair> pairs = PolyPolySharedPoints(polygons[A].vertices, polygons[B].vertices, polygons[A].BBox, polygons[B].BBox);
+        GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs);
+    }
+
     /// <summary>
     /// Проверяет, какие полигоны пересекаются с точкой.
     /// Проверяет, какая грань полигона содержит точку.
@@ -300,6 +311,16 @@ public class CH2D_Chunk
     }
     public void HandlesDrawPolyBBox(int p, Color color) { DebugUtilities.HandlesDrawRectangle(this.polygons[p].BBox.min, this.polygons[p].BBox.max, color); }
     public void HandlesDrawPolyPoints(int p, Color color) { for (int i = 0; i < this.polygons[p].vertices.Count; i++) DebugUtilities.HandlesDrawCross(this.vertices[this.polygons[p].vertices[i]], color); }
+    public void DebugRainbowPolygon(int p, float time, float cone_width)
+    {
+        int p_count = this.polygons[p].vertices.Count;
+        List<CH2D_P_Index> v = this.polygons[p].vertices;
+        for (int i = 0; i < p_count; i++)
+        {
+            int j = (i + 1) % p_count;
+            DebugUtilities.DebugDrawLine(this.vertices[v[i]], this.vertices[v[j]], DebugUtilities.PickGradient(i, p_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), time, cone_width);
+        }
+    }
     public void DebugDumpChunkData()
     {
         string ret = "DebugChunkData: PolyCount: " + this.polygons.Count + " \n";
@@ -364,14 +385,20 @@ public class CH2D_Chunk
             {
                 CH2D_P_Index bv = b_v[b];
                 if (bv == ae.A | bv == ae.B) continue;
-                //Debug.Log(bv + " " + ae.A + " " + ae.B);
+                
                 bool success = Poly2DToolbox.PointBelongToLine2D(vertices[ae.A], vertices[ae.B], vertices[bv]);
+                //Debug.Log(success + " " + bv + " " + ae.A + " " + ae.B);
                 if (!success) continue;
-                CH2D_Polygon.InsertPointIntoPolygon(a_v, bv, ae.A, ae.B);// polygons[A].InsertPointIntoPolygon(bv, ae.A, ae.B);
-                //a = a - 1;
+                //CH2D_Polygon.InsertPointIntoPolygon(a_v, bv, ae.A, ae.B);// polygons[A].InsertPointIntoPolygon(bv, ae.A, ae.B);
+                a_v.Insert(a + 1, bv);
+                a = a - 1;
                 break;
             }
         }
+    }
+    public void Incorporate_Bvertice_To_PolyA(int A, int B)
+    {
+        Incorporate_Bvertice_To_PolyA(this.polygons[A].vertices, this.polygons[B].vertices);
     }
     public void MutualVerticeIncorporation(List<CH2D_P_Index> a_v, List<CH2D_P_Index> b_v)
     {

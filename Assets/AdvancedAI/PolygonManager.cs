@@ -25,9 +25,49 @@ public class PolygonManager : MonoBehaviour
     [SerializeField] public List<Poly2D> polygons;
 
     public CH2D_Chunk my_chunk;
-    public int selected;
+    public int selected1;
+    public int selected2;
     private List<int> selection;
+    [SerializeField] private ChunkAction SelectedChunkAction;
+    private enum ChunkAction
+    {
+        Nothing,
+        IncorporateMutualPoints, 
+        IncorporateBPointsToA,
+        PolyMergeDelegate,
+        RainbowColor
+    }
+    public void CallFunctionOnChosen()
+    {
 
+        switch (SelectedChunkAction) {
+            case ChunkAction.IncorporateMutualPoints:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                my_chunk.MutualVerticeIncorporation(selected1, selected2);
+                break;
+            case ChunkAction.IncorporateBPointsToA:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                if (selected1 == selected2) { Debug.Log("Выбран один и тот же полигон!"); break; }
+                my_chunk.Incorporate_Bvertice_To_PolyA(selected1, selected2);
+                break;
+            case ChunkAction.RainbowColor:
+                if (selected1 == -1 | selected1 >= my_chunk.polygons.Count) { Debug.Log("Запредельный полигон"); break; }
+                my_chunk.DebugRainbowPolygon(selected1, 5.0f, 0.3f);
+                break;
+            case ChunkAction.PolyMergeDelegate:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                if (selected1 == selected2) { Debug.Log("Выбран один и тот же полигон!"); break; }
+                my_chunk.PolyMergeDelegate(selected1, selected2);
+                break;
+            default:
+                break;
+        }
+
+        SelectedChunkAction = ChunkAction.Nothing;
+    }
     private PolygonManager()
     {
         my_chunk = new CH2D_Chunk();
@@ -66,6 +106,7 @@ public class PolygonManager : MonoBehaviour
 
         this.my_chunk.HandlesDrawSelf();
         HandlesDrawSelection();
+        HandlesDrawSelectionSecondary();
     }
 
     public void AddPoint(Vector2 p)
@@ -185,10 +226,18 @@ public class PolygonManager : MonoBehaviour
     }
     public void HandlesDrawSelection()
     {
-        if (selected == -1 | selected >= my_chunk.polygons.Count) return;
-        my_chunk.HandlesDrawPolyBBox(selected, Color.yellow);
-        my_chunk.HandlesDrawPolyOutlineDirected(selected, Color.green, Color.red);
-        my_chunk.HandlesDrawPolyPoints(selected, Color.cyan);
+        if (selected1 == -1 | selected1 >= my_chunk.polygons.Count) return;
+        my_chunk.HandlesDrawPolyBBox(selected1, Color.yellow);
+        my_chunk.HandlesDrawPolyOutlineDirected(selected1, Color.green, Color.red);
+        my_chunk.HandlesDrawPolyPoints(selected1, Color.cyan);
+    }
+    public void HandlesDrawSelectionSecondary()
+    {
+        if (selected2 == selected1) selected2 = -1;
+        if (selected2 == -1 | selected2 >= my_chunk.polygons.Count) return;
+        my_chunk.HandlesDrawPolyBBox(selected2, Color.orange);
+        my_chunk.HandlesDrawPolyOutlineDirected(selected2, Color.green, Color.red);
+        my_chunk.HandlesDrawPolyPoints(selected2, Color.cyan);
     }
     public void HandlesDrawHierarchy(int target)
     {
@@ -238,12 +287,12 @@ public class PolygonManager : MonoBehaviour
         //n = "new selection "; for (int i = 0; i < new_selection.Count; i++) n += new_selection[i] + " "; Debug.Log(n);
         if (SelectionSimilar(new_selection))
         {   // Выборка идентична предыдущей, значит чювак спускается вниз по списку полигонов. Надо найти текущий полигон в выборке, и выбрать следующий.
-            if (selected == -1) { SetSelection(new_selection[0], new_selection); return; }
+            if (selected1 == -1) { SetSelection(new_selection[0], new_selection); return; }
             int old_index = -1;
             for (int i = 0; i < new_selection.Count; i++)
             {
-                Debug.Log(selected + " " + new_selection[i]);
-                if (selected == new_selection[i]) { old_index = i; break; }
+                Debug.Log(selected1 + " " + new_selection[i]);
+                if (selected1 == new_selection[i]) { old_index = i; break; }
             }
             Debug.Log(old_index);
             int new_index = (old_index + 1) % new_selection.Count;
@@ -258,20 +307,20 @@ public class PolygonManager : MonoBehaviour
     }
     public void DeleteSelectedPolygon()
     {
-        my_chunk.DeletePolygon(selected);
+        my_chunk.DeletePolygon(selected1);
     }
     public string GetPolygonDataDelegate()
     {
-        return my_chunk.GetDebugData(selected);
+        return my_chunk.GetDebugData(selected1);
     }
     private void SetSelection(int new_selected, List<int> new_selection)
     {
-        this.selected = new_selected;
+        this.selected1 = new_selected;
         this.selection = new_selection;
     }
     public void SelectionPurge()
     {
-        selected = -1; selection = null;
+        selected1 = -1; selection = null;
     }
 }
 
