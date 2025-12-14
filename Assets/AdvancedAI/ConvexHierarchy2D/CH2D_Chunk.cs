@@ -6,6 +6,8 @@ using System.Linq;
 // Границы чанка определены Convex Hull, также чанк имеет BBox, просто чтобы был
 // Внутри чанка не должно быть пересекающихся полигонов, все полигоны находятся на одном уровне, в общем графе
 [Serializable]
+// Так, я спать, но есть проблема: Кажется функция incorpolrate mutual vertices работает не всегда, особенно это заметно когда два треугольника пересечаются в форме звездочки.
+// По этой причине некоторые пересечения не регистрируются и происходят невозможные ситуации в GH Polygon Merge
 public class CH2D_Chunk
 {
     public List<CH2D_Polygon> polygons;
@@ -21,18 +23,10 @@ public class CH2D_Chunk
         ConvexHull = new List<CH2D_P_Index>();
     }
 
-    public void AddPolygon(Poly2D poly)
-    {
-        //Debug.Log("Not implementes");
-        for (int i = 0; i < polygons.Count; i++)
-        {
-            
-        }
-    }
-
-    public void AddPolygonTrusted(Poly2D poly)
-    {   // Используя эту функцию я доверяю себе что введу внутрь чанка нормальный полигон, а не говно.
-        // Подохреваю что некоторую безопасность, такую как MutualVerticeIncorporation, можно оставить лишь на конечном этапе. Но мне лень это проверять
+    // Это единственная рабочая функция добавления полигона, можно не беспокоиться какой полигон оказывается добавлен
+    // Надо обернуть все в try+carch и вернуть bool чтобы сделать эту штуку еще более безопасной. 
+    public void AddPolygon(Poly2D poly) 
+    {   // Подохреваю что некоторую безопасность, такую как MutualVerticeIncorporation, можно оставить лишь на конечном этапе. Но мне лень это проверять
         CH2D_Polygon int_poly = new CH2D_Polygon();
         int_poly.isHole = poly.isHole;
         int_poly.convex = poly.convex;
@@ -57,6 +51,16 @@ public class CH2D_Chunk
         // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
         for (int i = 0; i < p_overlap.Count; i++)
             Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, vertices);
+        //Все прошло хорошо, состалось только GH-подразбить полигоны
+        // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
+        // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
+        // Остаток new-only добавляется как новый полигон, если он не нулевой.
+        List<Vector2> v_vertices = vertices.Select(v => this.vertices[v]).ToList();
+        for (int i = 0; i < p_overlap.Count; i++)
+        {
+            List<Pair> pairs = PolyPolySharedPoints(vertices, this.polygons[p_overlap[i]].vertices, poly.BBox, this.polygons[p_overlap[i]].BBox);
+            GHPolygonMerge.CutPolyInt(this.vertices, vertices, this.polygons[p_overlap[i]].vertices, v_vertices, GetPolyVertices(p_overlap[i]), pairs);
+        }
         
 
         int_poly.vertices = new List<CH2D_P_Index>(vertices);
@@ -338,15 +342,15 @@ public class CH2D_Chunk
             pairs.Add(new Pair(intersections[i].a_e1, intersections[i].a_e2, false));
         }
 
-        GHPolygonMerge.GH_IntList(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs);
+        GHPolygonMerge.CutPolyInt(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs);
     }
 
     public void DebugAddTestPolygon()
-    {
+    {   // Дегенеративный случай когда есть несколько коллинеарных линий пересекающих угловые точки обоих квадратов.
         Poly2D degenerate1 = new Poly2D(new List<Vector2>() { new Vector2(0, 0), new Vector2(0, 2), new Vector2(2, 2), new Vector2(2, 0) });
         Poly2D degenerate2 = new Poly2D(new List<Vector2>() { new Vector2(1, 0), new Vector2(1, 2), new Vector2(3, 2), new Vector2(3, 0) });
-        this.AddPolygonTrusted(degenerate1);
-        this.AddPolygonTrusted(degenerate2);
+        this.AddPolygon(degenerate1);
+        this.AddPolygon(degenerate2);
     }
 
     // Incorporate collinear vertices
@@ -442,7 +446,26 @@ public class CH2D_Chunk
         }
 
     }
+    // Overlap, Shared, Общие, Пересечение, Cross
+    // Возвращает точки полигонов которые совпадают.
+    public List<Pair> PolyPolySharedPoints(List<CH2D_P_Index> polyA, List<CH2D_P_Index> polyB, Bounds Abox, Bounds Bbox)
+    {
+        List<int> p_a = PointsInsideBoundsInt(polyA, Abox);
+        List<int> p_b = PointsInsideBoundsInt(polyB, Bbox);
+        List<Pair> pairs = new List<Pair>();
+        for (int a = 0; a < p_a.Count; a++)
+            for (int b = 0; b < p_b.Count; b++)
+                if (polyA[p_a[a]] == polyB[p_b[b]]) pairs.Add(new Pair(p_a[a], p_b[b], false));
 
+        return pairs;
+    }
+    private List<int> PointsInsideBoundsInt(List<CH2D_P_Index> polyA, Bounds bounds)
+    {   // возвращает индексы точек внутри BBox
+        List<int> points = new List<int>();
+        for (int i = 0; i < polyA.Count; i++)
+            if (bounds.Contains(this.vertices[polyA[i]])) points.Add(i);
+        return points;
+    }
     private List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
     {
        return polyA.FindAll(p => bounds.Contains(this.vertices[polyA[p]]));

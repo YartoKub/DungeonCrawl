@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-
+using System;
 public static class DebugUtilities
 {
     public static void DebugDrawCross(Vector2 point, Color color, float time = 0.01f) {
@@ -269,5 +269,20 @@ public static class DebugUtilities
         return Color.HSVToRGB(nH, nS, nV) ;
     }
 
+    public static void DebugParams<T>(string separator = ", ", params T[] parpar)
+    {
+        string n = "";
+        for (int i = 0; i < parpar.Length; i++) n += parpar[i] + separator;
+        Debug.Log(n);
+    }
+    public static void DebugList<T>(List<T> list, string separator = ", ")
+    {
+        DebugList(list.ToArray(), separator);
+    }
+    public static void DebugList<T>(T[] list, string separator = ", ")
+    {
+        string n = ""; for (int i = 0; i < list.Length; i++) n += list[i] + separator; Debug.Log(n);
+    }
 
 }
+

@@ -99,7 +99,7 @@ public class PolygonManager : MonoBehaviour
     }
     public void AddPolygon(Poly2D p)
     {
-        this.my_chunk.AddPolygonTrusted(p);
+        this.my_chunk.AddPolygon(p);
         /*
         this.polygons.Add(p);
         CalculatePolygonBVH_Naive();

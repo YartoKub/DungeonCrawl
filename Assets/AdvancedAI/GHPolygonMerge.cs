@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 // Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 
@@ -14,25 +15,137 @@ public static class GHPolygonMerge
     const int out_point = -2;
     const int used_point = -3;
 
-
-    public static (List<Poly2D> intersect, List<Poly2D> onlyA, List<Poly2D> onlyB) GH_IntList(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    /* Поиск разностей начинается с любой внутренней или наружней точке 
+     * Запоминается сторона начальной точки и начальное направление. На пересечении проверяется следующая точка полигона A и предыдущая точка полигона B. 
+     * При проходе через наружную/внутреннюю точку она закрашивается чтобы ее нельзя было выбрать повторно. Точки пересечения.
+         o----------o                                     o----------o 
+         |          |        A.o or B.i     B.i + A.i     |B.o or A.i|
+   o-----+-------i  |         o-----+       +-------i     +-------i  |
+   |  A  |#######|  |     ->  |Aonly|   +   |overlap| +           |  |
+   o-----+-------i  |         o-----+       +-------i     +-------i  | i - inside
+         |    B     |                                     |   Bonly  | + - cross 
+         o----------o                                     o----------o o - outside
+     */
+    // Этот код ожидает что все пересечения заранее известны и находятся в списке intersections
+    public static (List<Poly2D> overlap, List<Poly2D> onlyA, List<Poly2D> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
         Debug.Log("Not implemented");
         List<Poly2D> polyToReturn = new List<Poly2D>();
         if (intersections.Count == 0) return (polyToReturn, polyToReturn, polyToReturn);
-
+        // Массивы с отметками стороны для поиска частей принадлежащий только A или только B  
         (int[] defAside, int[] defBside) = MarkPoints(V, A, B, Ap, Bp, intersections);
 
-        for (int i = 0; i < defAside.Length; i++)
-        {
-            if (defAside[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red);
-            if (defAside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue);
+        // DEBUG DRAW
+        //for (int i = 0; i < intersections.Count; i++) DebugUtilities.DebugDrawSquare(V[A[intersections[i].A]], Color.yellow, time:5f);
+        for (int i = 0; i < defAside.Length; i++) {
+            if (defAside[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red, time:5f);
+            else if (defAside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue, time:5f);
+            else { DebugUtilities.DebugDrawSquare(V[A[i]], Color.yellow, time: 5f); }
+        }
+        for (int i = 0; i < defBside.Length; i++) {
+            if (defBside[i] == out_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.red, time:5f);
+            else if (defBside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.blue, time:5f);
+            else { DebugUtilities.DebugDrawSquare(V[B[i]], Color.yellow, time: 5f); }
+        }// DEBUG DRAW
+        // Массивы с отметками стороны для поиска пересечения двух полигонов
+        int[] defAsideOverlap = new int[defAside.Length]; defAside.CopyTo(defAsideOverlap, 0);
+        int[] defBsideOverlap = new int[defBside.Length]; defBside.CopyTo(defBsideOverlap, 0);
+        int safety = 0;
+
+        List<int> start_A;
+        List<int> start_B;
+        // Поиск только А. Только A состоит из A_outside, пересечений, и B_inside
+        start_A = GetEntryPoints(defAside, out_point);
+        start_B = GetEntryPoints(defBside, inn_point);
+        string n = "A side"; for (int i = 0; i < defAside.Length; i++) n += defAside[i] + ", "; Debug.Log(n);
+        n = "B side"; for (int i = 0; i < defBside.Length; i++) n += defBside[i] + ", "; Debug.Log(n);
+        n = "start A"; for (int i = 0; i < start_A.Count; i++) n += start_A[i] + ", "; Debug.Log(n);
+        n = "start B"; for (int i = 0; i < start_B.Count; i++) n += start_B[i] + ", "; Debug.Log(n);
+        while (((start_A.Count + start_B.Count) > 0) && safety < 1) { safety += 1;
+            bool AorB; int pos = -1;
+            if (start_A.Count == 0) { AorB = false; pos = start_B.Last(); }
+            else                    { AorB = true ; pos = start_A.Last(); }
+            List<CH2D_P_Index> new_loop =  IsolateLoopInt(A, B, defAside, defBside, AorB, pos, 1, -1); // A - CCW; B - CW;
+            Debug.Log("Final Point Count: " + new_loop.Count);
+            for (int i = 0; i < new_loop.Count; i++)
+            {
+                int j = (i + 1) % new_loop.Count;
+                DebugUtilities.DebugDrawLine(V[new_loop[i]], V[new_loop[j]], DebugUtilities.PickGradient(i, new_loop.Count, DebugUtilities.GradientOption.Rainbow_Red2Violet), 5f, 0.3f);
+            }
         }
 
 
-
-
         return (polyToReturn, polyToReturn, polyToReturn);
+    }
+
+    private static List<int> GetEntryPoints(int[] Ainter, int side)
+    {
+        List<int> starts = new List<int>();
+        for (int i = 0; i < Ainter.Length; i++)
+            if (Ainter[i] == side) starts.Add(i);
+
+        return starts;
+    }
+
+    // Чтобы эта штука работала нужно чтобы оба списка были однонаправленными. 
+    private static List<CH2D_P_Index> IsolateLoopInt(List<CH2D_P_Index> Av, List<CH2D_P_Index> Bv, int[] Ainter, int[] Binter, bool AorB, int pos, int Adiff, int Bdiff)
+    {
+        bool curntAorB = AorB; int curr_A; int curr_B; // Одновременно отслеживаются позиции в A и в B. Движение по второму полигону чуть более приоритетно
+        if (curntAorB)
+        {
+            curr_A = pos;
+            curr_B = (Ainter[pos] < 0) ? -1 : Ainter[pos];
+        } else
+        {
+            curr_A = (Binter[pos] < 0) ? -1 : Binter[pos];
+            curr_B = pos;
+        }
+        Debug.Log(AorB + " " + curr_A + " " + curr_B);
+        int safety = -1; bool isDone = false;
+
+        List<CH2D_P_Index> newLoop = new List<CH2D_P_Index>();
+        Debug.Log("Loop not finished, unimplemented");
+        while (safety < 10 && !isDone) { safety ++;
+            newLoop.Add(curr_A == -1 ? Bv[curr_B] : Av[curr_A]);
+            (int nextA, int nextB) = LoopClosureStrategy_Difference(Ainter, Binter, curr_A, curr_B, Adiff, Bdiff);
+            if (curr_A == pos && safety != 0) { Debug.Log("Все хорошо завершилось"); break; }
+            if (nextA == -1 & nextB == -1) break;
+            if (nextA == -1) nextA = (Binter[nextB] < 0) ? -1 : Binter[nextB]; // Если находится на пересечении то берем значение пересчениея
+            if (nextB == -1) nextB = (Ainter[nextA] < 0) ? -1 : Ainter[nextA]; // Если находится на пересечении то берем значение пересчениея
+            Debug.Log(nextA + " " + nextB);
+            curr_A = nextA; curr_B = nextB;
+        }
+        return newLoop;
+    }
+     
+    private static (int, int) LoopClosureStrategy_Difference(int[] Ainter, int[] Binter, int curr_A, int curr_B, int Adiff = 1, int Bdiff = -1)
+    {   // Стратегия для поиска разностей между фигурами. Находит только A - B. Можно поменять местами для получения B - A. 
+        // Находясь на пересечении есть 4 конфигурации соседей: Невозможно(Ao+Bi), A(Ao+Cross), B(Ai+Cross), A(Cross+Bo), B(Cross+Bi), Совпадение(Cross+Cross)
+        int next_A = -1; int next_A_state = used_point;
+        int next_B = -1; int next_B_state = used_point;
+        if (curr_A >= 0) { next_A = (curr_A + Adiff + Ainter.Length) % Ainter.Length; next_A_state = Ainter[next_A]; }
+        if (curr_B >= 0) { next_B = (curr_B + Bdiff + Binter.Length) % Binter.Length; next_B_state = Binter[next_B]; }
+        
+        Debug.Log(next_A + " " + next_B + " " + next_A_state + " " + next_B_state);
+        if (next_A_state == used_point && next_B_state != used_point) { Binter[curr_B] = -1; return (-1, next_B); } // Иду по границе B, собираю B outside и жду cross. Записывая эту точку как used_point.
+        if (next_B_state == used_point && next_A_state != used_point) { Ainter[curr_A] = -1; return (next_A, -1); } // Иду по границе А, собираю A outside и жду cross. Записывая эту точку как used_point.
+        // Стою на пересечении
+        if (next_A_state == out_point && next_B_state == inn_point) throw new System.Exception("Кандидаты A outside и B inside. Такая конфигурация невозможна, явно с полигонами какая-то хрень.");
+        if (next_A_state >= 0 & next_B_state >= 0) { return (-1, next_B);} // У точки B в этом случае выше приоритет.
+        if (next_A_state == out_point) { return (next_A, -1); }
+        if (next_B_state == inn_point) { return (-1, next_B); }
+
+        if (next_A_state == inn_point & next_B_state >= 0) { return (-1, next_B); }
+        if (next_B_state == out_point & next_A_state >= 0) { return (next_A, -1); }
+        
+        Debug.Log("хрень какая-то произошла");
+        return (-1, -1);
+    }
+    
+    private struct AllowedSides
+    {
+        bool Ainside; bool Aoutside; bool Binside; bool Boutside;
+        public AllowedSides(bool Ainside, bool Aoutside, bool Binside, bool Boutside ) { this.Ainside = Ainside; this.Aoutside = Aoutside; this.Binside = Binside; this.Boutside = Boutside; } 
     }
 
     private static (int[] Aside, int[] Bside) MarkPoints(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
@@ -80,8 +193,8 @@ public static class GHPolygonMerge
 
         int[] Ainter = new int[A.Count]; // default value - 0
         int[] Binter = new int[B.Count]; // default value - 0
-        for (int i = 0; i < Ainter.Length; i++) Ainter[i] = -2;
-        for (int i = 0; i < Binter.Length; i++) Binter[i] = -2;
+        for (int i = 0; i < Ainter.Length; i++) Ainter[i] = used_point;
+        for (int i = 0; i < Binter.Length; i++) Binter[i] = used_point;
 
         // -1 - true; // -2 - false
         for (int i = 0; i < intersections.Count; i++)
@@ -97,12 +210,12 @@ public static class GHPolygonMerge
         for (int i = 0; i < Ainter.Length; i++)
         {
             if (Ainter[i] >= 0) { A0Inside = !A0Inside; continue; }
-            Ainter[i] = (Ainside == A0Inside) ? -1 : -2;
+            Ainter[i] = (Ainside == A0Inside) ? -1 : used_point;
         }
         for (int i = 0; i < Binter.Length; i++)
         {
             if (Binter[i] >= 0) { B0Inside = !B0Inside; continue; }
-            Binter[i] = (Binside == B0Inside) ? -1 : -2;
+            Binter[i] = (Binside == B0Inside) ? -1 : used_point;
         }
 
         // Marking intersections as exiting and entering polygon A
@@ -130,7 +243,7 @@ public static class GHPolygonMerge
         int safety = 0;
         while ((safety < 25) && intersections.Count > 0)
         {
-            if (Ainter[intersections[0].A] == -2 | Binter[intersections[0].B] == -2)
+            if (Ainter[intersections[0].A] == used_point | Binter[intersections[0].B] == used_point)
             {
                 intersections.RemoveAt(0);
                 continue;
@@ -164,7 +277,7 @@ public static class GHPolygonMerge
         // false - по часовой / true - против часовой
         // Снаружи - против часовой / Внутри - по часовой
         //Debug.Log("ISOLATE LOOP " + pairs[0].A);
-        if (Ainter[pairs[0].A] == -2)
+        if (Ainter[pairs[0].A] == used_point)
         {// если текущий выброшен значит здесь уже прошелся алгоритм
             pairs.RemoveAt(0);
             return new List<Vector2>(0);
@@ -217,7 +330,7 @@ public static class GHPolygonMerge
                 case -1:
                     //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
-                    currentLinkArray[curntPoint] = -2;
+                    currentLinkArray[curntPoint] = used_point;
                     next_Point = Poly2DToolbox.wrapAround(curntPoint, current_step, currentLinkArray.Length);
                     break;
                 default:
@@ -227,13 +340,13 @@ public static class GHPolygonMerge
                         //Debug.Log("Jump " + (curntAorB ? "B" : "A") + curntPoint + " " + (!curntAorB ? "B" : "A") + next_Point + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                         //newLoop.Add(currentList[curntPoint]); // Это приводит к дубликатам вершин
                         curntAorB = !curntAorB;
-                        currentLinkArray[curntPoint] = -2;
+                        currentLinkArray[curntPoint] = used_point;
                         needToJump = false;
                         continue;
                     }
                     //Debug.Log(debugString + " " + curntPoint.ToString() + " (" + currentLinkArray[curntPoint].ToString() + " -> -2)");
                     newLoop.Add(currentList[curntPoint]);
-                    currentLinkArray[curntPoint] = -2;
+                    currentLinkArray[curntPoint] = used_point;
                     next_Point = Poly2DToolbox. wrapAround(curntPoint, current_step, currentLinkArray.Length);
                     needToJump = true;
                     break;
