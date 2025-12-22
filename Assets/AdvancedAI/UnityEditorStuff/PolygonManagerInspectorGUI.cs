@@ -2,21 +2,23 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 [CustomEditor(typeof(PolygonManager))]
-public class PointManagerInspectorGUI : Editor
+public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
 {
-    public GUIStateMachine[] stateMachines = {
-        new GUI_NothingMachine(), 
-        new GUI_TestPlacePointStateMachine(), 
-        new GUI_TestDeletePointStateMachine(), 
-        new GUI_AddPolygonStateMachine(), 
+    private GUIStateMachine<PolygonManager>[] myStateMachines = {
+        new GUI_NothingMachine(),
+        new GUI_TestPlacePointStateMachine(),
+        new GUI_TestDeletePointStateMachine(),
+        new GUI_AddPolygonStateMachine(),
         new GUI_SelectPolygonStateMachine()};
+
+    protected override GUIStateMachine<PolygonManager>[] stateMachines { get { return myStateMachines; } }
     // Это начальные машины состояний которые можно выбрать через меню.
     // Есть недоступные машины состояний, доступ к которым производится толькко взаимодействуя с этиим машинами.
 
-    public string[] options; //= new string[] { "None", "Draw", "Knife", "Select", "Grab", "TestPlacePoint", "TestDeletePoint" };
-    public int current_action_index = 0;
-    public GUIStateMachine stateMachine;
-    public string current_comment = "";
+    //public string[] options; //= new string[] { "None", "Draw", "Knife", "Select", "Grab", "TestPlacePoint", "TestDeletePoint" };
+    //public int current_action_index = 0;
+    //public GUIStateMachine stateMachine;
+    //public string current_comment = "";
 
     public override bool RequiresConstantRepaint() { return true; }
     //Inspector
@@ -67,7 +69,7 @@ public class PointManagerInspectorGUI : Editor
         if (GUILayout.Button("Activate Chosen Action on A and B")) manager.CallFunctionOnChosen();
         base.OnInspectorGUI();
     }
-
+    /*
     public string[] PopupOptions()
     {
         string[] options = new string[this.stateMachines.Length];
@@ -84,7 +86,7 @@ public class PointManagerInspectorGUI : Editor
         stateMachine.InitStateMachine(target);
     }
 
-    public void ChangeState(GUIStateMachine guism, PolygonManager target)
+    public void ChangeState(GUIStateMachine<PolygonManager> guism, PolygonManager target)
     {
         if (guism == null) return;
         stateMachine = guism;
@@ -94,14 +96,14 @@ public class PointManagerInspectorGUI : Editor
             if (guism.GetType() == stateMachines[i].GetType()) current_action_index = i;
         }
         stateMachine.InitStateMachine(target);
-    }
+    }*/
 
     void OnSceneGUI()
     {
         PolygonManager manager = (PolygonManager)target;
         if (stateMachine != null)
         {
-            GUIStateMachine sm = stateMachine.OnSceneGUI(manager);
+            GUIStateMachine<PolygonManager> sm = stateMachine.OnSceneGUI(manager);
             if (stateMachine.NeedRefresh()) { SceneView.RepaintAll(); }
             if (sm != null) {this.stateMachine.EndStateMachine(manager); this.ChangeState(sm, manager); }
             if (stateMachine.description_changed) { stateMachine.description_changed = false; current_comment = stateMachine.GetDescription(); }
@@ -109,7 +111,7 @@ public class PointManagerInspectorGUI : Editor
     }
     private void OnDestroy() => stateMachine.EndStateMachine((PolygonManager)target);
 }
-
+/*
 public abstract class GUIStateMachine
 {
     public bool description_changed = false;
@@ -119,37 +121,37 @@ public abstract class GUIStateMachine
     public abstract void InitStateMachine(PolygonManager manager);// Обнуление переменных
     public abstract GUIStateMachine OnSceneGUI(PolygonManager manager);
     public abstract void EndStateMachine(PolygonManager manager); // Завершение сложной операции и сохранение всего
-}
+}*/
 
-public class GUI_NothingMachine : GUIStateMachine
+public class GUI_NothingMachine : GUIStateMachine<PolygonManager>
 {
-    private const string generic_description = "State: <b><color=green>Nothing</color></b> \nSelect an option and click 'Draw' button to start an operation";
+    private const string generic_description = "State: <b><color=green>Nothing</color></b> \nSelect an option to start an operation";
     public override string GetDescription() { return generic_description; }
     private const string generic_option = "None";
     public override string GetOptionName() { return generic_option; }
     public override void InitStateMachine(PolygonManager manager) { return; }
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager){ return this;}
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager){ return this;}
     public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
-public class GUI_GrabStateMachine : GUIStateMachine
+public class GUI_GrabStateMachine : GUIStateMachine<PolygonManager>
 {
     private const string generic_description = "State: <b><color=yellow>Grab</color></b> \nDrag point to move it";
     public override string GetDescription(){ return generic_description; }
     private const string generic_option = "Grab";
     public override string GetOptionName() { return generic_option; }
     public override void InitStateMachine(PolygonManager manager) { return; }
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager) { return null; }
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager) { return null; }
     public override void EndStateMachine(PolygonManager manager) { return; }
 }
-public class GUI_TestPlacePointStateMachine : GUIStateMachine
+public class GUI_TestPlacePointStateMachine : GUIStateMachine<PolygonManager>
 {
     private const string generic_description = "State: <b><color=yellow>Test Place Point</color></b> \nClick to place a point";
     public override string GetDescription() { return generic_description; }
     private const string generic_option = "Place";
     public override string GetOptionName() { return generic_option; }
     public override void InitStateMachine(PolygonManager manager) { return; }
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager)
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager)
     {
         Event e = Event.current;
 
@@ -173,7 +175,7 @@ public class GUI_TestPlacePointStateMachine : GUIStateMachine
     public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
-public class GUI_TestDeletePointStateMachine : GUIStateMachine
+public class GUI_TestDeletePointStateMachine : GUIStateMachine<PolygonManager>
 {
     private const string generic_description = "State: <b><color=orange>Test Delete Point</color></b> \nClick at highlighted point to delete it, closest point to cursor will be highlighted. \nRight click to cancel this tool";
     public override bool NeedRefresh() { return true; }
@@ -181,7 +183,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
     private const string generic_option = "Delete";
     public override string GetOptionName() { return generic_option; }
     public override void InitStateMachine(PolygonManager manager) { return; }
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager)
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager)
     {
         Event e = Event.current;
         if (e.type == EventType.MouseDown && e.button == 1)
@@ -211,7 +213,7 @@ public class GUI_TestDeletePointStateMachine : GUIStateMachine
     public override void EndStateMachine(PolygonManager manager) { return; }
 }
 
-public class GUI_AddPolygonStateMachine : GUIStateMachine
+public class GUI_AddPolygonStateMachine : GUIStateMachine<PolygonManager>
 {
     private const string generic_description = 
         "State: <b><color=orange>Draw Polygon</color></b> \nClick to place points, point will be connected sequentially." +
@@ -229,7 +231,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
         points.Clear();
         Debug.Log("state machine initialized");
     }
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager)
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager)
     {
         //if (points == null) InitStateMachine();
         DrawPolygon();
@@ -297,7 +299,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine
         return; 
     }
 }
-public class GUI_SelectPolygonStateMachine : GUIStateMachine
+public class GUI_SelectPolygonStateMachine : GUIStateMachine<PolygonManager>
 {
     private const string generic_description =
         "State: <b><color=green>Select Polygon</color></b> \nClick to select a polygon and see it's data" +
@@ -314,7 +316,7 @@ public class GUI_SelectPolygonStateMachine : GUIStateMachine
     }
     public string PolygonData = "";
 
-    public override GUIStateMachine OnSceneGUI(PolygonManager manager)
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager)
     {
 
         Event e = Event.current;

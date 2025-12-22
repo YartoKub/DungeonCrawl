@@ -6,7 +6,8 @@ public class PolygonManager : MonoBehaviour
     // Singleton  ласс, хран€щий в себе поле с полигонами.
     // ќбеспечивает доступ агентов к полигонам
     // ѕредоставл€ет инструменты дл€ редактировани€ полигонов
-    public enum actions { none, knife, grab, select}
+    
+
     public static PolygonManager manager;
     public PolygonManager GetManager()
     {

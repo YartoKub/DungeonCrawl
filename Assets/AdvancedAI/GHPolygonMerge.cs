@@ -129,7 +129,6 @@ public static class GHPolygonMerge
         }
         Debug.Log(Aonly.Count + " " + Bonly.Count);
 
-
         return (polyToReturn, Aonly, Bonly);
     }
 
