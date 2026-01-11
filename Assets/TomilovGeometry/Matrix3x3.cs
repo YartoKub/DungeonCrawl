@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using System;
 public struct Matrix3x3
 {
     public Vector3 p0; public Vector3 p1; public Vector3 p2;
@@ -132,4 +132,180 @@ public struct Matrix3x3
     }
 
 
+    public Vector3 VectorMatrixMultiplication(Vector3 V)
+    {
+        return new Vector3( V.x * this.p0.x + V.y * this.p1.x + V.z * this.p2.x,
+                            V.x * this.p0.y + V.y * this.p1.y + V.z * this.p2.y,
+                            V.x * this.p0.z + V.y * this.p1.z + V.z * this.p2.z);
+    }
+
 }
+
+public static class Matrix 
+{
+    public static Vector2 VectorMatrixMultiplication2D(Vector2 V, Vector2 row1, Vector2 row2)
+    {
+        return new Vector3(V.x * row1.x + V.y * row2.x,
+                           V.x * row1.y + V.y * row2.y);
+    }
+
+    public static float[,] Multiply(float[,] A, float[,] B)
+    {   // Column by Row
+        int A_row = A.GetLength(0); int B_row = B.GetLength(0);
+        int A_col = A.GetLength(1); int B_col = B.GetLength(1);
+        if (A_col != B_row) throw new System.Exception("For matrix multiplication number of A columns and B rows has to match! Your values: " + A_col + " " + B_row);
+        int similar_dimension = A_col; // B_row
+        float[,] result = new float[A_row, B_col];
+        for (int x = 0; x < A_row; x++)
+            for (int y = 0; y < B_col; y++)
+                result[x, y] = matrixSingleValue(A, B, x, y, A_col);
+        return result;
+
+        float matrixSingleValue(float[,] A, float[,] B, int Arow, int Bcolumn, int n)
+        {
+            float to_return = 0;
+            for (int i = 0; i < n; i++) to_return += A[Arow, i] * B[i, Bcolumn];
+            return to_return;
+        }
+    }
+    public static bool TransposeCheck_AxBT(float[,] A, float[,] B)
+    {
+        return A.GetLength(1) == B.GetLength(1);
+    }
+    /// <summary>
+    /// Returns a matrix that is equal to unchanged A multiplied by B transposed: return = A * Bt<p>
+    /// B is unchanged and will be treated like transposed
+    /// </summary>
+    public static float[,] MultiplyTranspose_AxBT(float[,] A, float[,] B)
+    {
+        int A_row = A.GetLength(0); int B_row = B.GetLength(1);
+        int A_col = A.GetLength(1); int B_col = B.GetLength(0);
+        if (A_col != B_row) throw new System.Exception("For matrix multiplication number of A columns and B rows has to match! Your values: " + A_col + " " + B_row);
+        float[,] result = new float[A_row, B_col];
+        Debug.Log(A_row + " " + A_col + " " + B_row + " " + B_col);
+        for (int x = 0; x < A_row; x++)
+            for (int y = 0; y < B_col; y++)
+                result[x, y] = matrixSingleValue(A, B, x, y, A_col);
+        return result;
+
+        float matrixSingleValue(float[,] A, float[,] B, int Arow, int Bcolumn, int n)
+        {
+            float to_return = 0;
+            for (int i = 0; i < n; i++) to_return += A[Arow, i] * B[Bcolumn, i];
+            return to_return;
+        }
+    }
+
+    public static bool TransposeCheck_ATxB(float[,] A, float[,] B)
+    {
+        return A.GetLength(0) == B.GetLength(0);
+    }
+
+    public static float[,] MultiplyTranspose_ATxB(float[,] A, float[,] B)
+    {
+        int A_row = A.GetLength(0); int B_row = B.GetLength(1);
+        int A_col = A.GetLength(1); int B_col = B.GetLength(0);
+        if (A_col != B_row) throw new System.Exception("For matrix multiplication number of A columns and B rows has to match! Your values: " + A_col + " " + B_row);
+        float[,] result = new float[A_col, B_row];
+        //Debug.Log(A_row + " " + A_col + " " + B_row + " " + B_col);
+        for (int x = 0; x < A_col; x++)
+            for (int y = 0; y < B_row; y++)
+                result[x, y] = matrixSingleValue(A, B, x, y, A_row);
+        return result;
+
+        float matrixSingleValue(float[,] A, float[,] B, int Arow, int Bcolumn, int n)
+        {
+            float to_return = 0;
+            for (int i = 0; i < n; i++) to_return += A[i, Arow] * B[i, Bcolumn];
+            return to_return;
+        }
+    }
+
+
+
+    public static string DumpMatrix(float[,] m, int r = 4)
+    {
+        string n = "";
+        for (int x = 0; x < m.GetLength(0); x++)
+        {
+            for (int y = 0; y < m.GetLength(1); y++)
+            {
+                n += Math.Round(m[x, y], r) + " ";
+            }
+            n += "\n";
+        }
+        return n;
+    }
+
+    public static float[,] MatrixFromVector(List<Vector3> v)
+    {
+        float[,] result = new float[v.Count, 3];
+        for (int i = 0; i < v.Count; i++)
+        {
+            result[i, 0] = v[i].x;
+            result[i, 1] = v[i].y;
+            result[i, 2] = v[i].z;
+        }
+        return result;
+    }
+    public static float[,] MatrixFromVector(List<Vector2> v)
+    {
+        float[,] result = new float[v.Count, 2];
+        for (int i = 0; i < v.Count; i++)
+        {
+            result[i, 0] = v[i].x;
+            result[i, 1] = v[i].y;
+        }
+        return result;
+    }
+    public static Vector3[] Vector3FromMatrix(float[,] M)
+    {
+        if (M.GetLength(1) != 3) throw new System.Exception("Provided matrix can not be turned into a Vector3 list!");
+        Vector3[] varr = new Vector3[M.GetLength(0)];
+        for (int i = 0; i < varr.Length; i++) varr[i] = new Vector3(M[i, 0], M[i, 1], M[i, 2]);
+        return varr;
+    }
+    public static Vector2[] Vector2FromMatrix(float[,] M)
+    {
+        if (M.GetLength(1) != 2) throw new System.Exception("Provided matrix can not be turned into a Vector2 list!");
+        Vector2[] varr = new Vector2[M.GetLength(0)];
+        for (int i = 0; i < varr.Length; i++) varr[i] = new Vector2(M[i, 0], M[i, 1]);
+        return varr;
+    }
+
+    public static float Determinant(float[,] M)
+    {
+        if (M.GetLength(0) != M.GetLength(1)) throw new System.Exception("Provided matrix needs to be square matrix.");
+        int n = M.GetLength(0);
+        if (n == 1) return M[0, 0];
+        if (n == 2) return M[0, 0] * M[1, 1] - M[0, 1] * M[1, 0];
+        float det = 0;
+        for (int j = 0; j < n; j++)
+        {
+            float cofactor = (float)Math.Pow(-1, j) * M[0, j] * Determinant(GetSubmatrix(M, 0, j));
+            det += cofactor;
+        }
+        return det;
+    }
+
+    private static float[,] GetSubmatrix(float[,] M, int row, int column)
+    {
+        int n = M.GetLength(0);
+        float[,] submatrix = new float[n - 1, n - 1];
+        int row_index = 0;
+        for (int i = 0; i < n; i++)
+        {
+            if (i == row) continue;
+            int colIndex = 0;
+            for (int j = 0; j < n; j++)
+            {
+                if (j == column) continue;
+                submatrix[row_index, colIndex] = M[i, j];
+                colIndex++;
+            }
+            row_index++;
+        }
+        return submatrix;
+    }
+}
+

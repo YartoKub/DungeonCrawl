@@ -4,7 +4,9 @@ using UnityEngine;
 // Взято отсюда: https://jamesmccaffreyblog.com/2023/11/03/singular-value-decomposition-svd-from-scratch-using-csharp/
 // Это пиздец, хорошо что мне не пришлось писать это
 // Но у кода проблемы со знакаами, они не совпадают с тем что выплевывает numpy
-// Думаю лучше стоит установить библиотеку какую-нибдуь
+// Думаю лучше стоит установить библиотеку какую-нибдуь\
+// Также добавлены функции для преобпазования float[,] в ту странные вложенные массивы используемые в оригинальном коде
+// Оригинальный коммент:
 // kludged together from many sources, but especially:
 // GNU scientific library
 // Accord.Net library
@@ -19,8 +21,29 @@ using UnityEngine;
 
 namespace SingularValueDecomposition
 {
+    
+
     public static class SVDProgram
     {
+        public static double[][] FloatMatrixToDoubleDoubleArray(float[,] M)
+        {
+            double[][] DoubleDoubleArray = new double[M.GetLength(0)][];
+            for (int i = 0; i < M.GetLength(0); i++)
+            {
+                DoubleDoubleArray[i] = new double[M.GetLength(1)];
+                for (int j = 0; j < M.GetLength(1); j++) DoubleDoubleArray[i][j] = M[i, j];
+            }
+            return DoubleDoubleArray;
+        }
+
+        public static float[,] DoubleDoubleArrayToFloatMatrix(double[][] Arr)
+        {
+            float[,] M = new float[Arr.Length, Arr[0].Length];
+            for (int i = 0; i < M.GetLength(0); i++)
+                for (int j = 0; j < M.GetLength(1); j++)
+                    M[i, j] = (float)Arr[i][j];
+            return M;
+        }
         public static void Main()
         {
             Console.WriteLine("\nBegin SVD decomp via Jacobi" +
@@ -56,7 +79,7 @@ namespace SingularValueDecomposition
             Console.ReadLine();
         } // Main
 
-        static void SVD_Jacobi(double[][] M, out double[][] U,
+        public static void SVD_Jacobi(double[][] M, out double[][] U,
           out double[][] Vh, out double[] s)
         {
             double DBL_EPSILON = 1.0e-15;
@@ -378,7 +401,7 @@ namespace SingularValueDecomposition
 
         // ------------------------------------------------------
 
-        static void MatShow(double[][] m,
+        public static void MatShow(double[][] m,
           int dec, int wid)
         {
             string n = "";
@@ -398,7 +421,7 @@ namespace SingularValueDecomposition
 
         // ------------------------------------------------------
 
-        static void VecShow(double[] vec,
+        public static void VecShow(double[] vec,
           int dec, int wid)
         {
             string n = "";

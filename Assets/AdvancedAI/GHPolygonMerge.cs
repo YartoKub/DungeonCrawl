@@ -34,7 +34,7 @@ public static class GHPolygonMerge
         if (intersections.Count == 0) return (polyToReturn, polyToReturn, polyToReturn);
         // Массивы с отметками стороны для поиска частей принадлежащий только A или только B  
         (int[] defAside, int[] defBside) = MarkPoints(V, A, B, Ap, Bp, intersections);
-
+        int[] Aint_tmp; int[] Bint_tmp;
         // DEBUG DRAW
         //for (int i = 0; i < intersections.Count; i++) DebugUtilities.DebugDrawSquare(V[A[intersections[i].A]], Color.yellow, time:5f);
         for (int i = 0; i < defAside.Length; i++) {
@@ -48,160 +48,192 @@ public static class GHPolygonMerge
             else { DebugUtilities.DebugDrawSquare(V[B[i]], Color.yellow, time: 5f); }
         }// DEBUG DRAW
         // Массивы с отметками стороны для поиска пересечения двух полигонов
-        int[] defAsideOverlap = new int[defAside.Length]; defAside.CopyTo(defAsideOverlap, 0);
-        int[] defBsideOverlap = new int[defBside.Length]; defBside.CopyTo(defBsideOverlap, 0);
-        int safety = 0;
-
-        List<int> start_A;
-        List<int> start_B;
-        // Поиск только А. Только A состоит из A_outside, пересечений, и B_inside
-        start_A = GetEntryPoints(defAside, out_point);
-        start_B = GetEntryPoints(defBside, inn_point);
-        string n = "";
+        Aint_tmp = new int[defAside.Length]; defAside.CopyTo(Aint_tmp, 0);
+        Bint_tmp = new int[defBside.Length]; defBside.CopyTo(Bint_tmp, 0);
         
+        Debug.Log("<color='red'>==== A ONLY ====</color>");
+        List<CH2D_Polygon> Aonly = IsolateLoops(A, B, Aint_tmp, Bint_tmp, out_point, inn_point, 1, -1, BooleanOperation.Aonly);
+        for (int i = 0; i < Aonly.Count; i++)
+        {
+            int a_v_count = Aonly[i].vertices.Count;
+            for (int x= 0; x < a_v_count; x++)
+            {
+                int y = (x + 1) % a_v_count;
+                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 4f, 0.3f);
+            }
+        }
+        /*
+        Debug.Log("<color='red'>==== B ONLY ====</color>");
+        Aint_tmp = new int[defAside.Length]; defAside.CopyTo(Aint_tmp, 0);
+        Bint_tmp = new int[defBside.Length]; defBside.CopyTo(Bint_tmp, 0);
+        List<CH2D_Polygon> Bonly = IsolateLoops(A, B, Aint_tmp, Bint_tmp, inn_point, out_point, -1, 1, BooleanOperation.Bonly);
+        for (int i = 0; i < Bonly.Count; i++)
+        {
+            int a_v_count = Bonly[i].vertices.Count;
+            for (int x = 0; x < a_v_count; x++)
+            {
+                int y = (x + 1) % a_v_count;
+                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 8f, 0.3f);
+            }
+        }
+        */
+        return (polyToReturn, null, null);
+    }
+    private enum poly {A, B};
+    private enum BooleanOperation { Aonly, Bonly, Union, Diffr };
+    private static List<CH2D_Polygon> IsolateLoops(List<CH2D_P_Index> A, List<CH2D_P_Index> B, int[] Ainter, int[] Binter, int A_preference, int B_preference, int A_diff, int B_diff, BooleanOperation operation)
+    {
         Debug.Log("Пожалуйста подними safety до какого-нибудь приличного числа!");
-        // A ONLY DIFFERENCE
-        List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>();
-        while (((start_A.Count + start_B.Count) > 0) && safety < 8) { safety += 1;
-            n = "A side"; for (int i = 0; i < defAside.Length; i++) n += defAside[i] + ", "; Debug.Log(n);
-            n = "B side"; for (int i = 0; i < defBside.Length; i++) n += defBside[i] + ", "; Debug.Log(n);
-            n = "start A: "; for (int i = 0; i < start_A.Count; i++) n += "(" + start_A[i] + " " + A[start_A[i]] + "), "; Debug.Log(n);
-            n = "start B: "; for (int i = 0; i < start_B.Count; i++) n += "(" + start_B[i] + " " + B[start_B[i]] + "), "; Debug.Log(n);
-            bool AorB = false; int pos = -1;
-            if (start_A.Count == 0 & start_B.Count == 0) break;
-            if (start_A.Count == 0) { 
-                AorB = false; 
-                if (defBside[start_B.Last()] == used_point) { start_B.RemoveAt(start_B.Count - 1); continue; }
-                pos = start_B.Last(); }
-            if (start_B.Count == 0) { 
-                AorB = true ; 
-                if (defAside[start_A.Last()] == used_point) { start_A.RemoveAt(start_A.Count - 1); continue; }
-            pos = start_A.Last(); 
-            }
+        List<CH2D_Polygon> polygons = new List<CH2D_Polygon>();
+        (List<int> start_A, List<int> start_B) = GetEntryPoints(Ainter, Binter, operation);
+        int safety = 0;
+        //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
+        while (((start_A.Count + start_B.Count) > 0) && safety < 5)
+        {
+            safety += 1;
+            (poly AorB, int pos) = PickStart(start_A, start_B, Ainter, Binter, A_preference, B_preference);
+            DebugStepState(Ainter, Binter, start_A, start_B, A, B);
+            if (pos == -1) { Debug.Log("No start location is valid!"); break; }
+            Debug.Log(AorB + " " + pos);
 
-            (bool good_loop, List<CH2D_P_Index> new_loop) =  IsolateLoopInt(A, B, defAside, defBside, AorB, pos, 1, -1); // A - moving CCW; B - moving CW;
-            n = "Final Point Count: "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
-            if (good_loop) Aonly.Add(new CH2D_Polygon(new_loop));
-            for (int i = 0; i < new_loop.Count; i++)
-            {
-                int j = (i + 1) % new_loop.Count;
-                DebugUtilities.DebugDrawLine(V[new_loop[i]], V[new_loop[j]], DebugUtilities.PickGradient(i, new_loop.Count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 5f, 0.3f);
-            }           
+            (bool good_loop, List<CH2D_P_Index> new_loop) = IsolateLoop(A, B, Ainter, Binter, AorB, pos, A_diff, B_diff, A_preference, B_preference, operation); // A - moving CCW; B - moving CW;
+            string n = "Final Point Count: "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
+            if (good_loop) polygons.Add(new CH2D_Polygon(new_loop));
         }
-        n = "A side"; for (int i = 0; i < defAside.Length; i++) n += defAside[i] + ", "; Debug.Log(n);
-        n = "B side"; for (int i = 0; i < defBside.Length; i++) n += defBside[i] + ", "; Debug.Log(n);
-        n = "start A: "; for (int i = 0; i < start_A.Count; i++) n += "(" + start_A[i] + " " + A[start_A[i]] + "), "; Debug.Log(n);
-        n = "start B: "; for (int i = 0; i < start_B.Count; i++) n += "(" + start_B[i] + " " + B[start_B[i]] + "), "; Debug.Log(n);
 
-        List<CH2D_Polygon> Bonly = new List<CH2D_Polygon>();
-        start_A = GetEntryPoints(defAside, inn_point);
-        start_B = GetEntryPoints(defBside, out_point);
-        
-        safety = 0;
-        while ((start_A.Count + start_B.Count > 0) && safety < 8) { safety += 1;
-            n = "A side"; for (int i = 0; i < defAside.Length; i++) n += defAside[i] + ", "; Debug.Log(n);
-            n = "B side"; for (int i = 0; i < defBside.Length; i++) n += defBside[i] + ", "; Debug.Log(n);
-            n = "start A: "; for (int i = 0; i < start_A.Count; i++) n += "(" + start_A[i] + " " + A[start_A[i]] + "), "; Debug.Log(n);
-            n = "start B: "; for (int i = 0; i < start_B.Count; i++) n += "(" + start_B[i] + " " + B[start_B[i]] + "), "; Debug.Log(n);
-            bool AorB = false; int pos = -1;
-            if (start_A.Count == 0 & start_B.Count == 0) break;
-            if (start_A.Count == 0)
-            {
-                AorB = false;
-                if (defBside[start_B.Last()] == used_point) { start_B.RemoveAt(start_B.Count - 1); continue; }
-                pos = start_B.Last();
-            }
-            if (start_B.Count == 0)
-            {
-                AorB = true;
-                if (defAside[start_A.Last()] == used_point) { start_A.RemoveAt(start_A.Count - 1); continue; }
-                pos = start_A.Last();
-            }
-
-            (bool good_loop, List<CH2D_P_Index> new_loop) = IsolateLoopInt(B, A, defBside, defAside, !AorB, pos, 1, -1); // A - moving CCW; B - moving CW;
-            n = "Final Point Count: "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
-            if (good_loop) Bonly.Add(new CH2D_Polygon(new_loop));
-            for (int i = 0; i < new_loop.Count; i++)
-            {
-                int j = (i + 1) % new_loop.Count;
-                DebugUtilities.DebugDrawLine(V[new_loop[i]], V[new_loop[j]], DebugUtilities.PickGradient(i, new_loop.Count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 5f, 0.3f);
-            }
+        return polygons;
+    }
+    private static (poly, int) PickStart(List<int> start_A, List<int> start_B, int[] Ainter, int[] Binter, int A_preference, int B_preference)
+    {   // Просто выбирает A или B который не был использован.
+        int start_p;
+        for (int i = start_A.Count - 1; i >= 0; i--)
+            if (Ainter[start_A[i]] == A_preference) { start_p = start_A[i]; start_A.RemoveAt(i); return (poly.A, start_p); }
+            else start_A.RemoveAt(i);
+        for (int i = start_B.Count - 1; i >= 0; i--)
+            if (Binter[start_B[i]] == B_preference) { start_p = start_B[i]; start_B.RemoveAt(i); return (poly.B, start_p); }
+            else start_B.RemoveAt(i);
+        return (poly.A, -1);
+    }
+    private static (List<int>, List<int>) GetEntryPoints(int[] Ainter, int[] Binter, BooleanOperation operation)
+    {
+        List<int> a; List<int> b;   
+        switch (operation) {
+            case BooleanOperation.Aonly:// Нужно найти наружние А и внутренние В
+                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] == out_point) a.Add(i);
+                b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == inn_point) b.Add(i);
+                return (a, b);
+            case BooleanOperation.Bonly:// Нужно найти наружние В и внутренние А
+                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] == inn_point) a.Add(i);
+                b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == out_point) b.Add(i);
+                return (a, b);
+            case BooleanOperation.Union:// Нужно найти все пересечения для поиска возможного объединения
+                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                return (a, null);
+            case BooleanOperation.Diffr:// Нужно найти все пересечения для поиска наложений. Так как может быть 100% наложение, ищутся именно пересечения
+                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                return (a, null);
+            default:
+                return (null, null);
         }
-        Debug.Log(Aonly.Count + " " + Bonly.Count);
-
-        return (polyToReturn, Aonly, Bonly);
     }
 
-    private static List<int> GetEntryPoints(int[] Ainter, int side)
+    private static (bool good_loop, List<CH2D_P_Index> points) IsolateLoop(List<CH2D_P_Index> Av, List<CH2D_P_Index> Bv, int[] Ainter, int[] Binter, poly cp_side, int cp_pos, int A_diff, int B_diff, int A_preference, int B_preference, BooleanOperation operation)
     {
-        List<int> starts = new List<int>();
-        for (int i = 0; i < Ainter.Length; i++)
-            if (Ainter[i] == side) starts.Add(i);
+        List<CH2D_P_Index> points = new List<CH2D_P_Index>(); poly AorB = cp_side;
 
-        return starts;
-    }
-
-    // Чтобы эта штука работала нужно чтобы оба списка были однонаправленными. 
-    private static (bool, List<CH2D_P_Index>) IsolateLoopInt(List<CH2D_P_Index> Av, List<CH2D_P_Index> Bv, int[] Ainter, int[] Binter, bool AorB, int pos, int Adiff, int Bdiff)
-    {
-        bool curntAorB = AorB; int curr_A; int curr_B; // Одновременно отслеживаются позиции в A и в B. Движение по второму полигону чуть более приоритетно
-        if (curntAorB)
-        {
-            //int np = (pos + 1) % Ainter.Length;
-            curr_A = pos;
-            curr_B = (Ainter[pos] < 0) ? -1 : Ainter[pos];
-        } else
-        {
-            //int np = (pos + 1) % Binter.Length;
-            curr_A = (Binter[pos] < 0) ? -1 : Binter[pos];
-            curr_B = pos;
-        }
-        Debug.Log(AorB + " " + curr_A + " " + curr_B);
+        int curr_A = AorB == poly.A ? cp_pos : -1; 
+        int curr_B = AorB == poly.B ? cp_pos : -1;
+        Debug.Log("Isolate Loop Start: " + AorB + " A: " + curr_A + " B: " + curr_B);
         int safety = -1; bool isDone = false;
-
-        List<CH2D_P_Index> newLoop = new List<CH2D_P_Index>();
-        Debug.Log("Loop not finished, unimplemented");
         bool goodLoop = false;
-        while (safety < 10 && !isDone) { safety ++;
-            (int nextA, int nextB) = LoopClosureStrategy_Difference(Ainter, Binter, curr_A, curr_B, safety == 0);
-            if (curr_A == pos && safety != 0) { goodLoop = true; Debug.Log("Все хорошо завершилось"); break; }
-            newLoop.Add(curr_A == -1 ? Bv[curr_B] : Av[curr_A]);
-            Debug.Log(curr_A + " " + curr_B + " " + pos);
-            if (nextA == -1 & nextB == -1) break;
-            if (nextA == -1) nextA = (Binter[nextB] < 0) ? -1 : Binter[nextB]; // Если находится на пересечении то берем значение пересчениея
-            if (nextB == -1) nextB = (Ainter[nextA] < 0) ? -1 : Ainter[nextA]; // Если находится на пересечении то берем значение пересчениея
-            Debug.Log(nextA + " " + nextB);
-            curr_A = nextA; curr_B = nextB;
+        while (safety < 10 && !isDone)
+        {
+            Debug.Log(curr_A + " " + curr_B);
+            
+            points.Add(curr_A == -1 ? Bv[curr_B] : Av[curr_A]);
+            safety++;
+            int next_A = (curr_A >= 0) ? (curr_A + A_diff + Ainter.Length) % Ainter.Length : -1;
+            int next_B = (curr_B >= 0) ? (curr_B + B_diff + Binter.Length) % Binter.Length : -1;
+            //Debug.Log(next_A + " " + next_B + " " + cp_pos);
+            if (cp_side == poly.A && next_A == cp_pos) { Debug.Log("Next A is finish point, leaving loop"); goodLoop = true; break; }
+            if (cp_side == poly.B && next_B == cp_pos) { Debug.Log("Next B is finish point, leaving loop"); goodLoop = true; break; }
+            if (curr_A >= 0 && Ainter[curr_A] < 0) Ainter[curr_A] = used_point;
+            if (curr_B >= 0 && Binter[curr_B] < 0) Binter[curr_B] = used_point;
+            switch (operation) {
+                case BooleanOperation.Aonly: (curr_A, curr_B) = LCS_DifferenceAB(Ainter, Binter, curr_A, curr_B, next_A, next_B, safety == 0); break;
+                case BooleanOperation.Bonly: (curr_A, curr_B) = LCS_DifferenceBA(Ainter, Binter, curr_A, curr_B, next_A, next_B, safety == 0); break;
+                case BooleanOperation.Union: (curr_A, curr_B) = LCS_DifferenceAB(Ainter, Binter, curr_A, curr_B, next_A, next_B, safety == 0); break;
+                case BooleanOperation.Diffr: (curr_A, curr_B) = LCS_DifferenceAB(Ainter, Binter, curr_A, curr_B, next_A, next_B, safety == 0); break;
+            }
+            
+
+            Debug.Log(curr_A + " " + curr_B);
+            curr_B = (curr_A >= 0 && Ainter[curr_A] >= 0) ? Ainter[curr_A] : curr_B;
+            curr_A = (curr_B >= 0 && Binter[curr_B] >= 0) ? Binter[curr_B] : curr_A;
+            if (curr_A == -1 && curr_B == -1) { Debug.Log("Bad ending"); break; }
             
         }
-        return(goodLoop, newLoop);
+        DebugUtilities.DebugList(points);
+
+        return (goodLoop, points);
     }
-     
-    private static (int, int) LoopClosureStrategy_Difference(int[] Ainter, int[] Binter, int curr_A, int curr_B, bool startOnly)
-    {   // Стратегия для поиска разностей между фигурами. Находит только A - B. Можно поменять местами для получения B - A. 
-        // Находясь на пересечении есть 4 конфигурации соседей: Невозможно(Ao+Bi), A(Ao+Cross), B(Ai+Cross), A(Cross+Bo), B(Cross+Bi), Совпадение(Cross+Cross)
-        int next_A = -1; int next_A_state = no_point;
-        int next_B = -1; int next_B_state = no_point;
-        int Adiff = 1; int Bdiff = -1;
-        if (curr_A >= 0) { next_A = (curr_A + Adiff + Ainter.Length) % Ainter.Length; next_A_state = Ainter[next_A]; }
-        if (curr_B >= 0) { next_B = (curr_B + Bdiff + Binter.Length) % Binter.Length; next_B_state = Binter[next_B]; }
-        
-        Debug.Log(next_A + " " + next_B + " " + next_A_state + " " + next_B_state);
-        if (next_A_state == no_point && next_B_state != used_point) { if (!startOnly) Binter[curr_B] = used_point; return (-1, next_B); } // Иду по границе B, собираю B outside и жду cross. Записывая эту точку как used_point.
-        if (next_B_state == no_point && next_A_state != used_point) { if (!startOnly) Ainter[curr_A] = used_point; return (next_A, -1); } // Иду по границе А, собираю A outside и жду cross. Записывая эту точку как used_point.
-        // Стою на пересечении
+
+    private static (int, int) LCS_DifferenceAB(int[] Ainter, int[] Binter, int curr_A, int curr_B, int next_A, int next_B, bool startOnly)
+    {   // A out + B inn + intersection
+        int next_A_state = next_A != -1 ? Ainter[next_A] : no_point;
+        int next_B_state = next_B != -1 ? Binter[next_B] : no_point;
+        Debug.Log("A: c" + curr_A + " n" + next_A + " " + intDecider(next_A_state) + " | B: c" + curr_B + " n" + next_B + " " + intDecider(next_B_state));
         if (next_A_state == out_point && next_B_state == inn_point) throw new System.Exception("Кандидаты A outside и B inside. Такая конфигурация невозможна, явно с полигонами какая-то хрень.");
-        if (next_A_state >= 0 & next_B_state >= 0) { return (-1, next_B);} // У точки B в этом случае выше приоритет.
+
+        if (next_A_state == no_point) return (-1, next_B);
+        if (next_B_state == no_point) return (next_A, -1);
+
+        if (next_A_state >= 0 & next_B_state >= 0) { return (-1, next_B); } // У точки B в этом случае выше приоритет, выбор точки B создает более маленькие полигоны
         if (next_A_state == out_point) { return (next_A, -1); }
         if (next_B_state == inn_point) { return (-1, next_B); }
-
+        
+        // Тут может хуйня происходить
         if (next_A_state == inn_point & next_B_state >= 0) { return (-1, next_B); }
         if (next_B_state == out_point & next_A_state >= 0) { return (next_A, -1); }
-        
-        Debug.Log("хрень какая-то произошла");
         return (-1, -1);
     }
-    
+    private static (int, int) LCS_DifferenceBA(int[] Ainter, int[] Binter, int curr_A, int curr_B, int next_A, int next_B, bool startOnly)
+    {   // A inn + B out + intersection
+        int next_A_state = next_A != -1 ? Ainter[next_A] : no_point;
+        int next_B_state = next_B != -1 ? Binter[next_B] : no_point;
+        Debug.Log("A: c" + curr_A + " n" + next_A + " " + intDecider(next_A_state) + " | B: c" + curr_B + " n" + next_B + " " + intDecider(next_B_state));
+        if (next_A_state == out_point && next_B_state == inn_point) throw new System.Exception("Кандидаты A outside и B inside. Такая конфигурация невозможна, явно с полигонами какая-то хрень.");
+
+        if (next_A_state == no_point) return (-1, next_B);
+        if (next_B_state == no_point) return (next_A, -1);
+
+        if (next_A_state >= 0 & next_B_state >= 0) { return (next_A, -1); } // У точки B в этом случае выше приоритет, выбор точки B создает более маленькие полигоны
+        if (next_A_state == inn_point) { return (next_A, -1); }
+        if (next_B_state == out_point) { return (-1, next_B); }
+
+        // Тут может хуйня происходить
+        if (next_A_state == out_point & next_B_state >= 0) { return (-1, next_B); }
+        if (next_B_state == inn_point & next_A_state >= 0) { return (next_A, -1); }
+        return (-1, -1);
+    }
+
+    private static void DebugStepState(int[] defAside, int[] defBside, List<int> start_A, List<int> start_B, List<CH2D_P_Index> A, List<CH2D_P_Index> B)
+    {
+        string n = "A side: "; for (int i = 0; i < defAside.Length; i++) n += intDecider(defAside[i]) + ", "; Debug.Log(n);
+        n = "B side: "; for (int i = 0; i < defBside.Length; i++) n += intDecider(defBside[i]) + ", "; Debug.Log(n);
+        n = "start A c:" + start_A.Count + ": "; for (int i = 0; i < start_A.Count; i++) n += "(" + start_A[i] + " " + A[start_A[i]] + "), "; Debug.Log(n);
+        n = "start B c:" + start_B.Count + ": "; for (int i = 0; i < start_B.Count; i++) n += "(" + start_B[i] + " " + B[start_B[i]] + "), "; Debug.Log(n);
+        
+    }
+    private static string intDecider(int value)
+    {
+        if (value == inn_point ) return "inn";
+        if (value == out_point ) return "out";
+        if (value == used_point) return "usd";
+        if (value == no_point  ) return "non";
+        return value.ToString();
+    }
+
     private struct AllowedSides
     {
         bool Ainside; bool Aoutside; bool Binside; bool Boutside;
