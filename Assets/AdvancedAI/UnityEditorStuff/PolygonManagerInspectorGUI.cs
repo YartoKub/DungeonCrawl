@@ -65,7 +65,8 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Dump Chunk Data")) manager.my_chunk.DebugDumpChunkData();
         if (GUILayout.Button("Get Intersections of 0 and 1")) manager.DebugIntersection();
         if (GUILayout.Button("Get PolyPoly of 0 and 1")) manager.HighlightInnsAndOuts();
-        if (GUILayout.Button("Test degenerate polygons")) manager.DebugAddTestPolygon();
+        if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
+        if (GUILayout.Button("Multiple Overlap Degenerate")) DegeneratePolygonTest.AddOverlapDegenerates();
         if (GUILayout.Button("Activate Chosen Action on A and B")) manager.CallFunctionOnChosen();
         base.OnInspectorGUI();
     }

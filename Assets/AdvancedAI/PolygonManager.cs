@@ -8,8 +8,8 @@ public class PolygonManager : MonoBehaviour
     // Предоставляет инструменты для редактирования полигонов
     
 
-    public static PolygonManager manager;
-    public PolygonManager GetManager()
+    private static PolygonManager manager;
+    public static PolygonManager GetManager()
     {
         if (manager == null) manager = new PolygonManager();
         if (manager.polygons == null) manager.polygons = new List<Poly2D>();
@@ -135,10 +135,7 @@ public class PolygonManager : MonoBehaviour
     {
         this.my_chunk.DebugGetIntersections(false, true);
     }
-    public void DebugAddTestPolygon()
-    {
-        this.my_chunk.DebugAddTestPolygon();
-    }
+
     public void AddPolygon(Poly2D p)
     {
         this.my_chunk.AddPolygon(p);

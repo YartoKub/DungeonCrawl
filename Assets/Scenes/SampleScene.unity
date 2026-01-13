@@ -2164,86 +2164,8 @@ MonoBehaviour:
   - {x: -3.053966, y: -4.6147823}
   polygons: []
   my_chunk:
-    polygons:
-    - vertices:
-      - i: 0
-      - i: 27
-      - i: 1
-      - i: 20
-      - i: 2
-      - i: 3
-      - i: 21
-      - i: 4
-      - i: 22
-      - i: 5
-      - i: 6
-      - i: 23
-      - i: 24
-      - i: 7
-      - i: 8
-      - i: 9
-      - i: 25
-      - i: 10
-      - i: 26
-      - i: 11
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        m_Center: {x: 9.958697, y: 0.16948557, z: 0}
-        m_Extent: {x: 5.9855127, y: 4.51079, z: 0}
-    - vertices:
-      - i: 12
-      - i: 20
-      - i: 13
-      - i: 21
-      - i: 14
-      - i: 22
-      - i: 15
-      - i: 23
-      - i: 16
-      - i: 24
-      - i: 17
-      - i: 25
-      - i: 18
-      - i: 26
-      - i: 19
-      - i: 27
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        m_Center: {x: 10.150679, y: -0.16982722, z: 0}
-        m_Extent: {x: 4.596424, y: 3.5198421, z: 0}
-    vertices:
-    - {x: 7.4515467, y: 4.6802754}
-    - {x: 7.8355284, y: 1.5380371}
-    - {x: 4.3345675, y: 1.6128268}
-    - {x: 3.9731846, y: -2.444204}
-    - {x: 8.242097, y: -1.5585303}
-    - {x: 7.541909, y: -4.3413043}
-    - {x: 12.172214, y: -4.205777}
-    - {x: 12.262555, y: -0.71958214}
-    - {x: 15.94421, y: -0.45178592}
-    - {x: 15.289188, y: 1.8006568}
-    - {x: 11.381664, y: 1.3039782}
-    - {x: 12.014091, y: 4.086436}
-    - {x: 5.554254, y: 3.3500152}
-    - {x: 7.677423, y: 0.14754617}
-    - {x: 5.599439, y: -3.6896694}
-    - {x: 9.958696, y: -1.3454723}
-    - {x: 14.4760685, y: -2.9419677}
-    - {x: 11.223557, y: 0.095750034}
-    - {x: 14.747102, y: 3.2106621}
-    - {x: 9.7102375, y: 1.2961764}
-    - {x: 6.7400417, y: 1.5614396}
-    - {x: 6.56511, y: -1.9064556}
-    - {x: 8.035482, y: -2.3796837}
-    - {x: 12.225575, y: -2.1466153}
-    - {x: 12.258633, y: -0.87096906}
-    - {x: 12.79325, y: 1.4834024}
-    - {x: 11.537775, y: 1.990814}
-    - {x: 7.7464933, y: 2.266636}
+    polygons: []
+    vertices: []
     ConvexHull: []
   selected1: -1
   selected2: -1
@@ -3005,6 +2927,50 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1820863818}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1822449375
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1822449377}
+  - component: {fileID: 1822449376}
+  m_Layer: 0
+  m_Name: GameObject (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1822449376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1822449375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16f61bb11ed2ea6408c41a807992eef0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DegeneratePolygonTest
+--- !u!4 &1822449377
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1822449375}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.45747, y: -0.17255, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1876186778
 GameObject:
   m_ObjectHideFlags: 0
@@ -3477,3 +3443,4 @@ SceneRoots:
   - {fileID: 1266008487}
   - {fileID: 1764971959}
   - {fileID: 1876186780}
+  - {fileID: 1822449377}

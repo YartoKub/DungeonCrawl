@@ -15,6 +15,7 @@ public static class GHPolygonMerge
     const int out_point = -2;
     const int used_point = -3;
     const int no_point = -4;
+    private enum EdgeSide {None = 0, Inside, Outside, Inn_Colin, Out_Colin }
     /* ѕоиск разностей начинаетс€ с любой внутренней или наружней точке 
      * «апоминаетс€ сторона начальной точки и начальное направление. Ќа пересечении провер€етс€ следующа€ точка полигона A и предыдуща€ точка полигона B. 
      * ѕри проходе через наружную/внутреннюю точку она закрашиваетс€ чтобы ее нельз€ было выбрать повторно. “очки пересечени€.
@@ -28,6 +29,54 @@ public static class GHPolygonMerge
      */
     // Ётот код ожидает что все пересечени€ заранее известны и наход€тс€ в списке intersections
     public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    {
+        if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null); }
+        (int[] tmpAside, int[] tmpBside) = MarkPoints(V, A, B, Ap, Bp, intersections);
+        (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(tmpAside, tmpBside);
+        return (null, null, null);
+    }
+    private static (EdgeSide[], EdgeSide[]) MarkEdges(int[] Ainter, int[] Binter)
+    {
+        EdgeSide[] Aedge = new EdgeSide[Ainter.Length]; EdgeSide[] Bedge = new EdgeSide[Binter.Length];
+        // ¬ообще надо бы начать найд€ наружную точку, но в дегенеративных случа€х наружной точки может не быть
+        // Edge - определ€етс€ как начальна€ + последующа€ точки. 
+        // »теративно решает к какой стороне принадлежит грань
+        int safety = 0;
+        while (safety < 15) { safety += 1;
+            bool solved = true;
+            for (int i = 0; i < Ainter.Length; i++)
+            {   // Solving for A polygon
+                int currAindex = i; int nextAindex = (i + 1) % Ainter.Length;
+                int currA = Ainter[currAindex]; int nextA = Ainter[nextAindex];
+                // ¬ теории эта штука должна работать. Ќадо идти в уник, не могу протестировать
+                if (currA == out_point) { Aedge[i] = EdgeSide.Outside; continue; }
+                if (currA == inn_point) { Aedge[i] = EdgeSide.Inside;  continue; }
+                // currA >= 0, тут разбираюсь с пересечени€ми
+                if (nextA == out_point) { Aedge[i] = EdgeSide.Outside; continue; }
+                if (nextA == inn_point) { Aedge[i] = EdgeSide.Inside;  continue; }
+                int prevBindex = (Binter[currA] - 1 + Binter.Length) % Binter.Length;
+                int nextBindex = (Binter[currA] + 1) % Binter.Length;
+                int prevBside = Binter[prevBindex];
+                int nextBside = Binter[nextBindex];
+                if (nextAindex == nextBside) { Aedge[i] = EdgeSide.Out_Colin; continue; }
+                if (nextAindex == prevBside) { Aedge[i] = EdgeSide.Inn_Colin; continue; }
+                if (Bedge[currA] == EdgeSide.Outside) { Aedge[i] = EdgeSide.Inside ; continue; }
+                if (Bedge[currA] == EdgeSide.Inside ) { Aedge[i] = EdgeSide.Outside; continue; }
+                solved = false;
+            }
+            for (int i = 0; i < Binter.Length; i++)
+            {   // Solving for B polygon
+                
+            }
+
+        }
+
+
+        return (Aedge, Bedge);
+
+
+    }
+    public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, bool tmp)
     {
         Debug.Log("Not implemented");
         List<CH2D_Polygon> polyToReturn = new List<CH2D_Polygon>();
@@ -50,7 +99,7 @@ public static class GHPolygonMerge
         // ћассивы с отметками стороны дл€ поиска пересечени€ двух полигонов
         Aint_tmp = new int[defAside.Length]; defAside.CopyTo(Aint_tmp, 0);
         Bint_tmp = new int[defBside.Length]; defBside.CopyTo(Bint_tmp, 0);
-        
+        /*
         Debug.Log("<color='red'>==== A ONLY ====</color>");
         List<CH2D_Polygon> Aonly = IsolateLoops(A, B, Aint_tmp, Bint_tmp, out_point, inn_point, 1, -1, BooleanOperation.Aonly);
         for (int i = 0; i < Aonly.Count; i++)
@@ -59,10 +108,10 @@ public static class GHPolygonMerge
             for (int x= 0; x < a_v_count; x++)
             {
                 int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 4f, 0.3f);
+                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 2f + 1f * i, 0.3f);
             }
         }
-        /*
+        
         Debug.Log("<color='red'>==== B ONLY ====</color>");
         Aint_tmp = new int[defAside.Length]; defAside.CopyTo(Aint_tmp, 0);
         Bint_tmp = new int[defBside.Length]; defBside.CopyTo(Bint_tmp, 0);
@@ -75,8 +124,8 @@ public static class GHPolygonMerge
                 int y = (x + 1) % a_v_count;
                 DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 8f, 0.3f);
             }
-        }
-        */
+        }*/
+        
         return (polyToReturn, null, null);
     }
     private enum poly {A, B};
@@ -88,7 +137,7 @@ public static class GHPolygonMerge
         (List<int> start_A, List<int> start_B) = GetEntryPoints(Ainter, Binter, operation);
         int safety = 0;
         //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
-        while (((start_A.Count + start_B.Count) > 0) && safety < 5)
+        while (((start_A.Count + start_B.Count) > 0) && safety < 25)
         {
             safety += 1;
             (poly AorB, int pos) = PickStart(start_A, start_B, Ainter, Binter, A_preference, B_preference);
@@ -96,7 +145,7 @@ public static class GHPolygonMerge
             if (pos == -1) { Debug.Log("No start location is valid!"); break; }
             Debug.Log(AorB + " " + pos);
 
-            (bool good_loop, List<CH2D_P_Index> new_loop) = IsolateLoop(A, B, Ainter, Binter, AorB, pos, A_diff, B_diff, A_preference, B_preference, operation); // A - moving CCW; B - moving CW;
+            (bool good_loop, List<CH2D_P_Index> new_loop) = IsolateLoop(A, B, Ainter, Binter, pos, A_diff, B_diff, A_preference, B_preference, operation); // A - moving CCW; B - moving CW;
             string n = "Final Point Count: "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
             if (good_loop) polygons.Add(new CH2D_Polygon(new_loop));
         }
@@ -107,43 +156,45 @@ public static class GHPolygonMerge
     {   // ѕросто выбирает A или B который не был использован.
         int start_p;
         for (int i = start_A.Count - 1; i >= 0; i--)
-            if (Ainter[start_A[i]] == A_preference) { start_p = start_A[i]; start_A.RemoveAt(i); return (poly.A, start_p); }
+            if (Ainter[start_A[i]] >= 0) { start_p = start_A[i]; start_A.RemoveAt(i); return (poly.A, start_p); }
             else start_A.RemoveAt(i);
         for (int i = start_B.Count - 1; i >= 0; i--)
-            if (Binter[start_B[i]] == B_preference) { start_p = start_B[i]; start_B.RemoveAt(i); return (poly.B, start_p); }
+            if (Binter[start_B[i]] >= 0) { start_p = start_B[i]; start_B.RemoveAt(i); return (poly.B, start_p); }
             else start_B.RemoveAt(i);
         return (poly.A, -1);
     }
     private static (List<int>, List<int>) GetEntryPoints(int[] Ainter, int[] Binter, BooleanOperation operation)
     {
-        List<int> a; List<int> b;   
+        List<int> a = new List<int>(); List<int> b = new List<int>();
+        for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+        return (a, b);/*
         switch (operation) {
             case BooleanOperation.Aonly:// Ќужно найти наружние ј и внутренние ¬
-                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] == out_point) a.Add(i);
-                b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == inn_point) b.Add(i);
+                for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                //b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == inn_point) b.Add(i);
                 return (a, b);
             case BooleanOperation.Bonly:// Ќужно найти наружние ¬ и внутренние ј
-                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] == inn_point) a.Add(i);
-                b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == out_point) b.Add(i);
+                for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                //b = new List<int>(); for (int i = 0; i < Binter.Length; i++) if (Binter[i] == out_point) b.Add(i);
                 return (a, b);
             case BooleanOperation.Union:// Ќужно найти все пересечени€ дл€ поиска возможного объединени€
-                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
-                return (a, null);
+                for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                return (a, b);
             case BooleanOperation.Diffr:// Ќужно найти все пересечени€ дл€ поиска наложений. “ак как может быть 100% наложение, ищутс€ именно пересечени€
-                a = new List<int>(); for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
-                return (a, null);
+                for (int i = 0; i < Ainter.Length; i++) if (Ainter[i] >= 0) a.Add(i);
+                return (a, b);
             default:
                 return (null, null);
-        }
+        }*/
     }
 
-    private static (bool good_loop, List<CH2D_P_Index> points) IsolateLoop(List<CH2D_P_Index> Av, List<CH2D_P_Index> Bv, int[] Ainter, int[] Binter, poly cp_side, int cp_pos, int A_diff, int B_diff, int A_preference, int B_preference, BooleanOperation operation)
+    private static (bool good_loop, List<CH2D_P_Index> points) IsolateLoop(List<CH2D_P_Index> Av, List<CH2D_P_Index> Bv, int[] Ainter, int[] Binter, int start_a, int A_diff, int B_diff, int A_preference, int B_preference, BooleanOperation operation)
     {
-        List<CH2D_P_Index> points = new List<CH2D_P_Index>(); poly AorB = cp_side;
+        List<CH2D_P_Index> points = new List<CH2D_P_Index>();// poly AorB = cp_side;
 
-        int curr_A = AorB == poly.A ? cp_pos : -1; 
-        int curr_B = AorB == poly.B ? cp_pos : -1;
-        Debug.Log("Isolate Loop Start: " + AorB + " A: " + curr_A + " B: " + curr_B);
+        int curr_A = start_a; int start_b = Ainter[start_a];
+        int curr_B = start_b;
+        Debug.Log("Isolate Loop Start: A: " + curr_A + " B: " + curr_B);
         int safety = -1; bool isDone = false;
         bool goodLoop = false;
         while (safety < 10 && !isDone)
@@ -154,9 +205,8 @@ public static class GHPolygonMerge
             safety++;
             int next_A = (curr_A >= 0) ? (curr_A + A_diff + Ainter.Length) % Ainter.Length : -1;
             int next_B = (curr_B >= 0) ? (curr_B + B_diff + Binter.Length) % Binter.Length : -1;
-            //Debug.Log(next_A + " " + next_B + " " + cp_pos);
-            if (cp_side == poly.A && next_A == cp_pos) { Debug.Log("Next A is finish point, leaving loop"); goodLoop = true; break; }
-            if (cp_side == poly.B && next_B == cp_pos) { Debug.Log("Next B is finish point, leaving loop"); goodLoop = true; break; }
+            if (next_B == start_b | next_A == start_a) { Debug.Log("Next A is finish point, leaving loop"); goodLoop = true; break; }
+            //if (cp_side == poly.B && next_B == cp_pos) { Debug.Log("Next B is finish point, leaving loop"); goodLoop = true; break; }
             if (curr_A >= 0 && Ainter[curr_A] < 0) Ainter[curr_A] = used_point;
             if (curr_B >= 0 && Binter[curr_B] < 0) Binter[curr_B] = used_point;
             switch (operation) {
@@ -170,10 +220,11 @@ public static class GHPolygonMerge
             Debug.Log(curr_A + " " + curr_B);
             curr_B = (curr_A >= 0 && Ainter[curr_A] >= 0) ? Ainter[curr_A] : curr_B;
             curr_A = (curr_B >= 0 && Binter[curr_B] >= 0) ? Binter[curr_B] : curr_A;
-            if (curr_A == -1 && curr_B == -1) { Debug.Log("Bad ending"); break; }
+            if (curr_A == start_b && curr_B == start_a) { Debug.Log("Current point is an intersection where loop began, SUCCESSFULL FINISH"); goodLoop = true; break; }
+            if (curr_A == -1 && curr_B == -1) { Debug.Log("Bad ending"); goodLoop = false; break; }
             
         }
-        DebugUtilities.DebugList(points);
+
 
         return (goodLoop, points);
     }

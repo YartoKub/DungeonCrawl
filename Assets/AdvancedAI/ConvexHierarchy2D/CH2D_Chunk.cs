@@ -366,13 +366,6 @@ public class CH2D_Chunk
         GHPolygonMerge.CutPolyInt(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs);
     }
 
-    public void DebugAddTestPolygon()
-    {   // Дегенеративный случай когда есть несколько коллинеарных линий пересекающих угловые точки обоих квадратов.
-        Poly2D degenerate1 = new Poly2D(new List<Vector2>() { new Vector2(0, 0), new Vector2(0, 2), new Vector2(2, 2), new Vector2(2, 0) });
-        Poly2D degenerate2 = new Poly2D(new List<Vector2>() { new Vector2(1, 0), new Vector2(1, 2), new Vector2(3, 2), new Vector2(3, 0) });
-        this.AddPolygon(degenerate1);
-        this.AddPolygon(degenerate2);
-    }
 
     // Incorporate collinear vertices
     // Совпадающие вершины должны 
