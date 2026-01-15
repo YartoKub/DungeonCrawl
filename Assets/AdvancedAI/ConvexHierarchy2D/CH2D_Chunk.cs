@@ -31,26 +31,27 @@ public class CH2D_Chunk
         int_poly.isHole = poly.isHole;
         int_poly.convex = poly.convex;
         int_poly.BBox = poly.BBox;
-        List<CH2D_P_Index> vertices = new List<CH2D_P_Index>(poly.vertices.Count);
+        List<CH2D_P_Index> int_vertices = new List<CH2D_P_Index>(poly.vertices.Count);
         // Регистрация всех вершин
         for (int i = 0; i < poly.vertices.Count; i++)
-            vertices.Add(AddPointIfNew(poly.vertices[i]));
+            int_vertices.Add(AddPointIfNew(poly.vertices[i]));
         // Встройка всех коллинеарных вершин 
         List<int> p_overlap = BBoxOverlapList(poly.BBox);
         for (int i = 0; i < p_overlap.Count; i++)
         {
-            Incorporate_Bvertice_To_PolyA(vertices, this.polygons[p_overlap[i]].vertices);
+            Incorporate_Bvertice_To_PolyA(int_vertices, this.polygons[p_overlap[i]].vertices);
             //MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
         }
-        string n = "poly so far: "; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
-
+        
+        string n = "poly so far: "; for (int i = 0; i < int_vertices.Count; i++) n += int_vertices[i] + " "; Debug.Log(n);
         // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
         for (int i = 0; i < p_overlap.Count; i++)
-            PolyPolyOnlineIntersectionOnesided(vertices, this.polygons[p_overlap[i]].vertices);
+            PolyPolyOnlineIntersectionOnesided(int_vertices, this.polygons[p_overlap[i]].vertices);
 
+        int_poly.RecalculateBBox(int_vertices.Select(int_v => vertices[int_v]).ToList());
         // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
         for (int i = 0; i < p_overlap.Count; i++) { 
-            Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, vertices);
+            Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, int_vertices);
             //MutualVerticeIncorporation(this.polygons[p_overlap[i]].vertices, vertices);
             Debug.Log(p_overlap[i]);
         }
@@ -58,15 +59,15 @@ public class CH2D_Chunk
         // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
         // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
         // Остаток new-only добавляется как новый полигон, если он не нулевой.
-        List<Vector2> v_vertices = vertices.Select(v => this.vertices[v]).ToList();
+        List<Vector2> v_vertices = int_vertices.Select(v => this.vertices[v]).ToList();
         for (int i = 0; i < p_overlap.Count; i++)
         {
-            List<Pair> pairs = PolyPolySharedPoints(vertices, this.polygons[p_overlap[i]].vertices, poly.BBox, this.polygons[p_overlap[i]].BBox);
-            GHPolygonMerge.CutPolyInt(this.vertices, vertices, this.polygons[p_overlap[i]].vertices, v_vertices, GetPolyVertices(p_overlap[i]), pairs);
+            List<Pair> pairs = PolyPolySharedPoints(int_vertices, this.polygons[p_overlap[i]].vertices, int_poly.BBox, this.polygons[p_overlap[i]].BBox);
+            GHPolygonMerge.CutPolyInt(this.vertices, int_vertices, this.polygons[p_overlap[i]].vertices, v_vertices, GetPolyVertices(p_overlap[i]), pairs);
         }
         
 
-        int_poly.vertices = new List<CH2D_P_Index>(vertices);
+        int_poly.vertices = new List<CH2D_P_Index>(int_vertices);
         int_poly.initialized = true;
         this.polygons.Add(int_poly);
     }
@@ -392,6 +393,7 @@ public class CH2D_Chunk
     public void Incorporate_Bvertice_To_PolyA(int A, int B)
     {
         Incorporate_Bvertice_To_PolyA(this.polygons[A].vertices, this.polygons[B].vertices);
+        this.polygons[A].RecalculateBBox(GetPolyVertices(A));
     }
     public void MutualVerticeIncorporation(List<CH2D_P_Index> a_v, List<CH2D_P_Index> b_v)
     {
@@ -470,6 +472,11 @@ public class CH2D_Chunk
     // Возвращает точки полигонов которые совпадают.
     public List<Pair> PolyPolySharedPoints(List<CH2D_P_Index> polyA, List<CH2D_P_Index> polyB, Bounds Abox, Bounds Bbox)
     {
+        /*
+        Bounds AboxPlus = new Bounds();
+        AboxPlus.SetMinMax(Abox.min - new Vector3(0.1f, 0.1f, 0), Abox.max + new Vector3(0.1f, 0.1f, 0));
+        Bounds BboxPlus = new Bounds();
+        BboxPlus.SetMinMax(Bbox.min - new Vector3(0.1f, 0.1f, 0), Bbox.max + new Vector3(0.1f, 0.1f, 0));*/
         List<int> p_a = PointsInsideBoundsInt(polyA, Abox);
         List<int> p_b = PointsInsideBoundsInt(polyB, Bbox);
         List<Pair> pairs = new List<Pair>();

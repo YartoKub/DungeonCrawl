@@ -31,50 +31,151 @@ public static class GHPolygonMerge
     public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
         if (intersections.Count == 0) { Debug.Log("Нет пересечений междлу полигонами"); return (null, null, null); }
+
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            Debug.Log(intersections[i].A + " " + intersections[i].B);
+        }
         (int[] tmpAside, int[] tmpBside) = MarkPoints(V, A, B, Ap, Bp, intersections);
-        (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(tmpAside, tmpBside);
+        (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(tmpAside, tmpBside, A, B);
+        
+        // DEBUG DRAW
+        //for (int i = 0; i < intersections.Count; i++) DebugUtilities.DebugDrawSquare(V[A[intersections[i].A]], Color.yellow, time:5f);
+        for (int i = 0; i < tmpAside.Length; i++)
+        {
+            if (tmpAside[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red, time: 5f);
+            else if (tmpAside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue, time: 5f);
+            else if (tmpAside[i] >= 0) { DebugUtilities.DebugDrawSquare(V[A[i]], Color.yellow, time: 5f); }
+            else { DebugUtilities.DebugDrawSquare(V[A[i]], Color.white, time: 5f); }
+        }
+        
+        for (int i = 0; i < tmpBside.Length; i++)
+        {
+            if (tmpBside[i] == out_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.red, time: 5f);
+            else if (tmpBside[i] == inn_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.blue, time: 5f);
+            else if (tmpBside[i] >= 0) { DebugUtilities.DebugDrawSquare(V[B[i]], Color.yellow, time: 5f); }
+            else { DebugUtilities.DebugDrawSquare(V[B[i]], Color.white, time: 5f); } 
+        }
+        // DEBUG DRAW
+
+        
+        for (int i = 0; i < Aedges.Length; i++)
+        {
+            Color color = Color.black;
+            switch (Aedges[i])
+            {
+                case EdgeSide.None: color = Color.white; break;
+                case EdgeSide.Inside: color = Color.green; break;
+                case EdgeSide.Outside: color = Color.red; break;
+                case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
+                case EdgeSide.Out_Colin: color = Color.pink; break;
+            }
+            DebugUtilities.DebugDrawLine(V[A[i]], V[A[(i + 1) % Aedges.Length]], color, 4f);
+        }
+        
+        for (int i = 0; i < Bedges.Length; i++)
+        {
+            Color color = Color.black;
+            switch (Bedges[i])
+            {
+                case EdgeSide.None: color = Color.white; break;
+                case EdgeSide.Inside: color = Color.green; break;
+                case EdgeSide.Outside: color = Color.red; break;
+                case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
+                case EdgeSide.Out_Colin: color = Color.pink; break;
+            }
+            DebugUtilities.DebugDrawLine(V[B[i]], V[B[(i + 1) % Bedges.Length]], color, 8f);
+        }
+
         return (null, null, null);
     }
-    private static (EdgeSide[], EdgeSide[]) MarkEdges(int[] Ainter, int[] Binter)
+    private static (EdgeSide[], EdgeSide[]) MarkEdges(int[] Ainter, int[] Binter, List<CH2D_P_Index> A, List<CH2D_P_Index> B)
     {
         EdgeSide[] Aedge = new EdgeSide[Ainter.Length]; EdgeSide[] Bedge = new EdgeSide[Binter.Length];
         // Вообще надо бы начать найдя наружную точку, но в дегенеративных случаях наружной точки может не быть
         // Edge - определяется как начальная + последующая точки. 
         // Итеративно решает к какой стороне принадлежит грань
         int safety = 0;
-        while (safety < 15) { safety += 1;
+        while (safety < 10) { safety += 1;
             bool solved = true;
             for (int i = 0; i < Ainter.Length; i++)
             {   // Solving for A polygon
-                int currAindex = i; int nextAindex = (i + 1) % Ainter.Length;
+                if (Aedge[i] != EdgeSide.None) continue;
+                int currAindex = i; int nextAindex = (i + 1) % Ainter.Length; int prevAindex = (i - 1 + Ainter.Length) % Ainter.Length;
                 int currA = Ainter[currAindex]; int nextA = Ainter[nextAindex];
+                int prevBindex = (currA - 1 + Binter.Length) % Binter.Length;
+                int nextBindex = (currA + 1) % Binter.Length;
+                Debug.Log(nextBindex + " " + B.Count);
+                
                 // В теории эта штука должна работать. Надо идти в уник, не могу протестировать
-                if (currA == out_point) { Aedge[i] = EdgeSide.Outside; continue; }
-                if (currA == inn_point) { Aedge[i] = EdgeSide.Inside;  continue; }
-                // currA >= 0, тут разбираюсь с пересечениями
-                if (nextA == out_point) { Aedge[i] = EdgeSide.Outside; continue; }
-                if (nextA == inn_point) { Aedge[i] = EdgeSide.Inside;  continue; }
-                int prevBindex = (Binter[currA] - 1 + Binter.Length) % Binter.Length;
-                int nextBindex = (Binter[currA] + 1) % Binter.Length;
-                int prevBside = Binter[prevBindex];
-                int nextBside = Binter[nextBindex];
-                if (nextAindex == nextBside) { Aedge[i] = EdgeSide.Out_Colin; continue; }
-                if (nextAindex == prevBside) { Aedge[i] = EdgeSide.Inn_Colin; continue; }
+                Debug.Log(currAindex + " " + currA + " " + ((currA >= 0) ? Binter[currA] : -1000));
+                EdgeSide a_edge = PointBasedSolution(currA, nextA, nextBindex, prevBindex);
+                if (a_edge != EdgeSide.None) { Aedge[i] = a_edge; continue; }
+
+                CH2D_P_Index prevBPindex = B[prevBindex];
+                CH2D_P_Index nextBPindex = B[nextBindex];
+                CH2D_P_Index nextAPindex = A[nextAindex];
+                if (nextAPindex == nextBPindex) { Aedge[i] = EdgeSide.Out_Colin; continue; }
+                if (nextAPindex == prevBPindex) { Aedge[i] = EdgeSide.Inn_Colin; continue; }
+
                 if (Bedge[currA] == EdgeSide.Outside) { Aedge[i] = EdgeSide.Inside ; continue; }
                 if (Bedge[currA] == EdgeSide.Inside ) { Aedge[i] = EdgeSide.Outside; continue; }
+                // Заполнение пропусков на основе предыдущего или следующего решения. Если этот шаг проводить до определения коллинеаров, то коллинеары будут перезаписаны на некорректные значения
+                if (Aedge[prevAindex] == EdgeSide.Outside) { Aedge[i] = EdgeSide.Inside; continue; }
+                if (Aedge[prevAindex] == EdgeSide.Inside) { Aedge[i] = EdgeSide.Outside; continue; }
+
+                if (Aedge[nextAindex] == EdgeSide.Outside) { Aedge[i] = EdgeSide.Inside; continue; }
+                if (Aedge[nextAindex] == EdgeSide.Inside) { Aedge[i] = EdgeSide.Outside; continue; }
+                //if (Aedge[prevAindex] == EdgeSide.Inside) { Aedge[i] = EdgeSide.Outside; continue; }
+
                 solved = false;
             }
             for (int i = 0; i < Binter.Length; i++)
             {   // Solving for B polygon
-                
+                int currBindex = i; int nextBindex = (i + 1) % Binter.Length; int prevBindex = (i - 1 + Binter.Length) % Binter.Length;
+                int currB = Binter[currBindex]; int nextB = Binter[nextBindex];
+                int prevAindex = (currB - 1 + Ainter.Length) % Ainter.Length;
+                int nextAindex = (currB + 1) % Ainter.Length;
+                // В теории эта штука должна работать. Надо идти в уник, не могу протестировать
+                EdgeSide b_edge = PointBasedSolution(currB, nextB, nextAindex, prevAindex);
+                if (b_edge != EdgeSide.None) { Bedge[i] = b_edge; continue; }
+
+                CH2D_P_Index prevAPindex = A[prevAindex];
+                CH2D_P_Index nextAPindex = A[nextAindex];
+                CH2D_P_Index nextBPindex = B[nextBindex];
+                if (nextBPindex == nextAPindex) { Bedge[i] = EdgeSide.Out_Colin; continue; }
+                if (nextBPindex == prevAPindex) { Bedge[i] = EdgeSide.Inn_Colin; continue; }
+
+                if (Aedge[currB] == EdgeSide.Outside) { Bedge[i] = EdgeSide.Inside; continue; }
+                if (Aedge[currB] == EdgeSide.Inside) { Bedge[i] = EdgeSide.Outside; continue; }
+
+                if (Bedge[prevBindex] == EdgeSide.Outside) { Bedge[i] = EdgeSide.Inside; continue; }
+                if (Bedge[prevBindex] == EdgeSide.Inside) { Bedge[i] = EdgeSide.Outside; continue; }
+
+
+                if (Bedge[nextBindex] == EdgeSide.Outside) { Bedge[i] = EdgeSide.Inside; continue; }
+                if (Bedge[nextBindex] == EdgeSide.Inside) { Bedge[i] = EdgeSide.Outside; continue; }
+
+                solved = false;
             }
-
+            if (solved) break;
         }
-
+        Debug.Log(safety);
 
         return (Aedge, Bedge);
 
-
+        EdgeSide PointBasedSolution(int currA, int nextA, int nextBindex, int prevBindex)
+        {
+            if (currA == out_point) return EdgeSide.Outside;
+            if (currA == inn_point) return EdgeSide.Inside ; 
+            
+            if (nextA == out_point) return EdgeSide.Outside;  
+            if (nextA == inn_point) return EdgeSide.Inside ;
+            // Коллинеарные штучки
+            if (nextA == nextBindex) return EdgeSide.Out_Colin; 
+            if (nextA == prevBindex) return EdgeSide.Inn_Colin;
+            return EdgeSide.None;
+        }
     }
     public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, bool tmp)
     {
@@ -303,6 +404,7 @@ public static class GHPolygonMerge
             Ainter[intersections[i].A] = intersections[i].B;
             Binter[intersections[i].B] = intersections[i].A;
         }
+        
         for (int i = 0; i < Ainter.Length; i++)
         {
             if (Ainter[i] != used_point) continue;

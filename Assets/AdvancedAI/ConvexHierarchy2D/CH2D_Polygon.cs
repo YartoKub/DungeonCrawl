@@ -65,6 +65,14 @@ public class CH2D_Polygon : I_BBoxSupporter
         return new CH2D_Edge(this.vertices[e], this.vertices[(e + 1) % vertices.Count]);
     }
 
+    public void RecalculateBBox(List<Vector2> o_vertices)
+    {
+        Bounds b = new Bounds();
+        b.SetMinMax(o_vertices[0], o_vertices[1]);
+        for (int i = 2; i < o_vertices.Count; i++) b.Encapsulate(o_vertices[i]);
+        this.BBox = b;
+    }
+
     // Встраивает коллинеарные точки в структуру полигона
 
 

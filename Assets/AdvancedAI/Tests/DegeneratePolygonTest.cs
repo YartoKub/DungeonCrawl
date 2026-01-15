@@ -31,6 +31,15 @@ public class DegeneratePolygonTest : MonoBehaviour
         Poly2D polygon2 = new Poly2D(new Vector2(-6, 5), new Vector2(-6, 1), new Vector2(5, 1), new Vector2(-5, 2), new Vector2(5, 3), new Vector2(-5, 4), new Vector2(5, 5));
         PolygonManager.GetManager().AddPolygon(polygon2);
     }
+
+    public static void AddCollinnearDegenerates()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 3), new Vector2(3, 3), new Vector2(3, 4), new Vector2(4, 4), new Vector2(4, 3), new Vector2(5, 3), new Vector2(5, 5), new Vector2(0, 5));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(0, 0), new Vector2(4, 0), new Vector2(4, 4), new Vector2(3, 4), new Vector2(3, 1), new Vector2(0, 1));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
 }
 [CustomEditor(typeof(DegeneratePolygonTest))]
 public class DegeneratePolygonTestEditor : Editor 
