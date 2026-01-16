@@ -40,6 +40,14 @@ public class DegeneratePolygonTest : MonoBehaviour
         Poly2D polygon2 = new Poly2D(new Vector2(0, 0), new Vector2(4, 0), new Vector2(4, 4), new Vector2(3, 4), new Vector2(3, 1), new Vector2(0, 1));
         PolygonManager.GetManager().AddPolygon(polygon2);
     }
+    public static void Add6Start()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(3, 0), new Vector2(1.5f, 3));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(1.5f, -1), new Vector2(3.5f, 2f), new Vector2(-0.5f, 2f));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
 }
 [CustomEditor(typeof(DegeneratePolygonTest))]
 public class DegeneratePolygonTestEditor : Editor 

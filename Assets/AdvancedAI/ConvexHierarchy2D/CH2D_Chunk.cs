@@ -91,7 +91,7 @@ public class CH2D_Chunk
     {
         if (this.vertices.Count + 1 >= MaxVertices) throw new Exception("Больше вершин чем разрешено");
         this.vertices.Add(point);
-        Debug.Log(vertices.Count);
+        //Debug.Log(vertices.Count);
         return new CH2D_P_Index( this.vertices.Count - 1);
     }
     public CH2D_P_Index AddPointIfNew(Vector2 point)

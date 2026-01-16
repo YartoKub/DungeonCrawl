@@ -68,6 +68,7 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
         if (GUILayout.Button("Multiple Overlap Degenerate")) DegeneratePolygonTest.AddOverlapDegenerates();
         if (GUILayout.Button("Degenerate Collinnears")) DegeneratePolygonTest.AddCollinnearDegenerates();
+        if (GUILayout.Button("6 Start Classic Test")) DegeneratePolygonTest.Add6Start();
         if (GUILayout.Button("Activate Chosen Action on A and B")) manager.CallFunctionOnChosen();
         base.OnInspectorGUI();
     }
