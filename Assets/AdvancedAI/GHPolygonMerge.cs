@@ -110,7 +110,7 @@ public static class GHPolygonMerge
         int safety = 0;
         //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
 
-        while (((start_A.Count + start_B.Count) > 0) && safety < 2)
+        while (((start_A.Count + start_B.Count) > 0) && safety < 4)
         {
             safety += 1;
             (poly AorB, int pos) = PickStart(start_A, start_B, Aedge, Bedge);
@@ -133,13 +133,17 @@ public static class GHPolygonMerge
         List<CH2D_P_Index> points = new List<CH2D_P_Index>();// poly AorB = cp_side;
 
         int curr_a = startP == poly.A ? s_pos : -1; int curr_b = startP == poly.B ? s_pos : -1;
-        int start_a = curr_a; int start_b = curr_b;
+        int start_a = (curr_a == -1) ? (Binter[curr_b] >= 0 ? Binter[curr_b] : -1) : curr_a; 
+        int start_b = (curr_b == -1) ? (Ainter[curr_a] >= 0 ? Ainter[curr_a] : -1) : curr_b;
 
         int A_diff = 1; int B_diff = 1; int A_off = 0; int B_off = 0;
-        if (operation == BooleanOperation.Aonly) { A_diff =  1; B_diff = -1; B_off = -1; }
-        if (operation == BooleanOperation.Bonly) { A_diff = -1; B_diff =  1;  }
-
+        if (operation == BooleanOperation.Aonly) { A_diff =  1; B_diff = -1; A_off = 0; B_off = -1; }
+        if (operation == BooleanOperation.Bonly) { A_diff = -1; B_diff =  1; A_off = -1; B_off = 0; }
+        Debug.Log("Aoff " + A_off + " Boff " + B_off);
         Debug.Log("Isolate Loop Start: side: " + curr_a + " pos: " + curr_b);
+        Debug.Log("Isolate Loop Start points: a " + start_a + " b: " + start_b);
+        string n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
+        n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
         int safety = -1;
         bool goodLoop = false;
         while (safety < 25)
@@ -147,47 +151,75 @@ public static class GHPolygonMerge
             points.Add(curr_a < 0 ? Bv[curr_b] : Av[curr_a]);
             safety++;
             Debug.Log("<b>STEP</b>, " + curr_a + " " + curr_b);
-            string n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-            n = "Bedge: ";        for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
             // curr_a и curr_b, только одно значение может иметь функциональное значение. Ёто означает что перезапись здесь будет лишь одна
-            int next_a_index; int next_b_index;
+            int next_a_index = -1000; int next_b_index = -1000;
             EdgeSide curr_side = EdgeSide.None;
             EdgeSide next_a_side = EdgeSide.None; EdgeSide next_b_side = EdgeSide.None;
-            if (curr_a >= 0) {// A only valid
+
+            if (curr_a >= 0)
+            {// A only valid
+                //curr_a = curr_a;
+                next_a_index =           (curr_a + A_diff + Aedge.Length) % Aedge.Length;
+                int next_a_index_value = (curr_a + A_off  + Aedge.Length) % Aedge.Length;
+                next_a_side =               Aedge[next_a_index_value];
+                Aedge[next_a_index_value] = EdgeSide.Used;
+
+                curr_b = Ainter[curr_a];
+                next_b_index =           (curr_b + B_diff + Bedge.Length) % Bedge.Length;
+                int next_b_index_value = (curr_b + B_off  + Bedge.Length) % Bedge.Length;
+                next_b_side = curr_b >= 0 ? Bedge[next_b_index_value] : EdgeSide.None;
+            }
+            else/*(curr_b >= 0)*/
+            { // B only valid   
+                next_b_index =           (curr_b + B_diff + Bedge.Length) % Bedge.Length;
+                int next_b_index_value = (curr_b + B_off  + Bedge.Length) % Bedge.Length;
+                next_b_side = Bedge[next_b_index_value];
+                Bedge[next_b_index_value] = EdgeSide.Used;
+
+                curr_a = Binter[curr_b];
+                next_a_index =           (curr_a + A_diff + Aedge.Length) % Aedge.Length;
+                int next_a_index_value = (curr_a + A_off  + Aedge.Length) % Aedge.Length;
+                next_a_side = Aedge[next_a_index_value];
+            }
+            Debug.Log(curr_side + " " + next_a_index + " " + next_a_side + " " + next_b_index + " " + next_b_side);
+            //Debug.Log(curr_side + " " + next_a_index + " " + next_a_side + " " + next_b_index + " " + next_b_side);
+            n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
+            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
+
+            if (next_b_index == start_b | next_a_index == start_a) { Debug.Log("<color=green>Next A is finish point, leaving loop</color>"); goodLoop = true; break; }
+
+            poly next_p = LCS_Aonly(next_a_side, next_b_side);
+            Debug.Log("<b> Return: </b> " + next_p);
+            if (next_p == poly.None) { Debug.Log("<color=red>Bad ending</color>"); goodLoop = false; break; }
+            curr_a = next_p == poly.A ? next_a_index : -1;
+            curr_b = next_p == poly.B ? next_b_index : -1;
+
+            
+            //if (curr_A == start_b && curr_B == start_a) { Debug.Log("Current point is an intersection where loop began, SUCCESSFULL FINISH"); goodLoop = true; break; }
+
+
+        }
+        return (goodLoop, points);
+    }
+    /*
+     * if (curr_a >= 0) {// A only valid
                 next_a_index = (curr_a + A_diff + Ainter.Length) % Ainter.Length;
                 next_b_index = Ainter[next_a_index];
                 curr_side = Aedge[curr_a];
                 next_a_side = Aedge[next_a_index];
-                next_b_side = next_b_index >= 0 ? Bedge[next_b_index] : EdgeSide.None;
-                Aedge[curr_a] = EdgeSide.Used;
+                next_b_side = next_b_index >= 0 ? Bedge[(next_b_index + B_off + Bedge.Length) % Bedge.Length] : EdgeSide.None;
+                Aedge[curr_a + A_off] = EdgeSide.Used;
             }
-            else/*(curr_b >= 0)*/{ // B only valid   
+            else{ // B only valid   
                 next_b_index = (curr_b + B_diff + Binter.Length) % Binter.Length;
                 next_a_index = Binter[next_b_index];
                 curr_side = Bedge[curr_b];
                 next_b_side = Bedge[next_b_index];
                 next_a_side = next_a_index >= 0 ? Aedge[next_a_index] : EdgeSide.None;
-                Bedge[curr_b] = EdgeSide.Used;
+                Bedge[curr_b + B_off] = EdgeSide.Used;
             }
-
-            Debug.Log(curr_side + " " + next_a_index + " " + next_a_side + " " + next_b_index + " " + next_b_side);
-            if (next_b_index == start_b | next_a_index == start_a) { Debug.Log("<color=green>Next A is finish point, leaving loop</color>"); goodLoop = true; break; }
-
-            poly next_p = LCS_Aonly(curr_side, next_a_side, next_b_side);
-            Debug.Log("<b> Return: </b> " + next_p);
-            if (next_p == poly.None) { Debug.Log("<color=red>Bad ending</color>"); goodLoop = false; break; }
-            curr_a = next_p == poly.A ? next_a_index : -1;
-            curr_b = next_p == poly.B ? next_b_index : -1;
-            //if (curr_A == start_b && curr_B == start_a) { Debug.Log("Current point is an intersection where loop began, SUCCESSFULL FINISH"); goodLoop = true; break; }
-            
-
-        }
-
-
-        return (goodLoop, points);
-    }
-
-    private static poly LCS_Aonly(EdgeSide currSide, EdgeSide nextA, EdgeSide nextB)
+*/
+    private static poly LCS_Aonly(EdgeSide nextA, EdgeSide nextB)
     {   // A out + B inn + intersection
 
         //if (nextA == EdgeSide.Outside && nextB == EdgeSide.Inside) throw new System.Exception(" андидаты A outside и B inside. “ака€ конфигураци€ невозможна, €вно с полигонами кака€-то хрень.");
@@ -195,12 +227,12 @@ public static class GHPolygonMerge
         //if (nextA == EdgeSide.Used) return poly.B;
         //if (nextB == EdgeSide.Used) return poly.A;
 
-        if (currSide == EdgeSide.Inside)
+        //if (currSide == EdgeSide.Inside)
         {
             if (nextA == EdgeSide.Outside) return poly.A;
             if (nextB == EdgeSide.Inside ) return poly.B;
         }
-        if (currSide == EdgeSide.Outside)
+        //if (currSide == EdgeSide.Outside)
         {
             if (nextB == EdgeSide.Inside ) return poly.B;
             if (nextA == EdgeSide.Outside) return poly.A;
