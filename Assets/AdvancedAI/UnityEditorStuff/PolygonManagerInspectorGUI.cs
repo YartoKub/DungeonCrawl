@@ -65,16 +65,19 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Dump Chunk Data")) manager.my_chunk.DebugDumpChunkData();
         if (GUILayout.Button("Get Intersections of 0 and 1")) manager.DebugIntersection();
         if (GUILayout.Button("Get PolyPoly of 0 and 1")) manager.HighlightInnsAndOuts();
+        EditorGUILayout.LabelField("Classic Tests");
         if (GUILayout.Button("Multiple Overlap Test")) DegeneratePolygonTest.AddOverlapDegenerates();
         if (GUILayout.Button("6 Start Classic Test")) DegeneratePolygonTest.Add6Start();
-
+        EditorGUILayout.LabelField("Degenerate Tests");
         if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
         if (GUILayout.Button("Degenerate Collinnears")) DegeneratePolygonTest.AddCollinnearDegenerates();
         if (GUILayout.Button("Two gems, not full overlap")) DegeneratePolygonTest.GemCoveredUncovered();
         if (GUILayout.Button("Two gems, full overlap")) DegeneratePolygonTest.FullOverlap(); 
         if (GUILayout.Button("Bantic Left/Right")) DegeneratePolygonTest.BanticLeftRight();
         if (GUILayout.Button("Bantic Top/Bottom")) DegeneratePolygonTest.BanticTopBottom();
-        if (GUILayout.Button("Top Brick Bottom Bantic")) DegeneratePolygonTest.TopBrickBottomBantic(); 
+        if (GUILayout.Button("Top Brick Bottom Bantic")) DegeneratePolygonTest.TopBrickBottomBantic();
+        EditorGUILayout.LabelField("Multitude Tests");
+        if (GUILayout.Button("Half Square and square test")) DegeneratePolygonTest.ThreeTriangleTest(); 
         if (GUILayout.Button("Activate Chosen Action on A and B")) manager.CallFunctionOnChosen();
         base.OnInspectorGUI();
     }

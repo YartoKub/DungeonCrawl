@@ -659,6 +659,13 @@ public static class Poly2DToolbox
         }
         return false;
     }
+    public static bool HasDoubleVertices(List<Vector2> points)
+    {   // Проверяет наличие вершин, которые посещаются дважды
+        for (int i = 0; i < points.Count -1; i++)
+            for (int j = i + 1; j < points.Count; j++)
+                if (points[i] == points[j]) return true;
+        return false;
+    }
 
     // Does A belong to B?
     // 1 B inside A / 0 even level / -1 A inside B

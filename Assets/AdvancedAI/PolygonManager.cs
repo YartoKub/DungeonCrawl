@@ -140,10 +140,10 @@ public class PolygonManager : MonoBehaviour
     public void AddPolygon(Poly2D p)
     {
         this.my_chunk.AddPolygon(p);
-        /*
-        this.polygons.Add(p);
-        CalculatePolygonBVH_Naive();
-        */
+    }
+    public void AddPolygon(List<Vector2> p)
+    {
+        this.my_chunk.AddPolygon(p);
     }
     public void RemovePolygon(int p_index)
     {

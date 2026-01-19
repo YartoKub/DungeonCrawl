@@ -41,6 +41,7 @@ public class Poly2D : I_BBoxSupporter
         out_poly = new Poly2D();
         if (points.Count < 3) return false;
         if (Poly2DToolbox.SelfIntersectionNaive(points)) return false;
+        if (Poly2DToolbox.HasDoubleVertices(points)) return false;
 
         out_poly = new Poly2D(new List<Vector2>(points));
         out_poly.isHole = out_poly.IsCounterClockwise();

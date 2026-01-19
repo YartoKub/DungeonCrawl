@@ -28,15 +28,20 @@ public static class GHPolygonMerge
          o----------o                                     o----------o o - outside
      */
     // Ётот код ожидает что все пересечени€ заранее известны и наход€тс€ в списке intersections
-    public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    public struct CutPolyIntSetting { public bool Union, Inter, Aonly, Bonly; 
+        public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly) { this.Union = Union; this.Inter = Inter; this.Aonly = Aonly; this.Bonly = Bonly;  }
+    }
+    public static CutPolyIntSetting default_setting { get { return new CutPolyIntSetting(true, true, true, true); } }
+    public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting)
     {
-        if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null); }
+        if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null, null); }
 
         (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
         (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
 
+        string intersections_s = "intersectins: "; for (int i = 0; i < intersections.Count; i++) intersections_s += " (" + intersections[i].A  + " " + intersections[i].B + ") "; Debug.Log(intersections_s);
         string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae);
         string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
         ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae);
@@ -44,75 +49,51 @@ public static class GHPolygonMerge
 
         Debug.Log("<color='red'>==== Union ====</color>");
         List<CH2D_Polygon> Union = new List<CH2D_Polygon>(); List<CH2D_Polygon> Inter = new List<CH2D_Polygon>(); List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>(); List<CH2D_Polygon> Bonly = new List<CH2D_Polygon>();
-        Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
+        if (setting.Union) Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
 
         Debug.Log("<color='red'>==== Intersectiion ====</color>");
         BufferAedge.CopyTo(Aedges, 0);
         BufferBedge.CopyTo(Bedges, 0);
-        Inter = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Inter);
+        if (setting.Inter) Inter = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Inter);
 
         Debug.Log("<color='red'>==== A ONLY ====</color>");
         BufferAedge.CopyTo(Aedges, 0);
         BufferBedge.CopyTo(Bedges, 0);
-        Aonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Aonly);
+        if (setting.Aonly) Aonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Aonly);
 
         Debug.Log("<color='red'>==== B ONLY ====</color>");
-        Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
+        if (setting.Bonly) Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
 
         //"<color='red'>==== Intersectiion ====</color>");
         float default_offset = 2f;
         float ab_offset = 1f + Mathf.Max(Aonly.Count, Bonly.Count);
         float union_offset = 1f + Union.Count;
-        for (int i = 0; i < Inter.Count; i++)
-        {
+        for (int i = 0; i < Inter.Count; i++) {
             int a_v_count = Inter[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0.5f, 0f), new Color(0.2f, 1f, 0.2f), x, a_v_count - 1), default_offset + ab_offset + union_offset + 1f * i); //2f + 1f * i, 0.3f
-            }
+                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0f, 0.5f, 0f), new Color(0.2f, 1f, 0.2f), x, a_v_count - 1), default_offset + ab_offset + union_offset + 1f * i); //2f + 1f * i, 0.3f
         }
-
         //"<color='red'>==== Union ====</color>");
-        
-        for (int i = 0; i < Union.Count; i++)
-        {
+        for (int i = 0; i < Union.Count; i++) {
             int a_v_count = Union[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + ab_offset + 1f * i); //2f + 1f * i, 0.3f
-            }
+                DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[(x + 1) % a_v_count]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + ab_offset + 1f * i); //2f + 1f * i, 0.3f
         }
-
         //"<color='red'>==== A ONLY ====</color>");
-        for (int i = 0; i < Aonly.Count; i++)
-        {
+        for (int i = 0; i < Aonly.Count; i++) {
             int a_v_count = Aonly[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                //DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet);
-
-                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0.5f, 0f, 0f), new Color(1f, 0.2f, 0.2f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
-            }
+                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0.5f, 0f, 0f), new Color(1f, 0.2f, 0.2f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
         }
-
         //"<color='red'>==== B ONLY ====</color>");
-        for (int i = 0; i < Bonly.Count; i++)
-        {
+        for (int i = 0; i < Bonly.Count; i++) {
             int a_v_count = Bonly[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
-            }
+                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
         }
 
-
-
-        Debug.Log("Aonly: " + Aonly.Count + " Bonly: " + Bonly.Count + " Inter: " + Inter.Count + " Union: " + Union.Count);
-        return (null, null, null);
+        Debug.Log("<b><color=red> Aonly: " + Aonly.Count + "</color><color=blue> Bonly: " + Bonly.Count + "</color> <color=green>Inter: " + Inter.Count + "</color><color=yellow> Union: " + Union.Count + " </color></b>");
+        return (Union, Inter, Aonly, Bonly);
     }
 
     public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) PolyPolyTest(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, bool drawPoints, bool drawEdges, bool InterCalc, bool UnionCalc, bool AonlyCalc, bool BonlyCalc)
@@ -270,11 +251,13 @@ public static class GHPolygonMerge
         int start_a = (curr_a == -1) ? (Binter[curr_b] >= 0 ? Binter[curr_b] : -1) : curr_a;
         int start_b = (curr_b == -1) ? (Ainter[curr_a] >= 0 ? Ainter[curr_a] : -1) : curr_b;
 
-        /*Debug.Log("Aoff " + A_off + " Boff " + B_off);
+        Debug.Log("Aoff " + A_off + " Boff " + B_off);
         Debug.Log("Isolate Loop Start: side: " + curr_a + " pos: " + curr_b);
         Debug.Log("Isolate Loop Start points: a " + start_a + " b: " + start_b);
         string n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-        n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);*/
+        n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
+        n = "Aedge: "; for (int i = 0; i < Ainter.Length; i++) n += Ainter[i] + " "; Debug.Log(n);
+        n = "Bedge: "; for (int i = 0; i < Binter.Length; i++) n += Binter[i] + " "; Debug.Log(n);
         int safety = -1;
         bool goodLoop = false;
         while (safety < 35)
@@ -283,8 +266,8 @@ public static class GHPolygonMerge
             safety++;
             //Debug.Log("<b>STEP</b>, " + curr_a + " " + curr_b);
             // curr_a и curr_b, только одно значение может иметь функциональное значение. Ёто означает что перезапись здесь будет лишь одна
-            int next_a_index = -99; int next_b_index = -99;
-            EdgeSide next_a_side = EdgeSide.None; EdgeSide next_b_side = EdgeSide.None;
+            int next_a_index = -99; int next_b_index = -99; int alt_a_index = -99; int alt_b_index = -99;
+            EdgeSide next_a_side = EdgeSide.None; EdgeSide next_b_side = EdgeSide.None; EdgeSide alt_a_side = EdgeSide.None; EdgeSide alt_b_side = EdgeSide.None;
             if (curr_a >= 0)
             {// A only valid
                 next_a_index = (curr_a + A_diff + Aedge.Length) % Aedge.Length;
@@ -301,8 +284,10 @@ public static class GHPolygonMerge
                 }
                 if (next_a_side == EdgeSide.Out_Colin && operation == BooleanOperation.Union)
                 {
-                    next_a_index = Binter[next_b_index];
-                    next_a_side = Aedge[next_a_index];
+                    //next_a_index = Binter[next_b_index];
+                    //next_a_side = Aedge[next_a_index];
+                    alt_a_index = Binter[next_b_index];
+                    alt_a_side = Aedge[alt_a_index];
                 }
             }
             else/*(curr_b >= 0)*/
@@ -321,31 +306,41 @@ public static class GHPolygonMerge
                 }
                 if (next_b_side == EdgeSide.Out_Colin && operation == BooleanOperation.Union)
                 {
-                    next_b_index = Ainter[next_a_index];
-                    next_b_side = Bedge[next_b_index];
+                    //next_b_index = Ainter[next_a_index];
+                    //next_b_side = Bedge[next_b_index];
+                    alt_b_index = Ainter[next_a_index];
+                    alt_b_side = Bedge[alt_b_index];
                 }
             }
-            /*Debug.Log(curr_side + " a: " + curr_a + " " + next_a_index + " " + next_a_side + " b: " + curr_b + " " + next_b_index + " " + next_b_side);
+            Debug.Log(" a: " + curr_a + " " + next_a_index + " " + next_a_side + " b: " + curr_b + " " + next_b_index + " " + next_b_side + " alt a: " + alt_a_index + " " + alt_a_side + " alt b: " + alt_b_index + " " + alt_b_side);
             n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);*/
+            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
             if ((next_a_index == start_a | next_b_index == start_b)) 
-            {   //Debug.Log("<color=green>Current point is finish point, leaving</color>");
+            {   Debug.Log("<color=green>Current point is finish point, leaving</color>");
                 goodLoop = true;
                 break; 
             }
             poly next_p = poly.None;
             switch (operation)
             {
-                case BooleanOperation.Aonly: next_p = LCS_Aonly(next_a_side, next_b_side); break;
-                case BooleanOperation.Bonly: next_p = LCS_Bonly(next_a_side, next_b_side); break;
-                case BooleanOperation.Union: next_p = LCS_Union(next_a_side, next_b_side); break;
-                case BooleanOperation.Inter: next_p = LCS_Inter(next_a_side, next_b_side); break;
+                case BooleanOperation.Aonly: next_p = LCS_Aonly(next_a_side, next_b_side, alt_a_side, alt_b_side); break;
+                case BooleanOperation.Bonly: next_p = LCS_Bonly(next_a_side, next_b_side, alt_a_side, alt_b_side); break;
+                case BooleanOperation.Union: next_p = LCS_Union(next_a_side, next_b_side, alt_a_side, alt_b_side); break;
+                case BooleanOperation.Inter: next_p = LCS_Inter(next_a_side, next_b_side, alt_a_side, alt_b_side); break;
             }
             
             //Debug.Log("<b> Return: </b> " + next_p);
             if (next_p == poly.None) { Debug.Log("<color=red>Bad ending</color>"); goodLoop = false; break; }
-            curr_a = next_p == poly.A ? next_a_index : -1;
-            curr_b = next_p == poly.B ? next_b_index : -1;
+            curr_a = -1;
+            curr_b = -1;
+            switch (next_p) {
+                case poly.A: curr_a = next_a_index; break;
+                case poly.B: curr_b = next_b_index; break;
+                case poly.altA: curr_a = alt_a_index; break;
+                case poly.altB: curr_b = alt_b_index; break;
+            }
+            //curr_a = next_p == poly.A ? next_a_index : -1;
+            //curr_b = next_p == poly.B ? next_b_index : -1;
 
 
             //if (curr_A == start_b && curr_B == start_a) { Debug.Log("Current point is an intersection where loop began, SUCCESSFULL FINISH"); goodLoop = true; break; }
@@ -356,7 +351,7 @@ public static class GHPolygonMerge
         return (goodLoop, points);
     }
 
-    private static poly LCS_Aonly(EdgeSide nextA, EdgeSide nextB)
+    private static poly LCS_Aonly(EdgeSide nextA, EdgeSide nextB, EdgeSide altA, EdgeSide altB)
     {   // A out + B inn + intersection
         if (nextA == EdgeSide.Outside) return poly.A;
         if (nextB == EdgeSide.Inside ) return poly.B;
@@ -368,7 +363,7 @@ public static class GHPolygonMerge
 
         return poly.None;
     }
-    private static poly LCS_Bonly(EdgeSide nextA, EdgeSide nextB)
+    private static poly LCS_Bonly(EdgeSide nextA, EdgeSide nextB, EdgeSide altA, EdgeSide altB)
     {   // A inn + B out + intersection
         if (nextB == EdgeSide.Outside) return poly.B;
         if (nextA == EdgeSide.Inside) return poly.A;
@@ -383,7 +378,7 @@ public static class GHPolygonMerge
     // ѕровер€етс€ “олько точка ј на наличие значени€ Inn_Colin
     // “ак как точки A & B со значением Inn_Colin всегда идут парами (внутренние коллинеарные, две грани однонаправлены, начинаютс€ и кончаютс€ в одной точке)
     // ѕоэтому в выборке стартовых точек GetEntryPoints выбираютс€ только A Inn_Colin
-    private static poly LCS_Inter(EdgeSide nextA, EdgeSide nextB)
+    private static poly LCS_Inter(EdgeSide nextA, EdgeSide nextB, EdgeSide altA, EdgeSide altB)
     {   // A inn + B out + intersection
         if (nextA == EdgeSide.Inside) return poly.A;
         if (nextB == EdgeSide.Inside) return poly.B;
@@ -391,12 +386,17 @@ public static class GHPolygonMerge
         if (nextA == EdgeSide.Inn_Colin) return poly.A; // ѕровер€етс€ только точка A.
         return poly.None;
     }
-    private static poly LCS_Union(EdgeSide nextA, EdgeSide nextB)
+    private static poly LCS_Union(EdgeSide nextA, EdgeSide nextB, EdgeSide altA, EdgeSide altB)
     {   // A inn + B out + intersection
         if (nextA == EdgeSide.Outside) return poly.A;
         if (nextB == EdgeSide.Outside) return poly.B;
 
         if (nextA == EdgeSide.Inn_Colin) return poly.A;
+        if (nextA == EdgeSide.Out_Colin)
+        {
+            if (altA == EdgeSide.Outside) return poly.altA;
+            if (altB == EdgeSide.Outside) return poly.altB;
+        }
         return poly.None;
     }
     private static poly LCS_Plug(EdgeSide nextA, EdgeSide nextB)
@@ -484,18 +484,19 @@ public static class GHPolygonMerge
                 int currB = Binter[currBindex]; int nextB = Binter[nextBindex];
                 int prevAindex = (currB - 1 + Ainter.Length) % Ainter.Length;
                 int nextAindex = (currB + 1) % Ainter.Length;
-                
+                //Debug.Log(currBindex + " " + nextBindex + " " + prevBindex);
                 EdgeSide b_edge = PointBasedSolution(currB, nextB, nextAindex, prevAindex);
                 if (b_edge != EdgeSide.None) { Bedge[i] = b_edge; continue; }   // ѕроверка значений точек
 
                 CH2D_P_Index prevAPindex = A[prevAindex]; // ѕрооверкка на коллинеарность
                 CH2D_P_Index nextAPindex = A[nextAindex];
                 CH2D_P_Index nextBPindex = B[nextBindex];
+                //Debug.Log(prevAPindex + " " + nextAPindex + " " + nextBPindex);
                 if (nextBPindex == nextAPindex) { Bedge[i] = EdgeSide.Inn_Colin; continue; }
                 if (nextBPindex == prevAPindex) { Bedge[i] = EdgeSide.Out_Colin; continue; }
-
+                //Debug.Log(Aedge[currB] + " " + Bedge[prevBindex] + " " + Bedge[nextBindex]);
                 Bedge[i] = EdgeBasedSolution(Aedge[currB], Bedge[prevBindex], Bedge[nextBindex]);
-
+                //Debug.Log(i + " " + Bedge[i]);
                 if (Bedge[i] == EdgeSide.None) solved = false;
             }
             if (solved) break;
@@ -524,7 +525,7 @@ public static class GHPolygonMerge
         }
     }
    
-    private enum poly {A, B, None};
+    private enum poly {A, B, None, altA, altB};
     private enum BooleanOperation { Aonly, Bonly, Union, Inter };
     
 
@@ -568,12 +569,12 @@ public static class GHPolygonMerge
         for (int i = 0; i < Ainter.Length; i++)
         {
             if (Ainter[i] != used_point) continue;
-            Ainter[i] = Poly2DToolbox.IsPointInsidePolygon(V[A[i]], Bp) ? inn_point : out_point;
+            Ainter[i] = Poly2DToolbox.IsPointInsidePolygon(Ap[i], Bp) ? inn_point : out_point;
         }
         for (int i = 0; i < Binter.Length; i++)
         {
             if (Binter[i] != used_point) continue;
-            Binter[i] = Poly2DToolbox.IsPointInsidePolygon(V[B[i]], Ap) ? inn_point : out_point;
+            Binter[i] = Poly2DToolbox.IsPointInsidePolygon(Bp[i], Ap) ? inn_point : out_point;
         }
 
         return (Ainter, Binter);

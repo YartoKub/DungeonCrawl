@@ -23,6 +23,15 @@ public class CH2D_Chunk
         ConvexHull = new List<CH2D_P_Index>();
     }
 
+    public void AddPolygon(List<Vector2> points)
+    {
+        Poly2D poly;
+        bool has_compiled = Poly2D.CompilePolygon(points, out poly);
+        if (!has_compiled) return;
+
+        this.AddPolygon(poly);
+        return;
+    }
     // Это единственная рабочая функция добавления полигона, можно не беспокоиться какой полигон оказывается добавлен
     // Надо обернуть все в try+carch и вернуть bool чтобы сделать эту штуку еще более безопасной. 
     public void AddPolygon(Poly2D poly) 
@@ -58,24 +67,86 @@ public class CH2D_Chunk
         // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
         // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
         // Остаток new-only добавляется как новый полигон, если он не нулевой.
-        
+        /*
         List<Vector2> v_vertices = int_vertices.Select(v => this.vertices[v]).ToList();
         for (int i = 0; i < p_overlap.Count; i++)
         {
             List<Pair> pairs = PolyPolySharedPoints(int_vertices, this.polygons[p_overlap[i]].vertices, int_poly.BBox, this.polygons[p_overlap[i]].BBox);
-            GHPolygonMerge.CutPolyInt(this.vertices, int_vertices, this.polygons[p_overlap[i]].vertices, v_vertices, GetPolyVertices(p_overlap[i]), pairs);
-        }
+            GHPolygonMerge.CutPolyInt(this.vertices, int_vertices, this.polygons[p_overlap[i]].vertices, v_vertices, GetPolyVertices(p_overlap[i]), pairs, GHPolygonMerge.default_setting);
+        }*/
+        Debug.Log(p_overlap.Count);
+        List<CH2D_Polygon> outsides = CutPolygonAgainsManyMainMonolith(int_vertices, int_poly.BBox, p_overlap);
+        Debug.Log(outsides.Count);
         
+        p_overlap.Sort();
+        p_overlap.Reverse();
+        for (int i = 0; i < p_overlap.Count; i++)
+        {
+            bool success = SoftDeletePolygon(this.polygons[p_overlap[i]]);
+            Debug.Log(success);
+        }
 
+        for (int i = 0; i < outsides.Count; i++)
+        {
+            this.DangerousAddPolygon(outsides[i]);
+            string q = ""; for (int j = 0; j < outsides[i].vertices.Count; j++) q = q + outsides[i].vertices[j].ToString() + " "; Debug.Log(q);
+            Debug.Log(outsides[i].BBox.min + " " + outsides[i].BBox.max);
+            
+        }
         int_poly.vertices = new List<CH2D_P_Index>(int_vertices);
         int_poly.initialized = true;
-        this.polygons.Add(int_poly);
+        this.DangerousAddPolygon(int_poly);
+    }
+
+    public bool DangerousAddPolygon(CH2D_Polygon poly)
+    {
+        if (poly.initialized == false)
+        {
+            List<Vector2> v = poly.vertices.Select(int_v => vertices[int_v]).ToList();
+            poly.RecalculateBBox(v);
+            poly.RecalculateOrientation(v);
+            poly.RecalculateConvexity(v);
+            poly.initialized = true;
+        }
+        this.polygons.Add(poly);
+        return true;
+    }
+
+    public void CutPolygonAgainsManyMainCutter(List<CH2D_P_Index> vertices)
+    {   // Отличается от CutPolygonAgainsManyMainMonolith тем что новый полигон работает как ножик и подразделяет оригинальные полигоны 
+        List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>();
+        Aonly.Add(new CH2D_Polygon(vertices));
+        Debug.Log("Not implemented, Cut Polygon Agains Many that uses main polygon as a divider to subdivide other polygons");
+        List<CH2D_Polygon> Bonly_return = new List<CH2D_Polygon>(); // Эти трогать не надо, в них попадают огрызки не являющиеся А.
+        List<CH2D_Polygon> Inter_return = new List<CH2D_Polygon>(); // Они просто меняться не должны особо
+        List<CH2D_Polygon> Union_return = new List<CH2D_Polygon>(); // В Union хранятся дырки-Clockwise, оболочка-CCW отбрасывается. Их надо-будет потом как-то обработать чтобы лишних дырок не наделать
+        int safety = 0; int safety_margin = 25;
+        while (Aonly.Count > 0 && safety < safety_margin) { safety += 1;
+            //List<Vector2> v_vertices = int_vertices.Select(v => this.vertices[v]).ToList();
+            
+        }
+    }
+    public List<CH2D_Polygon> CutPolygonAgainsManyMainMonolith(List<CH2D_P_Index> AV, Bounds ABBox,  List<int> p_overlap)
+    {   // Отличается от CutPolygonAgainsManyMainCutter тем что новый полигон остается неизменным. 
+        List<Vector2> ap = AV.Select(v => this.vertices[v]).ToList();
+
+        List<CH2D_Polygon> Bonly_return = new List<CH2D_Polygon>(); // Эти трогать не надо, в них попадают огрызки не являющиеся А.
+        //List<CH2D_Polygon> Inter_return = new List<CH2D_Polygon>(); // Они просто меняться не должны особо
+        //List<CH2D_Polygon> Union_return = new List<CH2D_Polygon>(); // В Union хранятся дырки-Clockwise, оболочка-CCW отбрасывается. Их надо-будет потом как-то обработать чтобы лишних дырок не наделать
+        GHPolygonMerge.CutPolyIntSetting setting = new GHPolygonMerge.CutPolyIntSetting(Union: false, Inter: false, Aonly: false, Bonly: true);
+        for (int i = 0; i < p_overlap.Count; i++)
+        {
+            List<Pair> pairs = PolyPolySharedPoints(AV, this.polygons[p_overlap[i]].vertices, ABBox, this.polygons[p_overlap[i]].BBox);
+            (var dummy_union, var dummy_inter, var dummy_a, var only_b) = GHPolygonMerge.CutPolyInt(this.vertices, AV, this.polygons[p_overlap[i]].vertices, ap, GetPolyVertices(p_overlap[i]), pairs, setting);
+            Bonly_return.AddRange(only_b);
+        }
+        return Bonly_return;
     }
 
     public void PolyMergeDelegate(int A, int B)
     {
         List<Pair> pairs = PolyPolySharedPoints(polygons[A].vertices, polygons[B].vertices, polygons[A].BBox, polygons[B].BBox);
-        GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs);
+        GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs, GHPolygonMerge.default_setting);
     }
 
     /// <summary>
@@ -131,10 +202,10 @@ public class CH2D_Chunk
         List<CH2D_P_Index> pindex = new List<CH2D_P_Index>(vertices.Count);
         for (int i = 0; i < vertices.Count; i++) pindex.Add(unique_pindex[index[i]]);
         
-        string n = ""; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
+        /*string n = ""; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
         n = ""; for (int i = 0; i < unique.Count; i++) n += unique[i] + " "; Debug.Log(n);
         n = ""; for (int i = 0; i < index.Length; i++) n += index[i] + " "; Debug.Log(n);
-        n = ""; for (int i = 0; i < pindex.Count; i++) n += pindex[i] + " "; Debug.Log(n);
+        n = ""; for (int i = 0; i < pindex.Count; i++) n += pindex[i] + " "; Debug.Log(n);*/
         return pindex;
     }
     // Кажется теперь это бесполезная функция, то что она делает решается при помощи MutualVerticeIncorporation(A, B)
@@ -394,7 +465,7 @@ public class CH2D_Chunk
             pairs.Add(new Pair(intersections[i].a_e1, intersections[i].a_e2, false));
         }
 
-        GHPolygonMerge.CutPolyInt(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs);
+        GHPolygonMerge.CutPolyInt(vertices, polygons[0].vertices, polygons[1].vertices, GetPolyVertices(0), GetPolyVertices(1), pairs, GHPolygonMerge.default_setting);
     }
 
 
@@ -615,6 +686,13 @@ public class CH2D_Chunk
         if (p < 0 | p >= this.polygons.Count) return false;
         this.polygons.RemoveAt(p);
         PurgeUnusedPoints();
+        return true;
+    }
+    private bool SoftDeletePolygon(CH2D_Polygon p)
+    {   // Soft-Deletes polygon without removing points, for internal use in CutIntPoly functions
+        int exists = this.polygons.FindIndex(poly => poly == p);
+        if (exists == -1) return false;
+        this.polygons.RemoveAt(exists);
         return true;
     }
     public void PurgeUnusedPoints()

@@ -67,10 +67,39 @@ public class CH2D_Polygon : I_BBoxSupporter
 
     public void RecalculateBBox(List<Vector2> o_vertices)
     {
+        for (int i = 0; i < o_vertices.Count; i++)
+        {
+            Debug.Log(o_vertices[i]);
+        }
         Bounds b = new Bounds();
         b.SetMinMax(o_vertices[0], o_vertices[1]);
-        for (int i = 2; i < o_vertices.Count; i++) b.Encapsulate(o_vertices[i]);
+        Debug.Log(b.min + " " + b.max);
+        for (int i = 0; i < o_vertices.Count; i++) b.Encapsulate(o_vertices[i]);
         this.BBox = b;
+    }
+    
+    public float SignedArea(List<Vector2> o_vertices)
+    {
+        return Poly2DToolbox.AreaShoelace(o_vertices);
+    }
+
+    public bool IsCounterClockwise(List<Vector2> o_vertices)
+    {
+        return this.SignedArea(o_vertices) < 0;
+    }
+    public bool IsClockwise(List<Vector2> o_vertices)
+    {
+        return this.SignedArea(o_vertices) > 0;
+    }
+    public bool RecalculateOrientation(List<Vector2> o_vertices)
+    {
+        isHole = IsCounterClockwise(o_vertices);
+        return isHole;
+    }
+    public bool RecalculateConvexity(List<Vector2> o_vertices)
+    {
+        this.convex = Poly2DToolbox.IsConvex(o_vertices, this.isHole);
+        return this.convex;
     }
 
     // Встраивает коллинеарные точки в структуру полигона
