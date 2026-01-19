@@ -48,6 +48,54 @@ public class DegeneratePolygonTest : MonoBehaviour
         Poly2D polygon2 = new Poly2D(new Vector2(1.5f, -1), new Vector2(3.5f, 2f), new Vector2(-0.5f, 2f));
         PolygonManager.GetManager().AddPolygon(polygon2);
     }
+    public static void GemCoveredUncovered()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(3, 1), new Vector2(2, 2), new Vector2(0, 2), new Vector2(-1, 1));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(2, 2), new Vector2(0, 2), new Vector2(-1, 1), new Vector2(0, 0), new Vector2(2, 0));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
+    public static void FullOverlap()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(3, 1), new Vector2(2, 2), new Vector2(0, 2), new Vector2(-1, 1));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(2, 2), new Vector2(0, 2), new Vector2(-1, 1), new Vector2(0, 0), new Vector2(2, 0), new Vector2(3, 1));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
+    public static void BanticTopBottom()
+    {
+        Poly2D polygon  = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(4, 2), new Vector2(6, 0), new Vector2(8, 0), new Vector2(8, 2), new Vector2(6, 2), new Vector2(4, 2), new Vector2(2, 2), new Vector2(0, 2)); 
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(0, 2), new Vector2(2, 2), new Vector2(4, 2), new Vector2(6, 2), new Vector2(8, 2), new Vector2(8, 4), new Vector2(6, 4), new Vector2(4, 2), new Vector2(2, 4), new Vector2(0, 4)); 
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
+    public static void BanticLeftRight()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(4, 2), new Vector2(2, 4), new Vector2(0, 4));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(4, 2), new Vector2(6, 0), new Vector2(8, 0), new Vector2(8, 4), new Vector2(6, 4));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
+    public static void TopBrickBottomBantic()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(4, 2), new Vector2(6, 0), new Vector2(8, 0), new Vector2(8, 2), new Vector2(6, 2), new Vector2(4, 2), new Vector2(2, 2), new Vector2(0, 2));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(0, 2), new Vector2(2, 2), new Vector2(4, 2), new Vector2(6, 2), new Vector2(8, 2), new Vector2(8, 4), new Vector2(6, 4), new Vector2(2, 4), new Vector2(0, 4));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
+    public static void DuplicateVertices()
+    {
+        Poly2D polygon = new Poly2D(new Vector2(-4, 0), new Vector2(-2, 0), new Vector2(-2, 2), new Vector2(-2, 2), new Vector2(-4, 2));
+        PolygonManager.GetManager().AddPolygon(polygon);
+
+        Poly2D polygon2 = new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(2, 2), new Vector2(2, 2), new Vector2(0, 2));
+        PolygonManager.GetManager().AddPolygon(polygon2);
+    }
 }
 [CustomEditor(typeof(DegeneratePolygonTest))]
 public class DegeneratePolygonTestEditor : Editor 
@@ -57,6 +105,7 @@ public class DegeneratePolygonTestEditor : Editor
 
         if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
         if (GUILayout.Button("Multiple Overlap Degenerate")) DegeneratePolygonTest.AddOverlapDegenerates();
+        if (GUILayout.Button("Duplicate Vertices")) DegeneratePolygonTest.DuplicateVertices();
         base.OnInspectorGUI();
     }
 }

@@ -31,23 +31,22 @@ public class CH2D_Chunk
         int_poly.isHole = poly.isHole;
         int_poly.convex = poly.convex;
         int_poly.BBox = poly.BBox;
-        List<CH2D_P_Index> int_vertices = new List<CH2D_P_Index>(poly.vertices.Count);
-        // Регистрация всех вершин
-        for (int i = 0; i < poly.vertices.Count; i++)
-            int_vertices.Add(AddPointIfNew(poly.vertices[i]));
+        List<CH2D_P_Index> int_vertices = AddPolygonPreprocess(poly.vertices); // Регистрация всех вершин
+        string n = "poly so far: "; for (int i = 0; i < int_vertices.Count; i++) n += int_vertices[i] + " "; Debug.Log(n);
+        //for (int i = 0; i < poly.vertices.Count; i++) int_vertices.Add(AddPointIfNew(poly.vertices[i])); 
+
         // Встройка всех коллинеарных вершин 
         List<int> p_overlap = BBoxOverlapList(poly.BBox);
         for (int i = 0; i < p_overlap.Count; i++)
         {
-            Incorporate_Bvertice_To_PolyA(int_vertices, this.polygons[p_overlap[i]].vertices);
+            Incorporate_Bvertice_To_PolyA(int_vertices, this.polygons[p_overlap[i]].vertices); // Тут может начаться бесконечный цикл если есть дубликаты точек внутри списка вершин
             //MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
         }
         
-        string n = "poly so far: "; for (int i = 0; i < int_vertices.Count; i++) n += int_vertices[i] + " "; Debug.Log(n);
         // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
         for (int i = 0; i < p_overlap.Count; i++)
             PolyPolyOnlineIntersectionOnesided(int_vertices, this.polygons[p_overlap[i]].vertices);
-
+        
         int_poly.RecalculateBBox(int_vertices.Select(int_v => vertices[int_v]).ToList());
         // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
         for (int i = 0; i < p_overlap.Count; i++) { 
@@ -59,6 +58,7 @@ public class CH2D_Chunk
         // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
         // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
         // Остаток new-only добавляется как новый полигон, если он не нулевой.
+        
         List<Vector2> v_vertices = int_vertices.Select(v => this.vertices[v]).ToList();
         for (int i = 0; i < p_overlap.Count; i++)
         {
@@ -94,6 +94,7 @@ public class CH2D_Chunk
         //Debug.Log(vertices.Count);
         return new CH2D_P_Index( this.vertices.Count - 1);
     }
+
     public CH2D_P_Index AddPointIfNew(Vector2 point)
     {
         for (int i = 0; i < this.polygons.Count; i++)
@@ -105,7 +106,36 @@ public class CH2D_Chunk
                 if (Poly2DToolbox.PointSimilarity(point, this.vertices[p])) return p;
             }
         }
+        //if (this.polygons.Count == 0) for (int i = 0; i < this.vertices.Count; i++) if (Poly2DToolbox.PointSimilarity(point, this.vertices[i])) return new CH2D_P_Index(i);
+
         return AddPoint(point);
+    }
+    public List<CH2D_P_Index> AddPolygonPreprocess(List<Vector2> vertices)
+    {
+        List<Vector2> unique = new List<Vector2>(vertices.Count);
+        Span<int> index = stackalloc int[vertices.Count]; 
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            int similar = -1;
+            for (int u = 0; u < unique.Count; u++)
+            {
+                if (unique[u] == vertices[i]) { similar = u; break; }
+            }
+            if (similar == -1) unique.Add(vertices[i]);
+            similar = similar == -1 ? unique.Count - 1 : similar;
+            index[i] = similar;
+        }
+        List<CH2D_P_Index> unique_pindex = new List<CH2D_P_Index>();
+        for (int i = 0; i < unique.Count; i++) unique_pindex.Add(AddPointIfNew(unique[i]));
+        
+        List<CH2D_P_Index> pindex = new List<CH2D_P_Index>(vertices.Count);
+        for (int i = 0; i < vertices.Count; i++) pindex.Add(unique_pindex[index[i]]);
+        
+        string n = ""; for (int i = 0; i < vertices.Count; i++) n += vertices[i] + " "; Debug.Log(n);
+        n = ""; for (int i = 0; i < unique.Count; i++) n += unique[i] + " "; Debug.Log(n);
+        n = ""; for (int i = 0; i < index.Length; i++) n += index[i] + " "; Debug.Log(n);
+        n = ""; for (int i = 0; i < pindex.Count; i++) n += pindex[i] + " "; Debug.Log(n);
+        return pindex;
     }
     // Кажется теперь это бесполезная функция, то что она делает решается при помощи MutualVerticeIncorporation(A, B)
     public CH2D_P_Index AddPointIfNewConvoluted(Vector2 point)
@@ -377,6 +407,7 @@ public class CH2D_Chunk
             CH2D_Edge ae = new CH2D_Edge(a_v[a], a_v[(a + 1) % a_v.Count]);
             for (int b = 0; b < b_v.Count; b++)
             {
+
                 CH2D_P_Index bv = b_v[b];
                 if (bv == ae.A | bv == ae.B) continue;
                 

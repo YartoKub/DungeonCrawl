@@ -33,103 +33,197 @@ public static class GHPolygonMerge
         if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null); }
 
         (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
-        (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(Ainter, Binter, A, B);
-        
-        // DEBUG DRAW
-        //for (int i = 0; i < intersections.Count; i++) DebugUtilities.DebugDrawSquare(V[A[intersections[i].A]], Color.yellow, time:5f);
-        for (int i = 0; i < Ainter.Length; i++)
-        {
-            if (Ainter[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red, time: 5f);
-            else if (Ainter[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue, time: 5f);
-            else if (Ainter[i] >= 0) { DebugUtilities.DebugDrawSquare(V[A[i]], Color.yellow, time: 5f); }
-            else { DebugUtilities.DebugDrawSquare(V[A[i]], Color.white, time: 5f); }
-        }
-        
-        for (int i = 0; i < Binter.Length; i++)
-        {
-            if (Binter[i] == out_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.red, time: 5f);
-            else if (Binter[i] == inn_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.blue, time: 5f);
-            else if (Binter[i] >= 0) { DebugUtilities.DebugDrawSquare(V[B[i]], Color.yellow, time: 5f); }
-            else { DebugUtilities.DebugDrawSquare(V[B[i]], Color.white, time: 5f); } 
-        }
+        (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
+        EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
+        EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
 
-        // DEBUG DRAW
-        /*
-        for (int i = 0; i < Aedges.Length; i++)
-        {
-            Color color = Color.black;
-            switch (Aedges[i])
-            {
-                case EdgeSide.None: color = Color.white; break;
-                case EdgeSide.Inside: color = Color.green; break;
-                case EdgeSide.Outside: color = Color.red; break;
-                case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
-                case EdgeSide.Out_Colin: color = Color.pink; break;
-            }
-            DebugUtilities.DebugDrawLine(V[A[i]], V[A[(i + 1) % Aedges.Length]], color, 3f);
-        }
-        
-        for (int i = 0; i < Bedges.Length; i++)
-        {
-            Color color = Color.black;
-            switch (Bedges[i])
-            {
-                case EdgeSide.None: color = Color.white; break;
-                case EdgeSide.Inside: color = Color.green; break;
-                case EdgeSide.Outside: color = Color.red; break;
-                case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
-                case EdgeSide.Out_Colin: color = Color.pink; break;
-            }
-            DebugUtilities.DebugDrawLine(V[B[i]], V[B[(i + 1) % Bedges.Length]], color, 6f);
-        }*/
         string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae);
         string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
         ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae);
         be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);
-        /*
+
+        Debug.Log("<color='red'>==== Union ====</color>");
+        List<CH2D_Polygon> Union = new List<CH2D_Polygon>(); List<CH2D_Polygon> Inter = new List<CH2D_Polygon>(); List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>(); List<CH2D_Polygon> Bonly = new List<CH2D_Polygon>();
+        Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
+
+        Debug.Log("<color='red'>==== Intersectiion ====</color>");
+        BufferAedge.CopyTo(Aedges, 0);
+        BufferBedge.CopyTo(Bedges, 0);
+        Inter = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Inter);
+
         Debug.Log("<color='red'>==== A ONLY ====</color>");
-        List<CH2D_Polygon> Aonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Aonly);
-        for (int i = 0; i < Aonly.Count; i++)
-        {
-            int a_v_count = Aonly[i].vertices.Count;
-            for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 2f + 1f * i); //2f + 1f * i, 0.3f
-            }
-        }
+        BufferAedge.CopyTo(Aedges, 0);
+        BufferBedge.CopyTo(Bedges, 0);
+        Aonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Aonly);
 
         Debug.Log("<color='red'>==== B ONLY ====</color>");
-        List<CH2D_Polygon> Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
-        for (int i = 0; i < Bonly.Count; i++)
-        {
-            int a_v_count = Bonly[i].vertices.Count;
-            for (int x = 0; x < a_v_count; x++)
-            {
-                int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 2f + Aonly.Count + 1f * i); //2f + 1f * i, 0.3f
-            }
-        }
-        Debug.Log("<color='red'>==== Intersectiion ====</color>");
-        List<CH2D_Polygon> Inter = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Inter);
+        Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
+
+        //"<color='red'>==== Intersectiion ====</color>");
+        float default_offset = 2f;
+        float ab_offset = 1f + Mathf.Max(Aonly.Count, Bonly.Count);
+        float union_offset = 1f + Union.Count;
         for (int i = 0; i < Inter.Count; i++)
         {
             int a_v_count = Inter[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
             {
                 int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 2f + 1f * i); //2f + 1f * i, 0.3f
+                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0.5f, 0f), new Color(0.2f, 1f, 0.2f), x, a_v_count - 1), default_offset + ab_offset + union_offset + 1f * i); //2f + 1f * i, 0.3f
             }
-        }*/
-        Debug.Log("<color='red'>==== Union ====</color>");
-        List<CH2D_Polygon> Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
+        }
+
+        //"<color='red'>==== Union ====</color>");
+        
         for (int i = 0; i < Union.Count; i++)
         {
             int a_v_count = Union[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
             {
                 int y = (x + 1) % a_v_count;
-                DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 2f + 1f * i); //2f + 1f * i, 0.3f
+                DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + ab_offset + 1f * i); //2f + 1f * i, 0.3f
+            }
+        }
+
+        //"<color='red'>==== A ONLY ====</color>");
+        for (int i = 0; i < Aonly.Count; i++)
+        {
+            int a_v_count = Aonly[i].vertices.Count;
+            for (int x = 0; x < a_v_count; x++)
+            {
+                int y = (x + 1) % a_v_count;
+                //DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet);
+
+                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0.5f, 0f, 0f), new Color(1f, 0.2f, 0.2f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
+            }
+        }
+
+        //"<color='red'>==== B ONLY ====</color>");
+        for (int i = 0; i < Bonly.Count; i++)
+        {
+            int a_v_count = Bonly[i].vertices.Count;
+            for (int x = 0; x < a_v_count; x++)
+            {
+                int y = (x + 1) % a_v_count;
+                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
+            }
+        }
+
+
+
+        Debug.Log("Aonly: " + Aonly.Count + " Bonly: " + Bonly.Count + " Inter: " + Inter.Count + " Union: " + Union.Count);
+        return (null, null, null);
+    }
+
+    public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) PolyPolyTest(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, bool drawPoints, bool drawEdges, bool InterCalc, bool UnionCalc, bool AonlyCalc, bool BonlyCalc)
+    {   // Ќичего не записывает, но все отображает
+        if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null); }
+
+        (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
+        (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
+        EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
+        EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
+        if (drawPoints) {
+            for (int i = 0; i < Ainter.Length; i++)  {
+                if (Ainter[i] == out_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.red, time: 5f);
+                else if (Ainter[i] == inn_point) DebugUtilities.DebugDrawSquare(V[A[i]], Color.blue, time: 5f);
+                else if (Ainter[i] >= 0) { DebugUtilities.DebugDrawSquare(V[A[i]], Color.yellow, time: 5f); }
+                else { DebugUtilities.DebugDrawSquare(V[A[i]], Color.white, time: 5f); }
+            }
+
+            for (int i = 0; i < Binter.Length; i++) {
+                if (Binter[i] == out_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.red, time: 5f);
+                else if (Binter[i] == inn_point) DebugUtilities.DebugDrawSquare(V[B[i]], Color.blue, time: 5f);
+                else if (Binter[i] >= 0) { DebugUtilities.DebugDrawSquare(V[B[i]], Color.yellow, time: 5f); }
+                else { DebugUtilities.DebugDrawSquare(V[B[i]], Color.white, time: 5f); }
+            }
+        }
+        if (drawEdges){
+            for (int i = 0; i < Aedges.Length; i++)  {
+                Color color = Color.black;
+                switch (Aedges[i]) {
+                    case EdgeSide.None: color = Color.white; break;
+                    case EdgeSide.Inside: color = Color.green; break;
+                    case EdgeSide.Outside: color = Color.red; break;
+                    case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
+                    case EdgeSide.Out_Colin: color = Color.pink; break;
+                }
+                DebugUtilities.DebugDrawLine(V[A[i]], V[A[(i + 1) % Aedges.Length]], color, 3f);
+            }
+
+            for (int i = 0; i < Bedges.Length; i++) {
+                Color color = Color.black;
+                switch (Bedges[i]) {
+                    case EdgeSide.None: color = Color.white; break;
+                    case EdgeSide.Inside: color = Color.green; break;
+                    case EdgeSide.Outside: color = Color.red; break;
+                    case EdgeSide.Inn_Colin: color = Color.greenYellow; break;
+                    case EdgeSide.Out_Colin: color = Color.pink; break;
+                }
+                DebugUtilities.DebugDrawLine(V[B[i]], V[B[(i + 1) % Bedges.Length]], color, 6f);
+            }
+        }
+        
+        string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae);
+        string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
+        ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae);
+        be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);
+
+        Debug.Log("<color='red'>==== Union Calculation ====</color>");
+        List<CH2D_Polygon> Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
+
+        Debug.Log("<color='red'>==== Intersectiion Calculation ====</color>");
+        BufferAedge.CopyTo(Aedges, 0);
+        BufferBedge.CopyTo(Bedges, 0);
+        List<CH2D_Polygon> Inter = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Inter);
+
+        Debug.Log("<color='red'>==== A ONLY Calculation ====</color>");
+        BufferAedge.CopyTo(Aedges, 0);
+        BufferBedge.CopyTo(Bedges, 0);
+        List<CH2D_Polygon> Aonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Aonly);
+
+        Debug.Log("<color='red'>==== B ONLY Calculation ====</color>");
+        List<CH2D_Polygon> Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
+        Debug.Log("Aonly: " + Aonly.Count + " Bonly: " + Bonly.Count + " Inter: " + Inter.Count + " Union: " + Union.Count);
+
+        if (InterCalc) {
+            for (int i = 0; i < Inter.Count; i++){
+                int a_v_count = Inter[i].vertices.Count;
+                for (int x = 0; x < a_v_count; x++) {
+                    int y = (x + 1) % a_v_count;
+                    DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0.5f, 0f), new Color(0.2f, 1f, 0.2f), x, a_v_count - 1), 5f); //2f + 1f * i, 0.3f
+                }
+            }
+        }
+        
+        if (UnionCalc) {
+            for (int i = 0; i < Union.Count; i++){
+                int a_v_count = Union[i].vertices.Count;
+                for (int x = 0; x < a_v_count; x++) {
+                    int y = (x + 1) % a_v_count;
+                    DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[y]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), 5f); //2f + 1f * i, 0.3f
+                }
+            }
+        }
+
+        if (AonlyCalc) {
+            for (int i = 0; i < Aonly.Count; i++) {
+                int a_v_count = Aonly[i].vertices.Count;
+                for (int x = 0; x < a_v_count; x++) {
+                    int y = (x + 1) % a_v_count;
+                    //DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet);
+                    DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0.5f, 0f, 0f), new Color(1f, 0.2f, 0.2f), x, a_v_count - 1), 5f); //2f + 1f * i, 0.3f
+                }
+            }
+        }
+        
+        if (BonlyCalc) {
+            for (int i = 0; i < Bonly.Count; i++) {
+                int a_v_count = Bonly[i].vertices.Count;
+                for (int x = 0; x < a_v_count; x++) {
+                    int y = (x + 1) % a_v_count;
+                    DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[y]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), 5f); //2f + 1f * i, 0.3f
+                }
             }
         }
         return (null, null, null);
@@ -140,23 +234,23 @@ public static class GHPolygonMerge
         Debug.Log("ѕожалуйста подними safety до какого-нибудь приличного числа!");
         List<CH2D_Polygon> polygons = new List<CH2D_Polygon>();
         (List<int> start_A, List<int> start_B) = GetEntryPoints(Aedge, Bedge, operation);
-        string n = "Aedge: ";   for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
-        n = "Bedge: ";          for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
-        int safety = 0;
+        //string n = "Aedge: ";   for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
+        //n = "Bedge: ";          for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
+        int safety = 0; int safety_margin = start_A.Count + start_B.Count;
         //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
 
-        while (((start_A.Count + start_B.Count) > 0) && safety < 4)
+        while (((start_A.Count + start_B.Count) > 0) && safety < 20)
         {
             safety += 1;
             (poly AorB, int pos) = PickStart(start_A, start_B, Aedge, Bedge);
-            n = "Aedge: "; for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
-            n = "Bedge: "; for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
+            //n = "Aedge: "; for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
+            //n = "Bedge: "; for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
             //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
             if (pos == -1) { Debug.Log("No start location is valid!"); break; }
-            Debug.Log(AorB + " " + pos);
+            // Debug.Log(AorB + " " + pos);
 
             (bool good_loop, List<CH2D_P_Index> new_loop) = IsolateLoop(A, B, Ainter, Binter, Aedge, Bedge, AorB, pos, operation); // A - moving CCW; B - moving CW;
-            n = "<b><color=white>Final Point Count:</b></color> "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
+            //n = "<b><color=white>Final Point Count:</b></color> "; for (int i = 0; i < new_loop.Count; i++) n += new_loop[i] + ", "; Debug.Log(n);
             if (good_loop) polygons.Add(new CH2D_Polygon(new_loop));
         }
 
@@ -170,32 +264,29 @@ public static class GHPolygonMerge
         int A_diff = 1; int B_diff = 1; int A_off = 0; int B_off = 0;
         if (operation == BooleanOperation.Aonly) { A_diff = 1; B_diff = -1; A_off = 0; B_off = -1; }
         if (operation == BooleanOperation.Bonly) { A_diff = -1; B_diff = 1; A_off = -1; B_off = 0; }
-
-        int curr_a = startP == poly.A ? s_pos - A_off : -1; int curr_b = startP == poly.B ? s_pos - B_off : -1;
+        
+        int curr_a = startP == poly.A ? (s_pos - A_off) % Aedge.Length : -1;
+        int curr_b = startP == poly.B ? (s_pos - B_off) % Bedge.Length : -1;
         int start_a = (curr_a == -1) ? (Binter[curr_b] >= 0 ? Binter[curr_b] : -1) : curr_a;
         int start_b = (curr_b == -1) ? (Ainter[curr_a] >= 0 ? Ainter[curr_a] : -1) : curr_b;
 
-        Debug.Log("Aoff " + A_off + " Boff " + B_off);
+        /*Debug.Log("Aoff " + A_off + " Boff " + B_off);
         Debug.Log("Isolate Loop Start: side: " + curr_a + " pos: " + curr_b);
         Debug.Log("Isolate Loop Start points: a " + start_a + " b: " + start_b);
-
         string n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-        n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
+        n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);*/
         int safety = -1;
         bool goodLoop = false;
-        while (safety < 25)
+        while (safety < 35)
         {
             points.Add(curr_a < 0 ? Bv[curr_b] : Av[curr_a]);
             safety++;
-            Debug.Log("<b>STEP</b>, " + curr_a + " " + curr_b);
+            //Debug.Log("<b>STEP</b>, " + curr_a + " " + curr_b);
             // curr_a и curr_b, только одно значение может иметь функциональное значение. Ёто означает что перезапись здесь будет лишь одна
             int next_a_index = -99; int next_b_index = -99;
-            EdgeSide curr_side = EdgeSide.None;
             EdgeSide next_a_side = EdgeSide.None; EdgeSide next_b_side = EdgeSide.None;
-
             if (curr_a >= 0)
             {// A only valid
-                //curr_a = curr_a;
                 next_a_index = (curr_a + A_diff + Aedge.Length) % Aedge.Length;
                 int next_a_index_value = (curr_a + A_diff + A_off + Aedge.Length) % Aedge.Length;
                 next_a_side = Aedge[next_a_index_value];
@@ -207,6 +298,11 @@ public static class GHPolygonMerge
                     next_b_index = curr_b;
                     int next_b_index_value = (curr_b + B_off + Bedge.Length) % Bedge.Length;
                     next_b_side = Bedge[next_b_index_value];
+                }
+                if (next_a_side == EdgeSide.Out_Colin && operation == BooleanOperation.Union)
+                {
+                    next_a_index = Binter[next_b_index];
+                    next_a_side = Aedge[next_a_index];
                 }
             }
             else/*(curr_b >= 0)*/
@@ -223,15 +319,20 @@ public static class GHPolygonMerge
                     int next_a_index_value = (curr_a + A_off + Aedge.Length) % Aedge.Length;
                     next_a_side = Aedge[next_a_index_value];
                 }
-                
+                if (next_b_side == EdgeSide.Out_Colin && operation == BooleanOperation.Union)
+                {
+                    next_b_index = Ainter[next_a_index];
+                    next_b_side = Bedge[next_b_index];
+                }
             }
-            Debug.Log(curr_side + " a: " + curr_a + " " + next_a_index + " " + next_a_side + " b: " + curr_b + " " + next_b_index + " " + next_b_side);
-            //Debug.Log(curr_side + " " + next_a_index + " " + next_a_side + " " + next_b_index + " " + next_b_side);
+            /*Debug.Log(curr_side + " a: " + curr_a + " " + next_a_index + " " + next_a_side + " b: " + curr_b + " " + next_b_index + " " + next_b_side);
             n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
-
-            //if (next_b_index == start_b | next_a_index == start_a) { Debug.Log("<color=green>Next A is finish point, leaving loop</color>"); goodLoop = true; break; }
-            if ((next_a_index == start_a | next_b_index == start_b)) { Debug.Log("<color=green>Current point is finish point, leaving</color>"); goodLoop = true; break; }
+            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);*/
+            if ((next_a_index == start_a | next_b_index == start_b)) 
+            {   //Debug.Log("<color=green>Current point is finish point, leaving</color>");
+                goodLoop = true;
+                break; 
+            }
             poly next_p = poly.None;
             switch (operation)
             {
@@ -241,7 +342,7 @@ public static class GHPolygonMerge
                 case BooleanOperation.Inter: next_p = LCS_Inter(next_a_side, next_b_side); break;
             }
             
-            Debug.Log("<b> Return: </b> " + next_p);
+            //Debug.Log("<b> Return: </b> " + next_p);
             if (next_p == poly.None) { Debug.Log("<color=red>Bad ending</color>"); goodLoop = false; break; }
             curr_a = next_p == poly.A ? next_a_index : -1;
             curr_b = next_p == poly.B ? next_b_index : -1;
@@ -251,6 +352,7 @@ public static class GHPolygonMerge
 
 
         }
+        if (safety >= 35) Debug.Log("<color=orange>Ran out of safety margins, Comissar Yarrick, please consider rising safety limit here to a highert value</color>");
         return (goodLoop, points);
     }
 
