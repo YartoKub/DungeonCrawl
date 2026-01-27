@@ -27,14 +27,22 @@ public static class GHPolygonMerge
          |    B     |                                     |   Bonly  | + - cross 
          o----------o                                     o----------o o - outside
      */
-    // Этот код ожидает что все пересечения заранее известны и находятся в списке intersections
+    // Этот код ожидает что все пересечения заранее известны и находятся в списке intersections     
     public struct CutPolyIntSetting { public bool Union, Inter, Aonly, Bonly; 
         public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly) { this.Union = Union; this.Inter = Inter; this.Aonly = Aonly; this.Bonly = Bonly;  }
     }
     public static CutPolyIntSetting default_setting { get { return new CutPolyIntSetting(true, true, true, true); } }
     public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting)
     {
-        if (intersections.Count == 0) { Debug.Log("Нет пересечений междлу полигонами"); return (null, null, null, null); }
+        if (intersections.Count == 0) { 
+            if (Poly2DToolbox.IsPointInsidePolygon(Bp[0], Ap))
+            {   // Точка внутри полигона
+                Debug.Log("Полигон B полностью содержится внутри полигона A");
+                return (new List<CH2D_Polygon>(), new List<CH2D_Polygon>(){new CH2D_Polygon(B) }, new List<CH2D_Polygon>(), new List<CH2D_Polygon>());
+            }
+            
+            Debug.Log("Нет пересечений междлу полигонами"); return (null, null, null, null);
+        }
 
         (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
         (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);

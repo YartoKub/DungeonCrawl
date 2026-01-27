@@ -77,7 +77,8 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Bantic Top/Bottom")) DegeneratePolygonTest.BanticTopBottom();
         if (GUILayout.Button("Top Brick Bottom Bantic")) DegeneratePolygonTest.TopBrickBottomBantic();
         EditorGUILayout.LabelField("Multitude Tests");
-        if (GUILayout.Button("Half Square and square test")) DegeneratePolygonTest.ThreeTriangleTest(); 
+        if (GUILayout.Button("Half Square and square test")) DegeneratePolygonTest.ThreeTriangleTest();
+        EditorGUILayout.LabelField("Other actions");
         if (GUILayout.Button("Activate Chosen Action on A and B")) manager.CallFunctionOnChosen();
         base.OnInspectorGUI();
     }
@@ -279,7 +280,7 @@ public class GUI_AddPolygonStateMachine : GUIStateMachine<PolygonManager>
     private void CompilePolygon(PolygonManager manager)
     {
         Poly2D poly;
-        bool has_compiled = Poly2D.CompilePolygon(this.points, out poly);
+        bool has_compiled = Poly2D.CompilePolygon(this.points, out poly, manager.orientation);
         if (!has_compiled) return;
 
         manager.AddPolygon(poly);

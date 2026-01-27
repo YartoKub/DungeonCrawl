@@ -22,6 +22,7 @@ public class PolygonManager : MonoBehaviour
     [Range(-1, 20)] public int HierarchyLevel;
     [Range(-1, 100)] public int PointHighlighter;
     [SerializeField] public DebugUtilities.GradientOption option;
+    [SerializeField] public Orientation orientation;
     [SerializeField] public List<Vector2> points;
     [SerializeField] public List<Poly2D> polygons;
 
@@ -36,7 +37,11 @@ public class PolygonManager : MonoBehaviour
         IncorporateMutualPoints, 
         IncorporateBPointsToA,
         PolyMergeDelegate,
-        RainbowColor
+        RainbowColor,
+        GetNewVectorForTests,
+        FindSharedEdge,
+        RecalculateConnectionGraph,
+        FindSharedEdgeContinuities
     }
     public void CallFunctionOnChosen()
     {
@@ -63,11 +68,42 @@ public class PolygonManager : MonoBehaviour
                 if (selected1 == selected2) { Debug.Log("Выбран один и тот же полигон!"); break; }
                 my_chunk.PolyMergeDelegate(selected1, selected2);
                 break;
+            case ChunkAction.GetNewVectorForTests:
+                if (selected1 == -1) { Debug.Log("Нужно один полигон!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count)) { Debug.Log("Выбран полигон с индексом превышающий количество полигонов в чанке!"); break; }
+                this.GetNewVectorsForTests(selected1);
+                break;
+            case ChunkAction.FindSharedEdge:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                (bool found, CH2D_P_Index i1, CH2D_P_Index i2) = my_chunk.GetSharedEdge(selected1, selected2);
+                if (found) DebugUtilities.DebugDrawLine(my_chunk.vertices[i1], my_chunk.vertices[i2], Color.red, 5f);
+                else { Debug.Log("No shared edge!"); }
+                break;
+            case ChunkAction.FindSharedEdgeContinuities:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                my_chunk.GetSharedEdgeContinuities(selected1, selected2);
+                break;
+            case ChunkAction.RecalculateConnectionGraph:
+                this.my_chunk.ConnectionsRecalculateAll();
+                break;
             default:
                 break;
         }
 
         SelectedChunkAction = ChunkAction.Nothing;
+    }
+    private void GetNewVectorsForTests(int polyindex)
+    {
+        if (polyindex < 0 | polyindex >= this.my_chunk.polygons.Count) return;
+        List<CH2D_P_Index> pi = this.my_chunk.polygons[polyindex].vertices;
+        string to_debug = "";
+        for (int i = 0; i < pi.Count; i++)
+        {
+            to_debug += "new Vector2(" + this.my_chunk.vertices[pi[i]].x + ", " + this.my_chunk.vertices[pi[i]].y + "), ";
+        }
+        Debug.Log(to_debug);
     }
     private PolygonManager()
     {
@@ -106,7 +142,7 @@ public class PolygonManager : MonoBehaviour
         HandlesDrawHierarchy(HierarchyLevel);
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
 
-        this.my_chunk.HandlesDrawSelf();
+        this.my_chunk.HandlesDrawSelf(DisplayHierarchy);
         HandlesDrawSelection();
         HandlesDrawSelectionSecondary();
     }

@@ -283,6 +283,11 @@ public static class DebugUtilities
     {
         string n = ""; for (int i = 0; i < list.Length; i++) n += list[i] + separator; Debug.Log(n);
     }
+    public static string DebugListString<T>(T[] list, string separator = ", ")
+    {
+        string n = ""; for (int i = 0; i < list.Length; i++) n += list[i] + separator;
+        return n;
+    }
 
 }
 

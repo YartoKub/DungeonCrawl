@@ -6,10 +6,11 @@ public class FullMatrixGraph : GraphDataStorage
     public new NavBoxInt[] vertices; // У родительского класса
     //public int vCount; // У родительского касса
     public bool[] connections;
+    public override int vCount { get { return vertices.Length; } }
 
     public FullMatrixGraph(List<NavBoxInt> _vertices)
     {
-        vCount = _vertices.Count;
+        //vCount = _vertices.Count;
         vertices = new NavBoxInt[vCount];
         connections = new bool[vCount * vCount];
 

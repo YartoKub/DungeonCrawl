@@ -2,14 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class IntMatrixGraph : GraphDataStorage
-{
+{   // Проблема этого графа в том что он при добавлении и удалении вершин требует пересоздания,
     //public int vCount; // У родительского касса
     public bool[] connections;
+    public override int vCount { get { return connections.Length; } }
     //public List<IGraphNode> vertices; // У родлительского класса
 
     public IntMatrixGraph(List<IGraphNode> _vertices)
     {
-        vCount = _vertices.Count;
+        //vCount = _vertices.Count;
         connections = new bool[vCount * vCount];
 
         this.setConnectionMatrix(false);
@@ -18,7 +19,7 @@ public class IntMatrixGraph : GraphDataStorage
 
     public IntMatrixGraph(int VCount)
     {
-        vCount = VCount;
+        //vCount = VCount;
         connections = new bool[vCount * vCount];
 
         //this.setConnectionMatrix(false);

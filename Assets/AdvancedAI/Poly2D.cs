@@ -36,7 +36,7 @@ public class Poly2D : I_BBoxSupporter
         // Dummy poly
     }
 
-    public static bool CompilePolygon(List<Vector2> points, out Poly2D out_poly)
+    public static bool CompilePolygon(List<Vector2> points, out Poly2D out_poly, Orientation orientation = Orientation.Any)
     {
         out_poly = new Poly2D();
         if (points.Count < 3) return false;
@@ -44,7 +44,9 @@ public class Poly2D : I_BBoxSupporter
         if (Poly2DToolbox.HasDoubleVertices(points)) return false;
 
         out_poly = new Poly2D(new List<Vector2>(points));
-        out_poly.isHole = out_poly.IsCounterClockwise();
+        if (orientation == Orientation.CounterClockwise) out_poly.Orient(false);
+        else if (orientation == Orientation.Clockwise) out_poly.Orient(true);
+        else out_poly.isHole = out_poly.IsCounterClockwise();
         out_poly.convex = Poly2DToolbox.IsConvex(out_poly.vertices, out_poly.isHole);
         //Debug.Log(out_poly.convex);
         return true;
@@ -80,7 +82,8 @@ public class Poly2D : I_BBoxSupporter
 
     public void Orient(bool IsCounterClockwise)
     {
-        if (this.IsCounterClockwise() == IsCounterClockwise) return;
+        isHole = IsCounterClockwise;
+        if (this.IsCounterClockwise() == IsCounterClockwise) return; 
         this.vertices.Reverse();
     }
     public float Area()

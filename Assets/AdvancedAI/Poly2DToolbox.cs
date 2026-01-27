@@ -22,6 +22,7 @@ public struct Neighbours
     int A, B, C;
     public Neighbours(int a, int b, int c) { this.A = a; this.B = b; this.C = c; }
 }
+public enum Orientation { None, Clockwise, CounterClockwise, Any}
 
 public static class Poly2DToolbox
 {
