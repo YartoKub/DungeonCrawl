@@ -23,6 +23,15 @@ public struct Neighbours
     public Neighbours(int a, int b, int c) { this.A = a; this.B = b; this.C = c; }
 }
 public enum Orientation { None, Clockwise, CounterClockwise, Any}
+/// <summary>
+/// Describes how polygon B relates to polygon A. <br/>
+/// Full describes poly B completely inside/outside poly A, not points are shared <br/>
+/// Touching describes poly B fully outside/inside poly A, but they share at least one edge, or a point perhaps<br/>
+/// Intersecting describes that poly B intersects with A, so some edges of B are inside A, and some edges of A are inside B.<br/>
+/// Functions should return on e of following: OutsideTouching, OutsideFull, Intersecting, InsideFull, InsideTouching.<br/>
+/// OutsideAny and InsideAny should be reserved for checks, and None i do not know why, but let it be, let it be, let it be, let it be, whisper words of wisdom, let it be
+/// </summary>
+public enum PolygonIntersection { OutsideFull, OutsideTouching, Intersecting, InsideTouching, InsideFull, OutsideAny, InsideAny, None}
 
 public static class Poly2DToolbox
 {
@@ -292,7 +301,7 @@ public static class Poly2DToolbox
     }
     public static bool LinePolyIntersection(Vector2 A, Vector2 B, List<Vector2> obstacle, Bounds BBox)
     {
-        bool BBoxCheck = BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, BBox);
+        bool BBoxCheck = BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, BBox.min, BBox.max);
         if (!BBoxCheck) return false;
         for (int i = 0; i < obstacle.Count; i++)
         {
@@ -641,6 +650,24 @@ public static class Poly2DToolbox
     public static float AreaTriangle(Vector2 A, Vector2 B, Vector2 C)
     {
         return ( A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y)) * 0.5f;
+    }
+
+    public static float Perimeter(List<Vector2> points)
+    {
+        float perimeter = 0;
+        for (int i = 0; i < points.Count - 1; i++) // ¬се звень€ кроме последнего
+            perimeter += Vector2.Distance(points[i], points[i + 1]);
+        perimeter += Vector2.Distance(points[points.Count - 1], points[0]); // последнее звено
+        return perimeter;
+    }
+
+    public static bool IsCounterClockwise(List<Vector2> vertices)
+    {
+        return AreaShoelace(vertices) > 0;
+    }
+    public static bool IsClockwise(List<Vector2> vertices)
+    {
+        return AreaShoelace(vertices) < 0;
     }
     public static bool SelfIntersectionNaive(List<Vector2> points)
     {

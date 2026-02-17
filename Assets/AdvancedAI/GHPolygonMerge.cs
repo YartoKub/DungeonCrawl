@@ -15,7 +15,7 @@ public static class GHPolygonMerge
     const int out_point = -2;
     const int used_point = -3;
     const int no_point = -4;
-    private enum EdgeSide {None = 0, Inside, Outside, Out_Colin, Inn_Colin, Used}
+    public enum EdgeSide {None = 0, Inside, Outside, Out_Colin, Inn_Colin, Used}
     /* ѕоиск разностей начинаетс€ с любой внутренней или наружней точке 
      * «апоминаетс€ сторона начальной точки и начальное направление. Ќа пересечении провер€етс€ следующа€ точка полигона A и предыдуща€ точка полигона B. 
      * ѕри проходе через наружную/внутреннюю точку она закрашиваетс€ чтобы ее нельз€ было выбрать повторно. “очки пересечени€.
@@ -28,32 +28,36 @@ public static class GHPolygonMerge
          o----------o                                     o----------o o - outside
      */
     // Ётот код ожидает что все пересечени€ заранее известны и наход€тс€ в списке intersections     
-    public struct CutPolyIntSetting { public bool Union, Inter, Aonly, Bonly; 
-        public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly) { this.Union = Union; this.Inter = Inter; this.Aonly = Aonly; this.Bonly = Bonly;  }
+    public struct CutPolyIntSetting {
+        public bool Union, Inter, Aonly, Bonly;
+        public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly) 
+        { 
+            this.Union = Union; this.Inter = Inter; this.Aonly = Aonly; this.Bonly = Bonly; 
+        }
     }
     public static CutPolyIntSetting default_setting { get { return new CutPolyIntSetting(true, true, true, true); } }
-    public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting)
+    public static (int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) GetIntersectionAndMarkings(
+        List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
-        if (intersections.Count == 0) { 
-            if (Poly2DToolbox.IsPointInsidePolygon(Bp[0], Ap))
-            {   // “очка внутри полигона
-                Debug.Log("ѕолигон B полностью содержитс€ внутри полигона A");
-                return (new List<CH2D_Polygon>(), new List<CH2D_Polygon>(){new CH2D_Polygon(B) }, new List<CH2D_Polygon>(), new List<CH2D_Polygon>());
-            }
-            
-            Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null, null);
-        }
-
-        (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
+        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
         (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
+        return (Ainter, Binter, BufferAedge, BufferBedge);
+    }
+    public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(
+        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting)
+    {
+        (int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = GetIntersectionAndMarkings(A, B, Ap, Bp, intersections);
+        return CutPolyInt(V, A, B, Ap, Bp, intersections, setting, Ainter, Binter, BufferAedge, BufferBedge);
+    }
+    public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(
+        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting, int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge)
+    {
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
 
         string intersections_s = "intersectins: "; for (int i = 0; i < intersections.Count; i++) intersections_s += " (" + intersections[i].A  + " " + intersections[i].B + ") "; Debug.Log(intersections_s);
-        string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae);
-        string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
-        ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae);
-        be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);
+        string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae); string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
+        ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae); be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);
 
         Debug.Log("<color='red'>==== Union ====</color>");
         List<CH2D_Polygon> Union = new List<CH2D_Polygon>(); List<CH2D_Polygon> Inter = new List<CH2D_Polygon>(); List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>(); List<CH2D_Polygon> Bonly = new List<CH2D_Polygon>();
@@ -71,7 +75,7 @@ public static class GHPolygonMerge
 
         Debug.Log("<color='red'>==== B ONLY ====</color>");
         if (setting.Bonly) Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
-
+        /*
         //"<color='red'>==== Intersectiion ====</color>");
         float default_offset = 2f;
         float ab_offset = 1f + Mathf.Max(Aonly.Count, Bonly.Count);
@@ -98,7 +102,7 @@ public static class GHPolygonMerge
             int a_v_count = Bonly[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
                 DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
-        }
+        }*/
 
         Debug.Log("<b><color=red> Aonly: " + Aonly.Count + "</color><color=blue> Bonly: " + Bonly.Count + "</color> <color=green>Inter: " + Inter.Count + "</color><color=yellow> Union: " + Union.Count + " </color></b>");
         return (Union, Inter, Aonly, Bonly);
@@ -108,7 +112,7 @@ public static class GHPolygonMerge
     {   // Ќичего не записывает, но все отображает
         if (intersections.Count == 0) { Debug.Log("Ќет пересечений междлу полигонами"); return (null, null, null); }
 
-        (int[] Ainter, int[] Binter) = MarkPoints(V, A, B, Ap, Bp, intersections);
+        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
         (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
@@ -223,18 +227,18 @@ public static class GHPolygonMerge
         Debug.Log("ѕожалуйста подними safety до какого-нибудь приличного числа!");
         List<CH2D_Polygon> polygons = new List<CH2D_Polygon>();
         (List<int> start_A, List<int> start_B) = GetEntryPoints(Aedge, Bedge, operation);
-        //string n = "Aedge: ";   for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
-        //n = "Bedge: ";          for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
+        /*string n = "Aedge: ";   for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
+        n = "Bedge: ";          for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);*/
         int safety = 0; int safety_margin = start_A.Count + start_B.Count;
-        //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
+        DebugStepState(Ainter, Binter, start_A, start_B, A, B);
 
         while (((start_A.Count + start_B.Count) > 0) && safety < 20)
         {
             safety += 1;
             (poly AorB, int pos) = PickStart(start_A, start_B, Aedge, Bedge);
-            //n = "Aedge: "; for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
-            //n = "Bedge: "; for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
-            //DebugStepState(Ainter, Binter, start_A, start_B, A, B);
+            /*n = "Aedge: "; for (int i = 0; i < start_A.Count; i++) n += start_A[i] + " "; Debug.Log(n);
+            n = "Bedge: "; for (int i = 0; i < start_B.Count; i++) n += start_B[i] + " "; Debug.Log(n);
+            DebugStepState(Ainter, Binter, start_A, start_B, A, B);*/
             if (pos == -1) { Debug.Log("No start location is valid!"); break; }
             // Debug.Log(AorB + " " + pos);
 
@@ -258,14 +262,14 @@ public static class GHPolygonMerge
         int curr_b = startP == poly.B ? (s_pos - B_off) % Bedge.Length : -1;
         int start_a = (curr_a == -1) ? (Binter[curr_b] >= 0 ? Binter[curr_b] : -1) : curr_a;
         int start_b = (curr_b == -1) ? (Ainter[curr_a] >= 0 ? Ainter[curr_a] : -1) : curr_b;
-
+        /*
         Debug.Log("Aoff " + A_off + " Boff " + B_off);
         Debug.Log("Isolate Loop Start: side: " + curr_a + " pos: " + curr_b);
         Debug.Log("Isolate Loop Start points: a " + start_a + " b: " + start_b);
         string n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
         n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
         n = "Aedge: "; for (int i = 0; i < Ainter.Length; i++) n += Ainter[i] + " "; Debug.Log(n);
-        n = "Bedge: "; for (int i = 0; i < Binter.Length; i++) n += Binter[i] + " "; Debug.Log(n);
+        n = "Bedge: "; for (int i = 0; i < Binter.Length; i++) n += Binter[i] + " "; Debug.Log(n);*/
         int safety = -1;
         bool goodLoop = false;
         while (safety < 35)
@@ -319,10 +323,10 @@ public static class GHPolygonMerge
                     alt_b_index = Ainter[next_a_index];
                     alt_b_side = Bedge[alt_b_index];
                 }
-            }
+            }/*
             Debug.Log(" a: " + curr_a + " " + next_a_index + " " + next_a_side + " b: " + curr_b + " " + next_b_index + " " + next_b_side + " alt a: " + alt_a_index + " " + alt_a_side + " alt b: " + alt_b_index + " " + alt_b_side);
             n = "Aedge: "; for (int i = 0; i < Aedge.Length; i++) n += Aedge[i] + " "; Debug.Log(n);
-            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);
+            n = "Bedge: "; for (int i = 0; i < Bedge.Length; i++) n += Bedge[i] + " "; Debug.Log(n);*/
             if ((next_a_index == start_a | next_b_index == start_b)) 
             {   Debug.Log("<color=green>Current point is finish point, leaving</color>");
                 goodLoop = true;
@@ -459,6 +463,9 @@ public static class GHPolygonMerge
         // ¬ообще надо бы начать найд€ наружную точку, но в дегенеративных случа€х наружной точки может не быть
         // Edge - определ€етс€ как начальна€ + последующа€ точки. 
         // »теративно решает к какой стороне принадлежит грань
+        Debug.Log(Binter.Length + " " + B.Count);
+        Debug.Log(DebugUtilities.DebugListString(Ainter));
+        Debug.Log(DebugUtilities.DebugListString(Binter));
         int safety = 0;
         while (safety < 10) { safety += 1;
             bool solved = true;
@@ -471,6 +478,7 @@ public static class GHPolygonMerge
                 int nextBindex = (currA + 1) % Binter.Length;
                 
                 EdgeSide a_edge = PointBasedSolution(currA, nextA, nextBindex, prevBindex);
+                Debug.Log(a_edge + " " + currA + " " + nextA);
                 if (a_edge != EdgeSide.None) { Aedge[i] = a_edge; continue; }   // ѕроверка значений точек
 
                 CH2D_P_Index prevBPindex = B[prevBindex]; // ѕрооверкка на коллинеарность
@@ -480,7 +488,6 @@ public static class GHPolygonMerge
                 if (nextAPindex == prevBPindex) { Aedge[i] = EdgeSide.Out_Colin; continue; }
 
                 Aedge[i] = EdgeBasedSolution(Bedge[currA], Aedge[prevAindex], Aedge[nextAindex]);
-
                 if (Aedge[i] == EdgeSide.None) solved = false;
                 //if (Aedge[prevAindex] == EdgeSide.Inside) { Aedge[i] = EdgeSide.Outside; continue; }
 
@@ -492,6 +499,7 @@ public static class GHPolygonMerge
                 int currB = Binter[currBindex]; int nextB = Binter[nextBindex];
                 int prevAindex = (currB - 1 + Ainter.Length) % Ainter.Length;
                 int nextAindex = (currB + 1) % Ainter.Length;
+
                 //Debug.Log(currBindex + " " + nextBindex + " " + prevBindex);
                 EdgeSide b_edge = PointBasedSolution(currB, nextB, nextAindex, prevAindex);
                 if (b_edge != EdgeSide.None) { Bedge[i] = b_edge; continue; }   // ѕроверка значений точек
@@ -509,7 +517,8 @@ public static class GHPolygonMerge
             }
             if (solved) break;
         }
-
+        Debug.Log(DebugUtilities.DebugListString(Aedge));   // “ут баг какой-то. ¬ полигоне ј иногда некорректно классифицируютс€ грани как внутренние, тогда как такими они не €вл€ютс€
+        Debug.Log(DebugUtilities.DebugListString(Bedge));
         return (Aedge, Bedge);
 
         EdgeSide PointBasedSolution(int currA, int nextA, int nextBindex, int prevBindex)
@@ -535,8 +544,70 @@ public static class GHPolygonMerge
    
     private enum poly {A, B, None, altA, altB};
     private enum BooleanOperation { Aonly, Bonly, Union, Inter };
-    
-
+    /// <summary>
+    /// Checks whether polygon B is inside or outside polygon A. It also checks whether polygon B touches polygon A. <br/>
+    /// It returns one of following: OutsideTouching, OutsideFull, Intersecting, InsideFull, InsideTouching.
+    /// </summary>
+    public static PolygonIntersection Is_BPoly_Inside_APoly(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    {
+        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
+        (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(Ainter, Binter, A, B);
+        return PolygonIntersectionTypeIdentify(Bedges);
+    }
+    public static bool IsPolygonIntersectionOfType(EdgeSide[] edges, PolygonIntersection option)
+    {
+        PolygonIntersection pit = PolygonIntersectionTypeIdentify(edges);
+        Debug.Log("Intersection type check for polygon A: " + pit);
+        Debug.Log(DebugUtilities.DebugListString(edges));
+        switch (option)
+        {
+            case PolygonIntersection.InsideAny : return (pit == PolygonIntersection.InsideFull  | pit == PolygonIntersection.InsideTouching );
+            case PolygonIntersection.OutsideAny: return (pit == PolygonIntersection.OutsideFull | pit == PolygonIntersection.OutsideTouching);
+            default: return (pit == option);
+        }
+    }
+    public static PolygonIntersection PolygonIntersectionTypeIdentify(EdgeSide[] edges)
+    {
+        bool HasIntersections = false;
+        bool HasOutsides = false;
+        bool HasInsides = false;
+        for (int i = 0; i < edges.Length; i++) if (edges[i] == EdgeSide.Outside  ) { HasOutsides      = true; break; }
+        for (int i = 0; i < edges.Length; i++) if (edges[i] == EdgeSide.Inside   ) { HasInsides       = true; break; }
+        for (int i = 0; i < edges.Length; i++) if (edges[i] == EdgeSide.Out_Colin) { HasIntersections = true; break; } // ≈сть наружные касани€, значит можно получить Union с удалением этих граней. 
+        if (HasOutsides & HasInsides) return PolygonIntersection.Intersecting;
+        if (HasIntersections)
+        {
+            if (HasInsides ) return PolygonIntersection.InsideTouching ;
+            if (HasOutsides) return PolygonIntersection.OutsideTouching;
+        }
+        else
+        {
+            if (HasInsides ) return PolygonIntersection.InsideFull ;
+            if (HasOutsides) return PolygonIntersection.OutsideFull;
+        }
+        throw new System.Exception("Your polygon B is strange, it has been unable to be classified as Inside or outside. It could be that it is degenerate and flat, or have duplicate vertices.");
+    }
+    public static bool IsPolyOutside(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        PolygonIntersection pi = Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections); return pi == PolygonIntersection.OutsideFull | pi == PolygonIntersection.OutsideTouching;
+    }
+    public static bool IsPolyOutsideFully(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)  {
+        return Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections) == PolygonIntersection.OutsideFull;
+    }
+    public static bool IsPolyOutsideTouching(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        return Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections) == PolygonIntersection.OutsideTouching;
+    }
+    public static bool IsPolyIntersecting(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        return Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections) == PolygonIntersection.Intersecting;
+    }
+    public static bool IsPolyInsideTouching(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        return Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections) == PolygonIntersection.InsideTouching;
+    }
+    public static bool IsPolyIsnideFully(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        return Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections) == PolygonIntersection.InsideFull;
+    }
+    public static bool IsPolyInside(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections) {
+        PolygonIntersection pi = Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections); return pi == PolygonIntersection.InsideTouching | pi == PolygonIntersection.InsideFull;
+    }
 
     private static void DebugStepState(int[] defAside, int[] defBside, List<int> start_A, List<int> start_B, List<CH2D_P_Index> A, List<CH2D_P_Index> B)
     {
@@ -561,7 +632,7 @@ public static class GHPolygonMerge
         public AllowedSides(bool Ainside, bool Aoutside, bool Binside, bool Boutside ) { this.Ainside = Ainside; this.Aoutside = Aoutside; this.Binside = Binside; this.Boutside = Boutside; } 
     }
 
-    private static (int[] Aside, int[] Bside) MarkPoints(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    private static (int[] Aside, int[] Bside) MarkPoints(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
         int[] Ainter = new int[A.Count]; // default value - 0
         int[] Binter = new int[B.Count];

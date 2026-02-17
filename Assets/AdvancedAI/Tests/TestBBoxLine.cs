@@ -13,7 +13,7 @@ public class TestBBoxLine : MonoBehaviour
         Bounds bounds = new Bounds();
         bounds.SetMinMax(BBoxA, BBoxB);
 
-        bool myBool = BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, bounds);
+        bool myBool = BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, bounds.min, bounds.max);
 
         Color myColor = myBool ? Color.green : Color.red;
         DebugUtilities.DebugDrawLine(BBoxA, new Vector2(BBoxA.x, BBoxB.y), myColor);

@@ -1,4 +1,37 @@
 using UnityEngine;
+using System;
+
+public struct LipomaBounds
+{   // The same as bounds but, hopefully, has properly functioning encapsulate function
+    public Vector2 min;
+    public Vector2 max;
+    public Vector2 center { get { return (min + max) / 2; } }
+    public Vector2 size { get { return min - max; } }
+    public LipomaBounds(Vector2 min, Vector2 max) { this.min = min; this.max = max; }
+    public LipomaBounds(Bounds B) { this.min = B.min; this.max = B.max; }
+    public bool Contains(Vector2 p) => BoundsMathHelper.InclusiveContains(min, max, p);
+    public void Encapsulate(Vector2 p)
+    {
+        if (p.x < this.min.x) this.min.x = p.x;
+        if (p.y < this.min.y) this.min.y = p.y;
+        if (p.x > this.max.x) this.max.x = p.x;
+        if (p.y > this.max.y) this.max.y = p.y;
+    }
+
+    public void SetAB(Vector2 A, Vector2 B)
+    {
+        this.min.x = Mathf.Min(A.x, B.x);
+        this.min.y = Mathf.Min(A.y, B.y);
+        this.max.x = Mathf.Max(A.x, B.x);
+        this.max.y = Mathf.Max(A.y, B.y);
+    }
+
+    public bool Intersects(LipomaBounds B) {
+        return (this.min.x <= B.max.x && this.max.x >= B.min.x) && // Check X axis
+               (this.min.y <= B.max.y && this.max.x >= B.min.y);
+    }
+    
+}
 
 public static class BoundsMathHelper
 {
@@ -84,6 +117,21 @@ public static class BoundsMathHelper
         BoundsInt toReturn = new BoundsInt();
         toReturn.SetMinMax(newMin, newMax);
         return toReturn;
+    }
+
+    public static bool InclusiveContains(Vector2 min, Vector2 max, Vector2 V)
+    {
+        bool belong = (min.x <= V.x) && (V.x <= max.x) && (min.y <= V.y) && (V.y <= max.y);
+        /*Debug.Log(belong + "\n" + min.x.ToString() + " " + min.y.ToString() + "\n " + max.x.ToString() + " " + max.y.ToString() + "\n v: " + V.x.ToString() + " " + V.y.ToString());
+        Debug.Log(min.y + " " +  V.y + " " + (min.y <= V.y) + " \n X:" 
+            + DebugUtilities.DebugListString( BitConverter.GetBytes(min.x)) + " " + DebugUtilities.DebugListString(BitConverter.GetBytes(V.x)) + "\n Y:"
+            + DebugUtilities.DebugListString(BitConverter.GetBytes(min.y)) + " " + DebugUtilities.DebugListString(BitConverter.GetBytes(V.y)) );*/
+        // This comment exists because Unity.Bounds has some weird rounding error. I replaced it with LipomaBounds, a simpler emplementation
+        return belong;
+    }
+    public static bool InclusiveContains(Vector3 min, Vector3 max, Vector3 V)
+    {
+        return (min.x <= V.x) && (V.x <= max.x) && (min.y <= V.y) && (V.y <= max.y) && (min.z <= V.z) && (V.z <= max.z);
     }
 
     public static Vector3[] Get_8_Corners(Bounds bounds)
@@ -318,16 +366,16 @@ public static class BoundsMathHelper
     }
 
     // Note: Не возвращает точку пересечения
-    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Bounds BBox)
+    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Vector2 box_min, Vector2 box_max)
     {
-        Vector2 B1 = BBox.min; Vector2 B2 = BBox.max;
+        Vector2 B1 = box_min; Vector2 B2 = box_max;
         if (L2.x < B1.x && L1.x < B1.x) return false;
         if (L2.x > B2.x && L1.x > B2.x) return false;
         if (L2.y < B1.y && L1.y < B1.y) return false;
         if (L2.y > B2.y && L1.y > B2.y) return false;
         if (L1.x > B1.x && L1.x < B2.x && L1.y > B1.y && L1.y < B2.y) return true;
 
-        return BBoxLineEquation2D(BBox, GetLineEquation(L1, L2));
+        return BBoxLineEquation2D(B1, B2, GetLineEquation(L1, L2));
     }
 
     public static bool DoesPlaneIntersectBox(Plane plane, Bounds BBox)
@@ -360,9 +408,9 @@ public static class BoundsMathHelper
     }
 
 
-    public static bool BBoxLineEquation2D(Bounds BBox, Vector3 lineEq)
+    public static bool BBoxLineEquation2D(Vector2 box_min, Vector2 box_max, Vector3 lineEq)
     {
-        Vector2 a = BBox.min;               Vector2 c = BBox.max; 
+        Vector2 a = box_min;               Vector2 c = box_max; 
         Vector2 b = new Vector2(a.x, c.y);  Vector2 d = new Vector2(c.x, a.y);
 
         if (lineEq == Vector3.zero) return false;

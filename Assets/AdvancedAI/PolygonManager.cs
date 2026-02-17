@@ -23,6 +23,7 @@ public class PolygonManager : MonoBehaviour
     [Range(-1, 100)] public int PointHighlighter;
     [SerializeField] public DebugUtilities.GradientOption option;
     [SerializeField] public Orientation orientation;
+    [SerializeField] public CH2D_Chunk.PolygonAddMode polygonAddMode;
     [SerializeField] public List<Vector2> points;
     [SerializeField] public List<Poly2D> polygons;
 
@@ -41,7 +42,8 @@ public class PolygonManager : MonoBehaviour
         GetNewVectorForTests,
         FindSharedEdge,
         RecalculateConnectionGraph,
-        FindSharedEdgeContinuities
+        FindSharedEdgeContinuities,
+        PathfindNodeAB
     }
     public void CallFunctionOnChosen()
     {
@@ -87,6 +89,15 @@ public class PolygonManager : MonoBehaviour
                 break;
             case ChunkAction.RecalculateConnectionGraph:
                 this.my_chunk.ConnectionsRecalculateAll();
+                break;
+            case ChunkAction.PathfindNodeAB:
+                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
+                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
+                List<int> nodes = this.my_chunk.PathfindWithinChunk(selected1, selected2);
+                if (nodes == null) { Debug.Log("Path not found"); return; }
+                List<Vector2> centers = new List<Vector2>();
+                for (int i = 0; i < nodes.Count; i++) centers.Add(this.my_chunk.polygons[nodes[i]].BBox.center);
+                DebugUtilities.DrawPath(centers, Color.orange, 5f);
                 break;
             default:
                 break;
@@ -175,11 +186,13 @@ public class PolygonManager : MonoBehaviour
 
     public void AddPolygon(Poly2D p)
     {
-        this.my_chunk.AddPolygon(p);
+        string p1 = ""; foreach (var item in p.vertices) p1 += "new Vector2(" + item.x + ", " + item.y + "),"; Debug.Log(p1);
+        Debug.Log(polygonAddMode);
+        this.my_chunk.AddPolygon(p, polygonAddMode);
     }
     public void AddPolygon(List<Vector2> p)
     {
-        this.my_chunk.AddPolygon(p);
+        this.my_chunk.AddPolygon(p, polygonAddMode);
     }
     public void RemovePolygon(int p_index)
     {
@@ -326,10 +339,10 @@ public class PolygonManager : MonoBehaviour
             int old_index = -1;
             for (int i = 0; i < new_selection.Count; i++)
             {
-                Debug.Log(selected1 + " " + new_selection[i]);
+                //Debug.Log(selected1 + " " + new_selection[i]);
                 if (selected1 == new_selection[i]) { old_index = i; break; }
             }
-            Debug.Log(old_index);
+            //Debug.Log(old_index);
             int new_index = (old_index + 1) % new_selection.Count;
             SetSelection(new_selection[new_index], new_selection);
         }

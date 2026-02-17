@@ -46,7 +46,7 @@ public class Poly2D : I_BBoxSupporter
         out_poly = new Poly2D(new List<Vector2>(points));
         if (orientation == Orientation.CounterClockwise) out_poly.Orient(false);
         else if (orientation == Orientation.Clockwise) out_poly.Orient(true);
-        else out_poly.isHole = out_poly.IsCounterClockwise();
+        else out_poly.isHole = out_poly.IsClockwise();
         out_poly.convex = Poly2DToolbox.IsConvex(out_poly.vertices, out_poly.isHole);
         //Debug.Log(out_poly.convex);
         return true;
@@ -70,9 +70,9 @@ public class Poly2D : I_BBoxSupporter
         return cross > 0;
     }*/
 
-    public bool IsCounterClockwise()
-    {
-        return this.SignedArea() < 0;
+    public bool IsClockwise()
+    {   // “ту хрень с названием была, может эта штука сломана, хз.
+        return Poly2DToolbox.IsCounterClockwise(this.vertices);
     }
 
     public float BBoxArea()
@@ -81,9 +81,9 @@ public class Poly2D : I_BBoxSupporter
     }
 
     public void Orient(bool IsCounterClockwise)
-    {
+    {// “ту хрень с названием была, может эта штука сломана, хз.
         isHole = IsCounterClockwise;
-        if (this.IsCounterClockwise() == IsCounterClockwise) return; 
+        if (this.IsClockwise() != IsCounterClockwise) return; 
         this.vertices.Reverse();
     }
     public float Area()
@@ -97,7 +97,7 @@ public class Poly2D : I_BBoxSupporter
 
     public bool BBoxLineIntersection(Vector2 A, Vector2 B)
     {
-        return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox);
+        return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox.min, this.BBox.max);
     }
 
     public void DebugDrawSelf(Color color)
@@ -120,6 +120,8 @@ public class Poly2D : I_BBoxSupporter
         Handles.DrawLine(vertices[vertices.Count - 1], vertices[0]);
         Handles.color = tmp;
     }
+
+    
 
     public Vector2 AveragePoint()
     {

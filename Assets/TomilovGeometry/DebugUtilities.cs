@@ -108,6 +108,81 @@ public static class DebugUtilities
         for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], color, time);
         DebugUltraLine(points[points.Count - 1], points[0], color, time);
     }
+    public static void DrawPolygon(List<Vector2> points, Color color, float time)
+    {
+        if (points.Count < 2) return;
+        for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], color, time);
+        DebugUltraLine(points[points.Count - 1], points[0], color, time);
+    }
+    public static void DrawPath(List<Vector3> points, Color color, float time)
+    {   // “оже самое что и Draw Polygon, только не имеет закрывающей грани
+        if (points.Count < 2) return;
+        for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], color, time);
+    }
+    public static void DrawPath(List<Vector2> points, Color color, float time)
+    {   // “оже самое что и Draw Polygon, только не имеет закрывающей грани
+        if (points.Count < 2) return;
+        for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], color, time);
+    }
+    public static void HandlesDrawPolygon(List<Vector3> points, Color color, bool directed)
+    {
+        if (points.Count < 2) return;
+        if (!directed)
+        {
+            Color tmp_color = Handles.color;
+            Handles.color = color;
+            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1]);
+            Handles.DrawLine(points[points.Count - 1], points[0]);
+            Handles.color = tmp_color;
+        }
+        else
+        {
+            for (int i = 0; i < points.Count - 1; i++) HandlesDrawLine(points[i], points[i + 1], color);
+            HandlesDrawLine(points[points.Count - 1], points[0], color);
+        }
+    }
+    public static void HandlesDrawPolygon(List<Vector2> points, Color color, bool directed)
+    {
+        if (points.Count < 2) return;
+        if (!directed)
+        {
+            Color tmp_color = Handles.color;
+            Handles.color = color;
+            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1]);
+            Handles.DrawLine(points[points.Count - 1], points[0]);
+            Handles.color = tmp_color;
+        }
+        else
+        {
+            for (int i = 0; i < points.Count - 1; i++) HandlesDrawLine(points[i], points[i + 1], color);
+            HandlesDrawLine(points[points.Count - 1], points[0], color);
+        }
+    }
+
+    public static void HandlesDrawPath(List<Vector3> points, Color color, bool directed)
+    {   // “оже самое что и Draw Polygon, только не имеет закрывающей грани
+        if (points.Count < 2) return;
+        if (!directed) {
+            Color tmp_color = Handles.color;
+            Handles.color = color;
+            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1]);
+            Handles.color = tmp_color;
+        }
+        else for (int i = 0; i < points.Count - 1; i++) HandlesDrawLine(points[i], points[i + 1], color);
+        
+    }
+    public static void HandlesDrawPath(List<Vector2> points, Color color, bool directed)
+    {   // “оже самое что и Draw Polygon, только не имеет закрывающей грани
+        if (points.Count < 2) return;
+        if (!directed) {
+            Color tmp_color = Handles.color;
+            Handles.color = color;
+            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1]);
+            Handles.color = tmp_color;
+        }
+        else for (int i = 0; i < points.Count - 1; i++) HandlesDrawLine(points[i], points[i + 1], color);
+    }
+
 
     public static void DrawCube(Vector3 center, Vector3 size, Color color)
     {

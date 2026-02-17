@@ -106,6 +106,21 @@ public class DegeneratePolygonTest : MonoBehaviour
         List<Vector2> p3 = new List<Vector2> { new Vector2(1.5f, 0.5f), new Vector2(2.5f, 1.5f), new Vector2(1.5f, 2.5f), new Vector2(0.5f, 1.5f) };
         PolygonManager.GetManager().AddPolygon(p3);
     }
+
+    public static void ReproducibleBadMarkingsTest()
+    {
+        Debug.Log("PolygonManager.GetManager().polygonAddMode был на секундочку переведен в режим FillHoles для этого теста");
+        List<Vector2> p1 = new List<Vector2> { new Vector2(6.386561f, 5.482759f), new Vector2(-0.3787351f, -2.440023f), new Vector2(5.987429f, 0.5534713f), new Vector2(7.424306f, 4.065838f) };
+        List<Vector2> p2 = new List<Vector2> { new Vector2(1.078099f, 5.502715f), new Vector2(  5.308904f,  3.227659f), new Vector2(5.62821f , 3.427226f ), new Vector2(2.814325f, 5.602498f), };
+        bool has_compiled_1 = Poly2D.CompilePolygon(p1, out Poly2D poly1, Orientation.CounterClockwise);
+        bool has_compiled_2 = Poly2D.CompilePolygon(p2, out Poly2D poly2, Orientation.CounterClockwise);
+        if (!(has_compiled_1 & has_compiled_2)) { Debug.Log("Failed to compile polygons, test is not valid"); return; }
+        CH2D_Chunk.PolygonAddMode cash = PolygonManager.GetManager().polygonAddMode;
+        PolygonManager.GetManager().polygonAddMode = CH2D_Chunk.PolygonAddMode.FillHoles;
+        PolygonManager.GetManager().AddPolygon(poly1);
+        PolygonManager.GetManager().AddPolygon(poly2);
+        PolygonManager.GetManager().polygonAddMode = cash;
+    }
 }
 [CustomEditor(typeof(DegeneratePolygonTest))]
 public class DegeneratePolygonTestEditor : Editor 

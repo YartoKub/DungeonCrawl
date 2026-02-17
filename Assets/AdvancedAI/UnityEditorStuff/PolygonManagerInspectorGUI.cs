@@ -68,6 +68,7 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         EditorGUILayout.LabelField("Classic Tests");
         if (GUILayout.Button("Multiple Overlap Test")) DegeneratePolygonTest.AddOverlapDegenerates();
         if (GUILayout.Button("6 Start Classic Test")) DegeneratePolygonTest.Add6Start();
+        if (GUILayout.Button("Incorrect edge markings test")) DegeneratePolygonTest.ReproducibleBadMarkingsTest();
         EditorGUILayout.LabelField("Degenerate Tests");
         if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
         if (GUILayout.Button("Degenerate Collinnears")) DegeneratePolygonTest.AddCollinnearDegenerates();

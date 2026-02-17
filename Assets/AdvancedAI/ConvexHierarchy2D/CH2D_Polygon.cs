@@ -10,7 +10,7 @@ public class CH2D_Polygon : I_BBoxSupporter
     public bool isHole;
     public bool convex;
     public bool initialized;
-    public Bounds BBox; public Bounds i_bounds { get { return BBox; } set { BBox = value; }}
+    public LipomaBounds BBox; public Bounds i_bounds { get { return new Bounds(BBox.center, BBox.size); } set { this.BBox.SetAB(value.min, value.max); }}
 
     public CH2D_Polygon()
     {
@@ -21,7 +21,7 @@ public class CH2D_Polygon : I_BBoxSupporter
         isHole = false;
         convex = false;
         initialized = false;
-        BBox = new Bounds();
+        BBox = new LipomaBounds();
     }
     public void InsertPointIntoPolygon(CH2D_P_Index new_point, CH2D_P_Index A, CH2D_P_Index B)
     {
@@ -67,17 +67,13 @@ public class CH2D_Polygon : I_BBoxSupporter
 
     public void RecalculateBBox(List<Vector2> o_vertices)
     {
-        for (int i = 0; i < o_vertices.Count; i++)
-        {
-            Debug.Log(o_vertices[i]);
-        }
-        Bounds b = new Bounds();
-        b.SetMinMax(o_vertices[0], o_vertices[1]);
-        Debug.Log(b.min + " " + b.max);
-        for (int i = 0; i < o_vertices.Count; i++) b.Encapsulate(o_vertices[i]);
-        this.BBox = b;
+        LipomaBounds lipomabox = new LipomaBounds(o_vertices[0], o_vertices[0]);
+        for (int i = 0; i < o_vertices.Count; i++) lipomabox.Encapsulate(o_vertices[i]);
+        this.BBox = lipomabox;
+        // Была проблема с Unity.Bounds. Видимо под капотом Bounds это все-таки центр, ширина и высота
+        // поэтому из-за округлений случается глупость, когда ты Encapsulate(точки), а потом Contains(точки) выдает True False False, True. Причем странно что на нижней границе не работает инклюзивность
     }
-    
+
     public float SignedArea(List<Vector2> o_vertices)
     {
         return Poly2DToolbox.AreaShoelace(o_vertices);
