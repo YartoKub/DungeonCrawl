@@ -62,7 +62,7 @@ public class CH2D_Polygon : I_BBoxSupporter
     public CH2D_Edge GetEdge(int e)
     {
         if (e < 0 | e >= this.vertices.Count) throw new Exception("Плохое ребро!!!!");
-        return new CH2D_Edge(this.vertices[e], this.vertices[(e + 1) % vertices.Count]);
+        return new CH2D_Edge(this.vertices[e], this.vertices[(e + 1) % vertices.Count], e);
     }
 
     public void RecalculateBBox(List<Vector2> o_vertices)

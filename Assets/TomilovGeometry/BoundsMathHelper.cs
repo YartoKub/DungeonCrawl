@@ -1,8 +1,8 @@
 using UnityEngine;
 using System;
-
+[Serializable] 
 public struct LipomaBounds
-{   // The same as bounds but, hopefully, has properly functioning encapsulate function
+{   // The same as Unity.Bounds but, hopefully, has properly functioning encapsulate function.
     public Vector2 min;
     public Vector2 max;
     public Vector2 center { get { return (min + max) / 2; } }
@@ -27,11 +27,13 @@ public struct LipomaBounds
     }
 
     public bool Intersects(LipomaBounds B) {
-        return (this.min.x <= B.max.x && this.max.x >= B.min.x) && // Check X axis
-               (this.min.y <= B.max.y && this.max.x >= B.min.y);
+        return (this.min.x <= B.max.x && this.max.x >= B.min.x) && (this.min.y <= B.max.y && this.max.y >= B.min.y);
     }
-    
-}
+    public override string ToString()
+    {
+        return "Lipomabounds: " + this.min + " " + this.max;
+    }
+} 
 
 public static class BoundsMathHelper
 {

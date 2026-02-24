@@ -42,7 +42,6 @@ public class Poly2D : I_BBoxSupporter
         if (points.Count < 3) return false;
         if (Poly2DToolbox.SelfIntersectionNaive(points)) return false;
         if (Poly2DToolbox.HasDoubleVertices(points)) return false;
-
         out_poly = new Poly2D(new List<Vector2>(points));
         if (orientation == Orientation.CounterClockwise) out_poly.Orient(false);
         else if (orientation == Orientation.Clockwise) out_poly.Orient(true);

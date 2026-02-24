@@ -77,6 +77,9 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Bantic Left/Right")) DegeneratePolygonTest.BanticLeftRight();
         if (GUILayout.Button("Bantic Top/Bottom")) DegeneratePolygonTest.BanticTopBottom();
         if (GUILayout.Button("Top Brick Bottom Bantic")) DegeneratePolygonTest.TopBrickBottomBantic();
+        if (GUILayout.Button("Two triangles, camping tent")) DegeneratePolygonTest.TriangleAndSmallTriangleTwoOutsideCollinearsTent(); 
+        if (GUILayout.Button("Two triangles, ice cream")) DegeneratePolygonTest.TriangleAndSmallTriangleTwoInsideCollinearsIceCream();
+        if (GUILayout.Button("Fill Hole Issue")) DegeneratePolygonTest.CheckMarkAndTriangleHoleFilling();
         EditorGUILayout.LabelField("Multitude Tests");
         if (GUILayout.Button("Half Square and square test")) DegeneratePolygonTest.ThreeTriangleTest();
         EditorGUILayout.LabelField("Other actions");
@@ -347,6 +350,66 @@ public class GUI_SelectPolygonStateMachine : GUIStateMachine<PolygonManager>
             e.Use();
             manager.DeleteSelectedPolygon();
             
+            return new GUI_NothingMachine();
+        }
+
+        Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
+        Plane planeXY = new Plane(new Vector3(0, 0, 1), 0);
+
+        if (!planeXY.Raycast(ray, out float t)) return new GUI_NothingMachine();
+        Vector3 point = ray.direction * t + ray.origin;
+
+        if (!(e.type == EventType.MouseDown && e.button == 0)) return null;
+        manager.SelectPolygon(point);
+        PolygonData = manager.GetPolygonDataDelegate();
+        e.Use();
+        this.description_changed = true;
+
+        return null;
+    }
+
+    public override void EndStateMachine(PolygonManager manager)
+    {
+        manager.SelectionPurge();
+        Debug.Log("Остановленна машина выбора полигонов");
+        return;
+    }
+}
+
+public class GUI_SelectPoint : GUIStateMachine<PolygonManager>
+{
+    private const string generic_description =
+        "State: <b><color=green>Select Point</color></b> \nClick at a point to select it, press button to operate on it" +
+        "\nLeft click to select a polygon" +
+        "\nPress <b><color=red>letter D</color></b> to dissolve a vertice (cancels tool)" +
+        "\nPress <b><color=white>Escape</color></b> to cancel this tool\n";
+    public override string GetDescription() { return generic_description + PolygonData; }
+    private const string generic_option = "Select Polygon";
+    public override string GetOptionName() { return generic_option; }
+
+    public override void InitStateMachine(PolygonManager manager)
+    {
+        Debug.Log("state machine initialized");
+    }
+    public string PolygonData = "";
+
+    public override GUIStateMachine<PolygonManager> OnSceneGUI(PolygonManager manager)
+    {
+
+        Event e = Event.current;
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+        {
+            Debug.Log("Отмена действия");
+            e.Use();
+            return new GUI_NothingMachine();
+        }
+
+        if (e.type == EventType.KeyDown && (e.keyCode == KeyCode.D))
+        {
+            Debug.Log("Удаление полигона");
+            e.Use();
+            manager.DeleteSelectedPolygon();
+
             return new GUI_NothingMachine();
         }
 

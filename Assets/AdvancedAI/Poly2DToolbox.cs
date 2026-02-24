@@ -28,10 +28,10 @@ public enum Orientation { None, Clockwise, CounterClockwise, Any}
 /// Full describes poly B completely inside/outside poly A, not points are shared <br/>
 /// Touching describes poly B fully outside/inside poly A, but they share at least one edge, or a point perhaps<br/>
 /// Intersecting describes that poly B intersects with A, so some edges of B are inside A, and some edges of A are inside B.<br/>
-/// Functions should return on e of following: OutsideTouching, OutsideFull, Intersecting, InsideFull, InsideTouching.<br/>
+/// Functions should return on e of following: OutsideTouching, OutsideFull, Intersecting, InsideFull, InsideTouching<br/>
 /// OutsideAny and InsideAny should be reserved for checks, and None i do not know why, but let it be, let it be, let it be, let it be, whisper words of wisdom, let it be
 /// </summary>
-public enum PolygonIntersection { OutsideFull, OutsideTouching, Intersecting, InsideTouching, InsideFull, OutsideAny, InsideAny, None}
+public enum PolygonIntersection { OutsideFull, OutsideTouching, Intersecting, InsideTouching, InsideFull, OutsideAny, InsideAny, None, SameExact, SameOpposite}
 
 public static class Poly2DToolbox
 {

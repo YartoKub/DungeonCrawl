@@ -4,8 +4,8 @@ using System;
 
 public struct CH2D_Edge
 {
-    public CH2D_P_Index A; public CH2D_P_Index B;
-    public CH2D_Edge(CH2D_P_Index A, CH2D_P_Index B) { this.A = A; this.B = B; }
+    public CH2D_P_Index A; public CH2D_P_Index B; public int A_index;
+    public CH2D_Edge(CH2D_P_Index A, CH2D_P_Index B, int A_index) { this.A = A; this.B = B; this.A_index = A_index; }
 }
 // Тут кода дофига, но на самом деле тут ничего умного нет. 
 // Это просто обертка для ushort, с поддержкой операторов вроде +-, а также сравнений

@@ -6,7 +6,10 @@ public struct Pair
     {
         this.A = A; this.B = B; this.doesExit = doesExit;
     }
-
+    public override string ToString()
+    {
+        return "(" + A.ToString() + " " + B.ToString() + " " + doesExit + ")";
+    }
 }
 
 

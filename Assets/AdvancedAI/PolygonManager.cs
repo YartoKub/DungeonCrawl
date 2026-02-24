@@ -30,7 +30,9 @@ public class PolygonManager : MonoBehaviour
     public CH2D_Chunk my_chunk;
     public int selected1;
     public int selected2;
+    [SerializeField] SelectionColorScheme selectionColorScheme;
     private List<int> selection;
+    enum SelectionColorScheme { GreenRedDirected, Rainbow}
     [SerializeField] private ChunkAction SelectedChunkAction;
     private enum ChunkAction
     {
@@ -154,8 +156,9 @@ public class PolygonManager : MonoBehaviour
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
 
         this.my_chunk.HandlesDrawSelf(DisplayHierarchy);
-        HandlesDrawSelection();
         HandlesDrawSelectionSecondary();
+        HandlesDrawSelection();
+        
     }
 
     public void AddPoint(Vector2 p)
@@ -276,7 +279,14 @@ public class PolygonManager : MonoBehaviour
     {
         if (selected1 == -1 | selected1 >= my_chunk.polygons.Count) return;
         my_chunk.HandlesDrawPolyBBox(selected1, Color.yellow);
-        my_chunk.HandlesDrawPolyOutlineDirected(selected1, Color.green, Color.red);
+        if (selectionColorScheme == SelectionColorScheme.GreenRedDirected) my_chunk.HandlesDrawPolyOutlineDirected(selected1, Color.green, Color.red);
+        else
+        {
+            List<Vector2> points = my_chunk.GetPolyVertices(selected1);
+            for (int i = 0; i < points.Count - 1; i++)
+                DebugUtilities.HandlesDrawLine(points[i], points[i + 1], DebugUtilities.RainbowGradient_Red2Violet(i, points.Count - 1));
+            DebugUtilities.HandlesDrawLine(points[points.Count - 1], points[0], DebugUtilities.RainbowGradient_Red2Violet(points.Count - 1, points.Count - 1));
+        }
         my_chunk.HandlesDrawPolyPoints(selected1, Color.cyan);
     }
     public void HandlesDrawSelectionSecondary()
@@ -284,7 +294,7 @@ public class PolygonManager : MonoBehaviour
         if (selected2 == selected1) selected2 = -1;
         if (selected2 == -1 | selected2 >= my_chunk.polygons.Count) return;
         my_chunk.HandlesDrawPolyBBox(selected2, Color.orange);
-        my_chunk.HandlesDrawPolyOutlineDirected(selected2, Color.green, Color.red);
+        my_chunk.HandlesDrawPolyOutlineDirected(selected2, Color.lightGray, Color.red);
         my_chunk.HandlesDrawPolyPoints(selected2, Color.cyan);
     }
     public void HandlesDrawHierarchy(int target)
