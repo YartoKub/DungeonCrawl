@@ -14,7 +14,7 @@ public static class GraphToolbox
     /// <summary>
     /// Finds path in a Graph from point A to point B. Naive implementation: picks all adjacent nodes, without relying on heuristics, and checks them
     /// </summary>
-    public static List<int> FindPathNaive(GraphDataStorage graph, int start, int end)
+    public static List<int> FindPathNaive(GraphDataStorage graph, int start, int end, List<int> forbidden = null)
     {
         if (start < 0 | start >= graph.vCount) return null;
         if (end < 0 | end >= graph.vCount) return null;
@@ -25,6 +25,8 @@ public static class GraphToolbox
         prev .Add(-1);
 
         bool[] visited = new bool[graph.vCount];
+        if (forbidden != null) for (int i = 0; i < forbidden.Count; i++) visited[forbidden[i]] = true;
+        
         Debug.Log(DebugUtilities.DebugListString(visited) + "\n" + DebugUtilities.DebugListString(index.ToArray()) + "\n" + DebugUtilities.DebugListString(prev.ToArray()));
 
         int current_p = -1; // Эта переменная того чтобы отмечать где в списке кончается глубина

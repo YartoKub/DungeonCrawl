@@ -55,10 +55,12 @@ public class DegeneratePolygonTest : MonoBehaviour
     public static void Add6Start()
     {
         List<Vector2> p1 = new List<Vector2> { new Vector2(0, 0), new Vector2(3, 0), new Vector2(1.5f, 3) };
-        PolygonManager.GetManager().AddPolygon(p1);
-
         List<Vector2> p2 = new List<Vector2> { new Vector2(1.5f, -1), new Vector2(3.5f, 2f), new Vector2(-0.5f, 2f) };
-        PolygonManager.GetManager().AddPolygon(p2);
+        bool has_compiled_1 = Poly2D.CompilePolygon(p1, out Poly2D poly1, Orientation.CounterClockwise);
+        bool has_compiled_2 = Poly2D.CompilePolygon(p2, out Poly2D poly2, Orientation.CounterClockwise);
+        if (!(has_compiled_1 & has_compiled_2)) { Debug.Log("Failed to compile polygons, test is not valid"); return; }
+        PolygonManager.GetManager().AddPolygon(poly1);
+        PolygonManager.GetManager().AddPolygon(poly2);
     }
     public static void GemCoveredUncovered()
     {
@@ -73,6 +75,18 @@ public class DegeneratePolygonTest : MonoBehaviour
         PolygonManager.GetManager().AddPolygon(poly1);
         PolygonManager.GetManager().AddPolygon(poly2);
         PolygonManager.GetManager().polygonAddMode = cash;
+    }
+    public static void SquareHoleHalfTriangle()
+    {
+        List<Vector2> p1 = new List<Vector2> { new Vector2(0, 0), new Vector2(0, 3), new Vector2(3, 3), new Vector2(3, 0)};
+        List<Vector2> p2 = new List<Vector2> { new Vector2(0, 0), new Vector2(3, 0), new Vector2(3, 3)};
+        bool has_compiled_1 = Poly2D.CompilePolygon(p1, out Poly2D poly1, Orientation.Clockwise);
+        bool has_compiled_2 = Poly2D.CompilePolygon(p2, out Poly2D poly2, Orientation.CounterClockwise);
+
+        if (!(has_compiled_1 & has_compiled_2)) { Debug.Log("Failed to compile polygons, test is not valid"); return; }
+
+        PolygonManager.GetManager().AddPolygon(poly1);
+        PolygonManager.GetManager().AddPolygon(poly2);
     }
     public static void FullOverlap()
     {

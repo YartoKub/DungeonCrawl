@@ -185,6 +185,21 @@ public static class Poly2DToolbox
         return overlaps;
     }
 
+    public static List<int> PolygonConvexHull(List<Vector2> points)
+    {   // “ак как полигон уже готов, делать с ним особо ничего не надо, просто поудал€ть вершины на местах
+        List<int> hull = new List<int>();
+        for (int i = 0; i < points.Count; i++) hull.Add(i);
+        for (int i = 0; i < hull.Count; i++)
+        {
+            int prev = (i - 1 + hull.Count) % hull.Count;
+            int curr = (i + hull.Count) % hull.Count;
+            int next = (i + 1) % hull.Count;
+            if (SignedAngle(points[hull[prev]], points[hull[curr]], points[hull[next]]) <= 180.0f) continue;
+            hull.RemoveAt(curr);
+            i -= 2;
+        }
+        return hull;
+    }
 
     public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
     {
@@ -816,11 +831,6 @@ public static class Poly2DToolbox
         return true;
     }
 
-
-    public static void ConvexHull(List<Vector2> polygon)
-    {
-        //List<int> points = 
-    } 
 
 
 

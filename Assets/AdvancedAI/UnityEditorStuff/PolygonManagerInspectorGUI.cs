@@ -79,7 +79,8 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
         if (GUILayout.Button("Top Brick Bottom Bantic")) DegeneratePolygonTest.TopBrickBottomBantic();
         if (GUILayout.Button("Two triangles, camping tent")) DegeneratePolygonTest.TriangleAndSmallTriangleTwoOutsideCollinearsTent(); 
         if (GUILayout.Button("Two triangles, ice cream")) DegeneratePolygonTest.TriangleAndSmallTriangleTwoInsideCollinearsIceCream();
-        if (GUILayout.Button("Fill Hole Issue")) DegeneratePolygonTest.CheckMarkAndTriangleHoleFilling();
+        if (GUILayout.Button("Fill Hole Issue")) DegeneratePolygonTest.CheckMarkAndTriangleHoleFilling(); 
+        if (GUILayout.Button("Triangle inserted into square hole")) DegeneratePolygonTest.SquareHoleHalfTriangle();
         EditorGUILayout.LabelField("Multitude Tests");
         if (GUILayout.Button("Half Square and square test")) DegeneratePolygonTest.ThreeTriangleTest();
         EditorGUILayout.LabelField("Other actions");

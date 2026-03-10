@@ -10,6 +10,12 @@ public struct Pair
     {
         return "(" + A.ToString() + " " + B.ToString() + " " + doesExit + ")";
     }
+    public static bool PairEquivalence(Pair A, Pair B)
+    {   // Просто проверка в случае если B отзеркаленная A.
+        if (A.A == B.A & A.B == B.B) return true;
+        if (A.B == B.A & A.A == B.B) return true;
+        return false;   
+    }
 }
 
 

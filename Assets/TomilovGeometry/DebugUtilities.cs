@@ -114,6 +114,12 @@ public static class DebugUtilities
         for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], color, time);
         DebugUltraLine(points[points.Count - 1], points[0], color, time);
     }
+    public static void DrawPolygonRainbow(List<Vector2> points, float time)
+    {
+        if (points.Count < 2) return;
+        for (int i = 0; i < points.Count - 1; i++) DebugUltraLine(points[i], points[i + 1], DebugUtilities.RainbowGradient_Red2Violet(i, points.Count -1), time);
+        DebugUltraLine(points[points.Count - 1], points[0], DebugUtilities.RainbowGradient_Red2Violet(points.Count - 1, points.Count - 1), time);
+    }
     public static void DrawPath(List<Vector3> points, Color color, float time)
     {   // “оже самое что и Draw Polygon, только не имеет закрывающей грани
         if (points.Count < 2) return;
@@ -264,6 +270,13 @@ public static class DebugUtilities
         Handles.DrawLine(new Vector3(p1.x, p2.y), p2);
         Handles.DrawLine(new Vector3(p2.x, p1.y), p2);
         Handles.color = tmp_color;
+    }
+    public static void DrawRectangle(Vector2 p1, Vector2 p2, Color color, float time = 0.01f)
+    {
+        DebugDrawLine(p1, new Vector3(p1.x, p2.y), color, time);
+        DebugDrawLine(p1, new Vector3(p2.x, p1.y), color, time);
+        DebugDrawLine(new Vector3(p1.x, p2.y), p2, color, time);
+        DebugDrawLine(new Vector3(p2.x, p1.y), p2, color, time);
     }
     public enum GradientOption { RYG, Lerp, HSVGradient, Rainbow_Looped, Rainbow_Red2Violet };
     public static Color PickGradient(int current_depth, int max_depth, GradientOption option)

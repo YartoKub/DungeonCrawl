@@ -6,6 +6,7 @@ using System.Linq;
 // Границы чанка определены Convex Hull, также чанк имеет BBox, просто чтобы был
 // Внутри чанка не должно быть пересекающихся полигонов, все полигоны находятся на одном уровне, в общем графе
 [Serializable]
+
 public class CH2D_Chunk
 {
     public List<CH2D_Polygon> polygons;
@@ -27,7 +28,6 @@ public class CH2D_Chunk
     // ======================================
     public void AddPolygon(List<Vector2> points, PolygonAddMode polygon_add_mode)
     {
-
         Poly2D poly;
         bool has_compiled = Poly2D.CompilePolygon(points, out poly);
         if (!has_compiled) return;
@@ -47,23 +47,33 @@ public class CH2D_Chunk
     /// </summary>
     public void PolygonQueue(Poly2D poly, PolygonAddMode polygon_add_mode = PolygonAddMode.Monolith)
     {
-        (List<int> new_markers, List<int> old_markers) = AddPolygonUniversal(poly, polygon_add_mode);
-        Debug.Log("queueue");
+        (CH2D_Polygon int_poly, List<int> p_overlap) = AddNewPolygonWithSubdivisions(poly);
+        (List<int> new_markers, List<int> old_markers) = AddPolygonUniversal(int_poly, polygon_add_mode);
+        Debug.Log("queueue " + old_markers.Count + " " + new_markers.Count);
         this.ConnectionsRecalculate(new_markers);
         this.ConnectionsRecalculate(old_markers);   // Old markers пригодился, как я и ожидал
-
-        
+        if (new_markers.Count == 0) return; // Test
+        List<CH2D_Polygon> holes = FillTheHoles(new_markers[0]);
+        Debug.Log(holes.Count);
+        List<int> successfull_holes = new List<int>(holes.Count);
+        for (int i = 0; i < holes.Count; i++)
+        {
+            (List<int> new_holes, List<int> dummy) = AddPolygonUniversal(holes[i], PolygonAddMode.FillHoles);
+            Debug.Log(new_holes.Count + " " + dummy.Count);
+            if (new_holes == null) continue;
+            for (int h = 0; h < new_holes.Count; h++)
+                successfull_holes.Add(new_holes[h]);
+        }
+        ConnectionsRecalculate(successfull_holes);
         //FillTheHoles(int_vertices, p_overlap);
-
         //this.ConnectionsRecalculateAll();
     }
     /// <summary>
-    /// Это единственная рабочая функция добавления полигона, можно не беспокоиться какой полигон оказывается добавлен <br/>
-    /// Надо обернуть все в try+carch и вернуть bool чтобы сделать эту штуку еще более безопасной. <br/>
-    /// Надо сделать эту функцию приватной и максимально скрыть вообще все что касается добавления полигонов от внешней среды
+    /// Identifies existing polygons with which poly would overlap as List<int> p_overlap<br/>
+    /// finds collinear points and intersections between poly and overlap[i] and injects said points into both of them
     /// </summary>
-    public (List<int> new_polygons, List<int> old_polygons) AddPolygonUniversal(Poly2D poly, PolygonAddMode polygon_add_mode = PolygonAddMode.Monolith)
-    {   // Подохреваю что некоторую безопасность, такую как MutualVerticeIncorporation, можно оставить лишь на конечном этапе. Но мне лень это проверять
+    public (CH2D_Polygon polygon, List<int> p_overlap) AddNewPolygonWithSubdivisions(Poly2D poly)
+    {
         CH2D_Polygon int_poly = new CH2D_Polygon();
         int_poly.isHole = poly.isHole;
         int_poly.convex = poly.convex;
@@ -72,28 +82,28 @@ public class CH2D_Chunk
 
         // Встройка всех коллинеарных вершин 
         List<int> p_overlap = GetBBoxOverlapList(new LipomaBounds(poly.BBox));
-        for (int i = 0; i < p_overlap.Count; i++)
-        {
-            Incorporate_Bvertice_To_PolyA(int_vertices, this.polygons[p_overlap[i]].vertices); // Тут может начаться бесконечный цикл если есть дубликаты точек внутри списка вершин
-            //MutualVerticeIncorporation(vertices, this.polygons[p_overlap[i]].vertices);
-        }
+        for (int i = 0; i < p_overlap.Count; i++)   // Тут может начаться бесконечный цикл если есть дубликаты точек внутри списка вершин
+            Incorporate_Bvertice_To_PolyA(int_vertices, this.polygons[p_overlap[i]].vertices);
 
-        // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
-        for (int i = 0; i < p_overlap.Count; i++)
+        for (int i = 0; i < p_overlap.Count; i++)   // Встройка всех пересечений (добавляет новые точки к существующим полигонам)
             PolyPolyOnlineIntersectionOnesided(int_vertices, this.polygons[p_overlap[i]].vertices);
 
-        int_poly.RecalculateBBox(int_vertices.Select(int_v => vertices[int_v]).ToList());
-        // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
-        for (int i = 0; i < p_overlap.Count; i++) {
+        int_poly.RecalculateBBox(int_vertices.Select(int_v => vertices[int_v]).ToList()); // Лучше рекалькулировать чем копировать, в Poly2D используется Unity.Bounds, он криво работает.
+
+        for (int i = 0; i < p_overlap.Count; i++)   // Встройка новых вершин-пересечений с предыдущего шага в старые полигоны
             Incorporate_Bvertice_To_PolyA(this.polygons[p_overlap[i]].vertices, int_vertices);
-            //MutualVerticeIncorporation(this.polygons[p_overlap[i]].vertices, vertices);
-            //Debug.Log(p_overlap[i]);
-        }
-        //Все прошло хорошо, состалось только GH-подразбить полигоны
-        // Новый полигон - основной. Производится итеративный GH, получается три области: old-only, new-old пересечение, new-only.
-        // new-only уходит на следующий шаг итерации, если еще есть старые полигоны. 
-        // Остаток new-only добавляется как новый полигон, если он не нулевой.
-        Debug.Log(p_overlap.Count); // Тут нужно сделать switch для выбора режима добавления полигона
+
+        int_poly.vertices = int_vertices;
+        return (int_poly, p_overlap);
+    }
+    /// <summary>
+    /// Это единственная рабочая функция добавления полигона, можно не беспокоиться какой полигон оказывается добавлен <br/>
+    /// Надо обернуть все в try+carch и вернуть bool чтобы сделать эту штуку еще более безопасной. <br/>
+    /// Надо сделать эту функцию приватной и максимально скрыть вообще все что касается добавления полигонов от внешней среды
+    /// </summary>
+    public (List<int> new_polygons, List<int> old_polygons) AddPolygonUniversal(CH2D_Polygon int_poly, PolygonAddMode polygon_add_mode = PolygonAddMode.Monolith)
+    {
+        List<int> p_overlap = GetBBoxOverlapList(int_poly.BBox);
         List<CH2D_Polygon> new_polygons = new List<CH2D_Polygon>(); // Add holes, they may close loops and create holes which need to be closed
         List<CH2D_Polygon> old_polygons = new List<CH2D_Polygon>(); // No holes, these polygons old polygons that were modified, they can not create holes
         List<int> new_markers = new List<int>(new_polygons.Count); // These polygons are new, so they may close loops and make holes. 
@@ -101,7 +111,7 @@ public class CH2D_Chunk
         switch (polygon_add_mode)
         {
             case PolygonAddMode.Monolith:
-                old_polygons = CutPolygonAgainsManyMainMonolith(int_vertices, int_poly.BBox, p_overlap);
+                old_polygons = CutPolygonAgainsManyMainMonolith(int_poly.vertices, int_poly.BBox, p_overlap);
                 if (old_polygons == null)
                 {
                     Debug.Log("<b><color=red>Outsides list returned as NULL, something went wrong!</color></b>");
@@ -117,15 +127,15 @@ public class CH2D_Chunk
                     Debug.Log(p_overlap[i]);
                     if (p_overlap[i] == -1) continue;
                     bool success = SoftDeletePolygon(this.polygons[p_overlap[i]]);
-                    Debug.Log(success);
+                    //Debug.Log(success);
                 }
-                int_poly.vertices = new List<CH2D_P_Index>(int_vertices);
+                int_poly.vertices = new List<CH2D_P_Index>(int_poly.vertices);
                 int_poly.initialized = true;
                 (var success_main, var monolith) = this.DangerousAddPolygon(int_poly);
                 if (success_main) new_markers.Add(monolith);
                 break;
             case PolygonAddMode.FillHoles:
-                int_poly.vertices = int_vertices;
+                //int_poly.vertices = int_poly.vertices;
                 int_poly.initialized = true;
                 new_polygons = CutPolygonAgainsManyMainFillHoles(int_poly, p_overlap);
                 if (new_polygons == null)
@@ -149,9 +159,7 @@ public class CH2D_Chunk
         for (int i = 0; i < new_polygons.Count; i++)
         {
             (var success_main, var monolith) = this.DangerousAddPolygon(new_polygons[i]);
-            if (success_main) new_markers.Add(monolith);
-            string q = ""; for (int j = 0; j < new_polygons[i].vertices.Count; j++) q = q + new_polygons[i].vertices[j].ToString() + " "; Debug.Log(q);
-            Debug.Log(new_polygons[i].BBox.min + " " + new_polygons[i].BBox.max);
+            if (success_main) new_markers.Add(monolith); // Debug.Log(success_main + " " + monolith);
         }
         // ПЕРЕРАСЧЕТ ГРАФА / GRAPH RECALCULATION
         return (new_markers, old_markers);
@@ -185,8 +193,13 @@ public class CH2D_Chunk
             //List<Vector2> v_vertices = int_vertices.Select(v => this.vertices[v]).ToList();
         }
     }
+    /// <summary>
+    /// Adds polygon A described by vertices AV and bounding box ABBox to chunk. <br/> 
+    /// Polygon A remains unchanged, but already present polygons that it overlaps are cut to not overlap with polyA
+    /// </summary>
+    /// <returns>Returns list of polygons that need to be added via DangerousAddPolygon()</returns>
     public List<CH2D_Polygon> CutPolygonAgainsManyMainMonolith(List<CH2D_P_Index> AV, LipomaBounds ABBox, List<int> p_overlap)
-    {   // Отличается от CutPolygonAgainsManyMainCutter тем что новый полигон остается неизменным. 
+    {
         List<Vector2> ap = AV.Select(v => this.vertices[v]).ToList();
 
         List<CH2D_Polygon> Bonly_return = new List<CH2D_Polygon>(); // Эти трогать не надо, в них попадают огрызки не являющиеся А.
@@ -211,40 +224,26 @@ public class CH2D_Chunk
         }
         return Bonly_return;
     }
-    public List<CH2D_Polygon> CutPolygonAgainsManyMainFillHoles_Neighbour_Centric(CH2D_Polygon polyA, List<int> p_overlap) 
-    {   // Отличается от CutPolygonAgainsManymonolith тем что заполняет пусторты и оставляет все существующие полигоны неизменными
-        List<int> neighbours = new List<int>(p_overlap);
-        List<CH2D_Polygon> a_only = new List<CH2D_Polygon>(); a_only.Add(polyA);
-        List<CH2D_Polygon> undivided = new List<CH2D_Polygon>(); // Здесь будут храниться полигоны которые более не могут быть поделены
-
-        List<List<Vector2>> p_overlap_vertice_cash = new List<List<Vector2>>(p_overlap.Count);  // Полигоны из p_overlap неизменны, поэтому я их сразу слеплю вместо того чтобы каждый раз пересобирать
-        for (int i = 0; i < p_overlap.Count; i++) p_overlap_vertice_cash.Add(GetPolyVertices(p_overlap[i]));
-        List<PolygonIntersection> intersection_class = new List<PolygonIntersection>(p_overlap.Count);
-        for (int i = 0; i < p_overlap.Count; i++) intersection_class.Add(PolygonIntersection.Intersecting);// По дефолту пересекаются
-        // Эта функция работает с точки зрения полигонов-соседей. Каждый из них делит все полигоны a_only, пока не кончатся полигоны-соседи.
-        Debug.Log("START: " + DebugUtilities.DebugListString(polyA.vertices.ToArray()));
-        int safety = 0; int safety_margin = 15;
-        while (neighbours.Count > 0 & safety < safety_margin)
-        {   safety += 1;
-            //bool has_been_cut = false;
-            //Debug.Log("<color=orange>" + DebugUtilities.DebugListString(neighbours[].vertices.ToArray()) + "</color>");
-
-        }
-        
-        if (safety >= safety_margin) Debug.Log("<color=orange>Safety has reached safety margin, something could have done wrong </color>");
-        Debug.Log("END: " + undivided.Count + " safety: " + safety);
-        return undivided;
-    }
+    /// <summary>
+    ///Adds polygon A to chunk, polygon A is cut in a way that it does not overlap existing polygons <br/> 
+    ///Meaning that only parts of polyA that are over holes will be added. <br/>
+    ///(!) If some part of polygonA fully contains an existing polygon without a way to make a cut, this part will be discarded. Example: <br/>
+    ///Imagine a situation where there is a rectangle in the middle, and a triangle to the left.<br/> 
+    ///If you were to add a new rectangle that encompasses the triangle and crosses the middle rectangle, you would get two squares on either side of middle rectangle<br/>
+    ///But one on the left will be discarded as it fully contains a triangle, and the one on the right will be added
+    /// </summary>
+    /// <returns>Returns list of polygons that need to be added via DangerousAddPolygon()</returns>
     public List<CH2D_Polygon> CutPolygonAgainsManyMainFillHoles(CH2D_Polygon polyA, List<int> p_overlap)
     {   // Отличается от CutPolygonAgainsManymonolith тем что заполняет пусторты и оставляет все существующие полигоны неизменными
         List<CH2D_Polygon> a_only = new List<CH2D_Polygon>(); a_only.Add(polyA);
         List<CH2D_Polygon> undivided = new List<CH2D_Polygon>(); // Здесь будут храниться полигоны которые более не могут быть поделены
 
-        List<List<Vector2>> p_overlap_vertice_cash = new List<List<Vector2>>(p_overlap.Count);  // Полигоны из p_overlap неизменны, поэтому я их сразу слеплю вместо того чтобы каждый раз пересобирать
+        List<List<Vector2>> p_overlap_vertice_cash = new List<List<Vector2>>(p_overlap.Count); // Полигоны из p_overlap неизменны, поэтому я их сразу слеплю вместо того чтобы каждый раз пересобирать
         for (int i = 0; i < p_overlap.Count; i++) p_overlap_vertice_cash.Add(GetPolyVertices(p_overlap[i]));
         // Эту штуку можно "оптимизировать" если полигоны объединить в несколько больших полигонов
+        Debug.Log("Уровня безопасности может нехватить, надо поднять тут циферку."); // А вообще надо задуматься о динамической безопасности.
         Debug.Log("START: "  + DebugUtilities.DebugListString(polyA.vertices.ToArray()));
-        int safety = 0; int safety_margin = 15;
+        int safety = 0; int safety_margin = 25;
         while (a_only.Count != 0 & safety < safety_margin)   // Этот цикл итеративно подразбивает A на Aonly и CW Union/Дырки 
         { safety += 1;                                       // Это все можно переписать с точки зрения p_overlap. Будет проще отслеживать 
             int a_curr_index = a_only.Count - 1;
@@ -254,7 +253,7 @@ public class CH2D_Chunk
             for (int po = 0; po < p_overlap.Count; po++)
             {
                 CH2D_Polygon p_over = polygons[p_overlap[po]];
-                Debug.Log("BBox intersection status: " + a_curr_index + " " + p_overlap[po] + " " + a_curr.BBox.Intersects(p_over.BBox) + " " + a_curr.BBox + " " + p_over.BBox);
+                //Debug.Log("BBox intersection status: " + a_curr_index + " " + p_overlap[po] + " " + a_curr.BBox.Intersects(p_over.BBox) + " " + a_curr.BBox + " " + p_over.BBox);
                 if (!a_curr.BBox.Intersects(p_over.BBox)) { Debug.Log("No BBox intersection, continue"); continue; }
 
                 List<Pair> intersections = PolyPolySharedPoints(a_curr.vertices, p_over.vertices, a_curr.BBox, p_over.BBox);
@@ -267,10 +266,10 @@ public class CH2D_Chunk
 
                 PolygonIntersection poly_intersection = GHPolygonMerge.PolygonIntersectionTypeIdentify(Amark);
                 PolygonIntersection b_intersection_status = GHPolygonMerge.PolygonIntersectionTypeIdentify(Bmark);
-                Debug.Log(DebugUtilities.DebugListString(intersections.ToArray()));
+                /*Debug.Log(DebugUtilities.DebugListString(intersections.ToArray()));
                 Debug.Log("BBox intersection status: " + a_curr_index + " " + p_overlap[po] + " " + poly_intersection + " " + b_intersection_status);
                 Debug.Log(DebugUtilities.DebugListString(Amark));
-                Debug.Log(DebugUtilities.DebugListString(Bmark));
+                Debug.Log(DebugUtilities.DebugListString(Bmark));*/
                 bool leave = false; bool skip = false;
                 switch (poly_intersection)
                 {
@@ -284,28 +283,21 @@ public class CH2D_Chunk
                         // Это случай где holeB полностью внутри polyА как дырка. Это некорректно. Поэтому скип, ждем следующего полигона nextB.
                         // Если nextB нарежет polyA то есть вероятность что polyA начнет касаться с holeB. 
                         // Если касания не произойдет, значит не добавилось ни одного нового полигона, и флажок has_been_cut удалит polyA без следа.
-                        skip = true; // | b_intersection_status == PolygonIntersection.OutsideFull
+                        skip = true; // | b_intersection_status == PolygonIntersection.OutsideFull // Если оба снаружи то наложений нет, продолжаем без разрезв
                         break;
                     case PolygonIntersection.OutsideTouching:
-                        //case PolygonIntersection.OutsideTouching: 
-                        
-                        if (b_intersection_status != PolygonIntersection.InsideTouching) skip = true; 
+                        if (b_intersection_status == PolygonIntersection.OutsideTouching) skip = true;
+                      //if (b_intersection_status == PolygonIntersection.InsideTouching) skip = false; // В этом случае нужно обрезку сделать, верхняя проверка ловит оба варианта
                         break;
                 }
 
                 if (leave) { has_been_cut = true; break; }
                 if (skip) continue;
                 has_been_cut = true;
-                //else continue; 
-
-                //DebugUtilities.DrawPolygon(GetVertices(a_curr.vertices), DebugUtilities.RainbowGradient_Red2Violet(safety, safety_margin), 2f * safety);
 
                 GHPolygonMerge.CutPolyIntSetting setting = new GHPolygonMerge.CutPolyIntSetting(Union: false, Inter: false, Aonly: true, Bonly: false);
                 (var dummy_polys, var dummy_inter, var only_a, var dummy_b) =
                     GHPolygonMerge.CutPolyInt(vertices, a_curr.vertices, p_over.vertices, GetVertices(a_curr.vertices), p_overlap_vertice_cash[po], intersections, setting, Ainter, Binter, Amark, Bmark);
-                // Если А (обрезаемый полигон) == OutsideFull, то может быть два варианта: А и B раздельны. B внутри A. В первом случае continue. Во втором сложные проверки
-                // Если полигон InsideAny, то это пространство уже занято и его можно отбросить
-                // Если полигон intersection, то надо взять Aonly. 
                 if (only_a == null) { Debug.Log("<b><color=red>only A is equal to null, continuing. It should not be equal to Null, could be a mistake</color></b>"); continue; }
                 Debug.Log("<b><color=white>a_only polys: " + only_a.Count + "</color></b> ");
 
@@ -316,24 +308,21 @@ public class CH2D_Chunk
                 }
                 if (has_been_cut) break;
             }
-            if (has_been_cut)
-            {
-                a_only.RemoveAt(a_curr_index);
-            } else {
+            if (has_been_cut) a_only.RemoveAt(a_curr_index);
+            else {
                 undivided.Add(a_only[a_curr_index]);
                 a_only.RemoveAt(a_curr_index);
             }
-            Debug.Log(a_only.Count + " " + undivided.Count);
+            //Debug.Log(a_only.Count + " " + undivided.Count);
         }
         if (safety == safety_margin) Debug.Log("<color=orange>Safety has reached safety margin, something could have done wrong </color>");
         Debug.Log("END: "  + undivided.Count + " safety: " + safety);
-
         return undivided;
     }
     // Новый полигон касается с соседними полигонами. Каждый соседний полигон должен проложить путь к другому полигону-соседу. В результате должны быть найдены петли. 
     // Каждая петля состоит начального соседнего полигона, конечного соседнего полигона, и новодобавленного полигона. Новодобавленный связан с соседями
     // Между начальным и конечным соседями может быть любое количесвто полигонов, формирующих петлю. И внутри этой петли может быть пустое пространство, которое должно превратиться в полигон-дырку.
-    // Возвращает массив, равный по размеру количеству граней в полигоне. Каждой грани назначается int-индекс полигона соседствующего с этой гранью.
+    // Возвращает массив, равный по размеру количеству граней в полигоне. Каждой грани назначается int-индекс полигона соседствующего с этой гранью. Если нет соседа у грани то -1. -1 - потенциальная дырка
     public int[] GetNeighboursSortedClockwise(int polygon)
     {
         List<int> neighbours = this.connections.GetSliceIDList(polygon);
@@ -346,25 +335,132 @@ public class CH2D_Chunk
             if (!found) continue;
             for (int edge = 0; edge < edges.Count; edge++) loop_points[edges[edge].A_index] = neighbours[neigh];
         }
-        Debug.Log(DebugUtilities.DebugListString(loop_points));
+        //Debug.Log(DebugUtilities.DebugListString(loop_points));
         return loop_points;
     }
     
-    public void FillTheHoles(int polygon)
-    {   // Так, сейчас нихуя не работает, поэтому надо просто убедиться что:
-        // пути могут прокладываться от соседей к соседям (сделано)
-        // Нужно идентифицировать путь-дупликат, который накладывается на все остальные
-        Debug.Log("Функция FillTheHoles сейчас не работает. Прежде чем она будет работать, нужно реализовать Astar поиск пути, с расстоянием между центрами нод и определением площади результируемой дыры");
-        if (this.connections == null) { Debug.Log("Нетоу графа связей, невозможно провести операцию"); return; }
-        int[] neighbours = this.GetNeighboursSortedClockwise(polygon);
+    public List<CH2D_Polygon> FillTheHoles(int polygon)
+    {
+        List<CH2D_Polygon> holes_to_add = new List<CH2D_Polygon>();
+        if (this.connections == null) { Debug.Log("Нетоу графа связей, невозможно провести операцию"); return null; }
+        int[] neighbours = this.GetNeighboursSortedClockwise(polygon); // Блин, тут может быть дырка образованная не гранью а вершиной.
         bool has_holes = false;
         for (int i = 0; i < neighbours.Length; i++) if (neighbours[i] == -1) { has_holes = true; break; }
-        if (!has_holes) return; // No holes, no actions
+        if (!has_holes) { Debug.Log("Found no holes, early leaving"); return holes_to_add; } // No holes, no actions
+        //var valk = FindHole(neighbours);
+        //Debug.Log(valk.previous + " " + valk.start + " " + valk.length + " " + valk.next);
         // Алгоритм: найти -1, это грань без связи с сеседом, т.е. потенциальная дырка
         // Найти все связанные грани-дырки, и закрывающую и открывающие грани с соседями
         // Если закрывашка и открывашка одинаковые, то нахожу Union нового полигона и соседа. Выдираю дырку, скорлупку отбрасываю.
         // Если закрывашка и открывашка разные, то тогда используется путеводный алгоритм для поиска петли
         // Еще надо удалить самую большую петлю если их больше двух, так как самая большая петля является дупликатом одной из маленьких.
+        List<(int A, int B)> loop_chains = new List<(int,int)>();
+        int safety = 0; 
+        while (safety < 35)
+        {   safety += 1;
+            //Debug.Log(DebugUtilities.DebugListString(neighbours));
+            var hole = FindHole(neighbours);
+            //Debug.Log(hole) ;
+            if (hole.previous == -1) { break; }
+            loop_chains.Add((neighbours[hole.previous], neighbours[hole.next]));
+            for (int i = 0; i < hole.length; i++) neighbours[(hole.start + i) % neighbours.Length] = -2;
+            //Debug.Log(DebugUtilities.DebugListString(neighbours));
+        }
+        Debug.Log(safety);
+        Debug.Log(DebugUtilities.DebugListString(loop_chains.ToArray()));
+
+        // Добавить сюда удаление пар-дубликатов. Это проще чем рассчитывать дубликаты пути. Pair.Equivalency()
+        
+        if (loop_chains.Count == 0) return holes_to_add;
+
+        
+        for (int i = 0; i < loop_chains.Count; i++)
+        {
+            List<int> path =  GraphToolbox.FindPathNaive(connections, loop_chains[i].A, loop_chains[i].B, new List<int>() { polygon});
+            Debug.Log(path == null ? "path is null" : DebugUtilities.DebugListString(path.ToArray()));
+            if (path == null) continue;
+            path.Add(polygon);
+            List<CH2D_Polygon> union = MultipleUnion(path);
+            for (int u = 0; u < union.Count; u++)
+            {
+                if (Poly2DToolbox.IsCounterClockwise(GetVertices(union[u].vertices))) holes_to_add.Add(union[u]);
+            }
+        }
+
+        return holes_to_add;
+        
+        
+
+        (int previous, int start, int length, int next) FindHole(int[] neighbours) // Finds previous neighbour, start of an interval, end of an interval, and next neighbour
+        {
+            int index = -1; // Эта функция ищет точки начала и конца дырки, а также окружающие ее полигоны. Дырка не всегда дырка, просто ни с чем не связанные грани
+            for (int i = 0; i < neighbours.Length; i++) if (neighbours[i] == -1) { index = i; break; }
+            if (index == -1) return (-1, -1, -1, -1);
+            int prev = -1;
+            for (int i = 0; i < neighbours.Length; i++)
+            {
+                index = (index - 1 + neighbours.Length) % neighbours.Length;
+                if (neighbours[index] != -1) { prev = index; break; }
+            }
+            int next = -1;
+            for (int i = 0; i < neighbours.Length; i++)
+            {
+                index = (index + 1) % neighbours.Length;
+                if (neighbours[index] != -1) { next = index; break; }
+            }
+            //Debug.Log(DebugUtilities.DebugListString(neighbours));
+            //Debug.Log(acc_prev + " " +  index + " " + acc_next + " neight: " + neighbours.Length);
+            int start = (prev + 1) % neighbours.Length;
+            int end = (next - 1 + neighbours.Length) % neighbours.Length;
+            return (prev, start, (end - start + neighbours.Length + 1) % neighbours.Length, next);
+        }
+    }
+    public List<CH2D_Polygon> MultipleUnion(List<int> to_union)
+    {   // Наверное тут оверкилл. Можно пройти по граням вместо объединения всего в огромный блок. Но это сложновато
+        Debug.Log("Multiple Union Operation");
+        List<CH2D_Polygon> result = new List<CH2D_Polygon>() { this.polygons[to_union[0]] };
+        to_union.RemoveAt(0);
+
+        List<List<Vector2>> vertice_cash = new List<List<Vector2>>();
+        for (int i = 0; i < to_union.Count; i++) vertice_cash.Add(GetPolyVertices(to_union[i]));
+        int safety = 0; int union_index = 0; 
+        while (to_union.Count > 0 & safety < 15)
+        { safety += 1;
+            bool merged = false;
+            CH2D_Polygon polyB = this.polygons[to_union[union_index]];
+            for (int p_a = 0; p_a < result.Count; p_a++)
+            {
+                CH2D_Polygon polyA = result[p_a];
+                if (!polyA.BBox.Intersects(polyB.BBox)) { Debug.Log("No intersection, skip"); continue; }
+                List<Pair> intersections = PolyPolySharedPoints(polyA.vertices, polyB.vertices, polyA.BBox, polyB.BBox);
+                if (intersections.Count == 0) { Debug.Log("No shared points, skip"); continue; };
+
+                (int[] Ainter, int[] Binter, GHPolygonMerge.EdgeSide[] Amark, GHPolygonMerge.EdgeSide[] Bmark) =
+                    GHPolygonMerge.GetIntersectionAndMarkings(polyA.vertices, polyB.vertices, GetVertices(polyA.vertices), vertice_cash[union_index], intersections);
+
+                GHPolygonMerge.CutPolyIntSetting setting = new GHPolygonMerge.CutPolyIntSetting(Union: true, Inter: false, Aonly: false, Bonly: false);
+
+                (var union, var dummy1, var dummy2, var dummy3) =
+                    GHPolygonMerge.CutPolyInt(vertices, polyA.vertices, polyB.vertices, GetVertices(polyA.vertices), vertice_cash[union_index], intersections, setting, Ainter, Binter, Amark, Bmark);
+                if (union == null) { Debug.Log("Something went wrong, received null"); return null; }
+                result.RemoveAt(p_a);
+                to_union.RemoveAt(union_index);
+                vertice_cash.RemoveAt(union_index);
+
+                for (int u = 0; u < union.Count; u++)
+                {
+                    union[u].RecalculateBBox(GetVertices(union[u].vertices));
+                    result.Add(union[u]);
+                }
+                merged = true;
+                break;
+            }
+            if (merged) union_index = 0;
+            else union_index += 1;
+        }
+        /*Debug.Log(result.Count);
+        for (int i = 0; i < result.Count; i++) { DebugUtilities.DrawPolygonRainbow(GetVertices(result[i].vertices), 2f + i); DebugUtilities.DrawRectangle(result[i].BBox.min, result[i].BBox.max, Color.yellow, 2f + i); }*/
+        return result;
     }
     public void FillTheHoles(List<CH2D_P_Index> vertices, List<int> neighbours)
     {   // Так, сейчас нихуя не работает, поэтому надо просто убедиться что:
@@ -406,7 +502,22 @@ public class CH2D_Chunk
     public void PolyMergeDelegate(int A, int B)
     {
         List<Pair> pairs = PolyPolySharedPoints(polygons[A].vertices, polygons[B].vertices, polygons[A].BBox, polygons[B].BBox);
-        GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs, GHPolygonMerge.default_setting);
+        var result = GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs, GHPolygonMerge.default_setting);
+        string data = "Union: " + result.union + " only A: " + result.onlyA + " only B: " + result.onlyB + " overlap: " + result.overlap + "\n";
+        data += "Union: " + result.union.Count + "\n";
+        for (int i = 0; i < result.union.Count; i++)
+            data += "union " + i + ", size: " + result.union[i].vertices.Count + ": " + DebugUtilities.DebugListString(result.union[i].vertices.ToArray()) + "\n";
+        data += "OnlyA: " + result.onlyA.Count + "\n";
+        for (int i = 0; i < result.onlyA.Count; i++)
+            data += "onlyA " + i + ", size: " + result.onlyA[i].vertices.Count + ": " + DebugUtilities.DebugListString(result.onlyA[i].vertices.ToArray()) + "\n";
+        data += "OnlyB: " + result.onlyB.Count + "\n";
+        for (int i = 0; i < result.onlyB.Count; i++)
+            data += "onlyB " + i + ", size: " + result.onlyB[i].vertices.Count + ": " + DebugUtilities.DebugListString(result.onlyB[i].vertices.ToArray()) + "\n";
+        data += "Overlap: " + result.overlap.Count + "\n";
+        for (int i = 0; i < result.overlap.Count; i++)
+            data += "overlap " + i + ", size: " + result.overlap[i].vertices.Count + ": " + DebugUtilities.DebugListString(result.overlap[i].vertices.ToArray()) + "\n";
+
+        Debug.Log(data);
     }
 
     /// <summary>
@@ -957,14 +1068,14 @@ public class CH2D_Chunk
     /// </summary>
     public List<Pair> PolyPolySharedPoints(List<CH2D_P_Index> polyA, List<CH2D_P_Index> polyB, LipomaBounds Abox, LipomaBounds Bbox)
     {
-        Debug.Log("Abox: " + Abox.min + " " + Abox.max + " Bbox: " + Bbox.min + " " + Bbox.max);
+        //Debug.Log("Abox: " + Abox.min + " " + Abox.max + " Bbox: " + Bbox.min + " " + Bbox.max);
         List<int> p_a = PointsInsideBoundsInt(polyA, Bbox); // Тут опечатка, Abox и Bbox надо поменять местами. Сейчас это бесполезные функции. Еще мне кажется что они Bounds не являются инклюзивными на конце
         List<int> p_b = PointsInsideBoundsInt(polyB, Abox);
-        
+        /*
         Debug.Log(DebugUtilities.DebugListString(polyA.ToArray()));
         Debug.Log(DebugUtilities.DebugListString(polyB.ToArray()));
         Debug.Log(DebugUtilities.DebugListString(p_a.ToArray()));
-        Debug.Log(DebugUtilities.DebugListString(p_b.ToArray()));
+        Debug.Log(DebugUtilities.DebugListString(p_b.ToArray()));*/
         List<Pair> pairs = new List<Pair>();
         for (int a = 0; a < p_a.Count; a++)
             for (int b = 0; b < p_b.Count; b++)

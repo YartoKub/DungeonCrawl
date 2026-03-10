@@ -166,6 +166,30 @@ public static class Geo3D
 
         return sortedPoints;
     }
+    /// <summary>
+    /// Sector, Vector, Between, Clockwise, CounterClockwise <br/>
+    /// Checks whether vector D lies in a sector defined by A and B in a counter clockwise order. <br/>
+    /// This one expects that all vectors share a common origin point
+    /// </summary>
+    public static bool DoesVectorDLieInSectorAB(Vector2 common_origin, Vector2 A, Vector2 B, Vector2 D)
+    {
+        Vector2 ao = A - common_origin; Vector2 bo = B - common_origin; Vector2 dir_o = D - common_origin;
+        return DoesVectorLieBetween_A_and_B_CCW(ao, bo, dir_o);
+    }
+    /// <summary>
+    /// Sector, Vector, Between, Clockwise, CounterClockwise <br/>
+    /// Checks whether vector D lies in a sector defined by A and B in a counter clockwise order.
+    /// </summary>
+    public static bool DoesVectorLieBetween_A_and_B_CCW(Vector2 A, Vector2 B, Vector2 D)
+    {
+        float cross_ab = Det2x2(A, B);
+        float cross_dir_a = Det2x2(A, D);
+        float cross_dir_b = Det2x2(B, D);
+        if (Mathf.Abs(cross_dir_a) < epsilon && Vector2.Dot(A, D) > epsilon) return true; // Проверка на коллинеарность, затем на сонаправленнось
+        if (Mathf.Abs(cross_dir_b) < epsilon && Vector2.Dot(B, D) > epsilon) return true;
+        if (cross_ab >= 0) return cross_dir_a >= 0 & cross_dir_b <= 0;
+        else return !(cross_dir_a < 0 & cross_dir_b > 0);
+    }
 
     public static Vector2 IncircleCenter(Vector2 p1, Vector2 p2, Vector2 p3)
     {

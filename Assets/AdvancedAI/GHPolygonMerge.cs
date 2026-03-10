@@ -36,7 +36,7 @@ public static class GHPolygonMerge
     // Этот код ожидает что все пересечения заранее известны и находятся в списке intersections     
     public struct CutPolyIntSetting {
         public bool Union, Inter, Aonly, Bonly;
-        public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly) 
+        public CutPolyIntSetting(bool Union, bool Inter, bool Aonly, bool Bonly)    
         { 
             this.Union = Union; this.Inter = Inter; this.Aonly = Aonly; this.Bonly = Bonly; 
         }
@@ -45,8 +45,10 @@ public static class GHPolygonMerge
     public static (int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) GetIntersectionAndMarkings(
         List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
-        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
-        (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
+        (int[] Ainter, int[] Binter) = MarkPoints(Ap, Bp, intersections);
+        (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ap, Bp, intersections);
+        //(EdgeSide[] BufferAedge2, EdgeSide[] BufferBedge2) = MarkEdges(Ap, Bp, intersections);
+
         return (Ainter, Binter, BufferAedge, BufferBedge);
     }
     public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(
@@ -61,9 +63,9 @@ public static class GHPolygonMerge
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
 
-        string intersections_s = "intersectins: "; for (int i = 0; i < intersections.Count; i++) intersections_s += " (" + intersections[i].A  + " " + intersections[i].B + ") "; Debug.Log(intersections_s);
+        /*string intersections_s = "intersectins: "; for (int i = 0; i < intersections.Count; i++) intersections_s += " (" + intersections[i].A  + " " + intersections[i].B + ") "; Debug.Log(intersections_s);
         string ae = "A edges: "; for (int i = 0; i < Aedges.Length; i++) ae += Aedges[i] + " "; Debug.Log(ae); string be = "B edges: "; for (int i = 0; i < Bedges.Length; i++) be += Bedges[i] + " "; Debug.Log(be);
-        ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae); be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);
+        ae = "A edges: "; for (int i = 0; i < Ainter.Length; i++) ae += Ainter[i] + " "; Debug.Log(ae); be = "B edges: "; for (int i = 0; i < Binter.Length; i++) be += Binter[i] + " "; Debug.Log(be);*/
 
         
         List<CH2D_Polygon> Union = new List<CH2D_Polygon>(); List<CH2D_Polygon> Inter = new List<CH2D_Polygon>(); List<CH2D_Polygon> Aonly = new List<CH2D_Polygon>(); List<CH2D_Polygon> Bonly = new List<CH2D_Polygon>();
@@ -72,7 +74,6 @@ public static class GHPolygonMerge
             Debug.Log("<color='red'>==== Union ====</color>");
             Union = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Union);
         }
-
         
         if (setting.Inter)
         {
@@ -132,7 +133,7 @@ public static class GHPolygonMerge
     {   // Ничего не записывает, но все отображает
         if (intersections.Count == 0) { Debug.Log("Нет пересечений междлу полигонами"); return (null, null, null); }
 
-        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
+        (int[] Ainter, int[] Binter) = MarkPoints(Ap, Bp, intersections);
         (EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = MarkEdges(Ainter, Binter, A, B);
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
@@ -292,6 +293,7 @@ public static class GHPolygonMerge
         n = "Bedge: "; for (int i = 0; i < Binter.Length; i++) n += Binter[i] + " "; Debug.Log(n);*/
         int safety = -1;
         bool goodLoop = false;
+        
         while (safety < 35)
         {
             points.Add(curr_a < 0 ? Bv[curr_b] : Av[curr_a]);
@@ -477,6 +479,95 @@ public static class GHPolygonMerge
         }
     }
 
+    private static (EdgeSide[], EdgeSide[]) MarkEdges(List<Vector2> A, List<Vector2> B, List<Pair> intersections)
+    {   // План прост: Использовать функцию Geo3D.IsVectorInSectorLongNameForgot(0 для определения стороны? а затем по соседям определить принадлежность
+        // Жирным плюсом является отсутствие нужды в While и всей итой итеративной хуйни которую я написал в прошлой реализации
+        // Вроде работает, также точно как и предыдущая реализация
+        EdgeSide[] Aedge = new EdgeSide[A.Count]; EdgeSide[] Bedge = new EdgeSide[B.Count];
+
+        if (intersections.Count == 0)
+        {
+            bool BinsideA = Poly2DToolbox.IsPointInsidePolygon(B[0], A);
+            bool AinsideB = Poly2DToolbox.IsPointInsidePolygon(A[0], B);
+            EdgeSide Aside = AinsideB ? EdgeSide.Inside : EdgeSide.Outside;
+            EdgeSide Bside = BinsideA ? EdgeSide.Inside : EdgeSide.Outside;
+            for (int i = 0; i < Aedge.Length; i++) Aedge[i] = Aside;
+            for (int i = 0; i < Bedge.Length; i++) Bedge[i] = Bside;
+            return (Aedge, Bedge);
+        }
+
+        int[] Ainter = new int[A.Count]; int[] Binter = new int[B.Count];
+        for (int i = 0; i < Ainter.Length; i++) Ainter[i] = -1;
+        for (int i = 0; i < Binter.Length; i++) Binter[i] = -1;
+        for (int i = 0; i < intersections.Count; i++) { Pair p = intersections[i]; Ainter[p.A] = p.B; Binter[p.B] = p.A; }
+
+        // Поиск коллинеаров
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            int Aindex = intersections[i].A; int Bindex = intersections[i].B;
+            int prevAindex = (Aindex - 1 +  Ainter.Length) % Ainter.Length;
+            int nextAindex = (Aindex + 1) % Ainter.Length;
+            int prevBindex = (Bindex - 1 +  Binter.Length) % Binter.Length;
+            int nextBindex = (Bindex + 1) % Binter.Length;
+            if (Binter[prevBindex] == nextAindex)
+            {
+                Aedge[Aindex]     = EdgeSide.Out_Colin;
+                Bedge[prevBindex] = EdgeSide.Out_Colin;
+                continue;
+            }
+            if (Binter[nextBindex] == nextAindex)
+            {
+                Aedge[Aindex] = EdgeSide.Inn_Colin;
+                Bedge[Bindex] = EdgeSide.Inn_Colin;
+            }
+        }
+        //Debug.Log(DebugUtilities.DebugListString(Aedge));
+        //Debug.Log(DebugUtilities.DebugListString(Bedge));
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            int Aindex = intersections[i].A; int Bindex = intersections[i].B;
+            int nextAindex = (Aindex + 1) % Ainter.Length;
+            int nextBindex = (Bindex + 1) % Binter.Length;
+            int prevAindex = (Aindex - 1 + Ainter.Length) % Ainter.Length;
+            int prevBindex = (Bindex - 1 + Binter.Length) % Binter.Length;
+
+            if (Aedge[intersections[i].A] == EdgeSide.None)
+            {
+                bool a_outside = Geo3D.DoesVectorDLieInSectorAB(A[Aindex], B[prevBindex], B[nextBindex], A[nextAindex]);
+                Aedge[Aindex] = a_outside ? EdgeSide.Outside : EdgeSide.Inside;
+            }
+            if (Bedge[intersections[i].B] == EdgeSide.None)
+            {
+                bool b_outside = Geo3D.DoesVectorDLieInSectorAB(B[Bindex], A[prevAindex], A[nextAindex], B[nextBindex]);
+                Bedge[Bindex] = b_outside ? EdgeSide.Outside : EdgeSide.Inside;
+            }
+        }
+
+        // Закрашивание всех последующих граней под цвет предыдущей
+        int a_offset = 0;
+        for (int i = 0; i < Aedge.Length; i++)
+            if (Aedge[(0 - i + Aedge.Length) % Aedge.Length] != EdgeSide.None) { a_offset = i; break; }
+        for (int i = 0; i < Aedge.Length; i++)
+        {
+            int i_curr = (i + Aedge.Length - a_offset) % Aedge.Length;
+            int prev_i = (i_curr - 1 + Aedge.Length) % Aedge.Length;
+            if (Aedge[i_curr] == EdgeSide.None) Aedge[i_curr] = Aedge[prev_i];
+        }
+
+        int b_offset = 0;
+        for (int i = 0; i < Bedge.Length; i++)
+            if (Bedge[(0 - i + Bedge.Length) % Bedge.Length] != EdgeSide.None) { b_offset = i; break; }
+        for (int i = 0; i < Bedge.Length; i++)
+        {
+            int i_curr = (i + Bedge.Length - b_offset) % Bedge.Length;
+            int prev_i = (i_curr - 1 + Bedge.Length) % Bedge.Length;
+            if (Bedge[i_curr] == EdgeSide.None) Bedge[i_curr] = Bedge[prev_i];
+        }
+        Debug.Log(DebugUtilities.DebugListString(Aedge));
+        Debug.Log(DebugUtilities.DebugListString(Bedge));
+
+        return (Aedge, Bedge);
+    }
     private static (EdgeSide[], EdgeSide[]) MarkEdges(int[] Ainter, int[] Binter, List<CH2D_P_Index> A, List<CH2D_P_Index> B)
     {
         EdgeSide[] Aedge = new EdgeSide[Ainter.Length]; EdgeSide[] Bedge = new EdgeSide[Binter.Length];
@@ -541,8 +632,8 @@ public static class GHPolygonMerge
             }
             if (solved) break;
         }
-        //Debug.Log(DebugUtilities.DebugListString(Aedge));
-        //Debug.Log(DebugUtilities.DebugListString(Bedge));
+        Debug.Log(DebugUtilities.DebugListString(Aedge));
+        Debug.Log(DebugUtilities.DebugListString(Bedge));
         return (Aedge, Bedge);
 
         EdgeSide PointBasedSolution(int currA, int nextA, int nextBindex, int prevBindex)
@@ -575,7 +666,7 @@ public static class GHPolygonMerge
     /// </summary>
     public static PolygonIntersection Is_BPoly_Inside_APoly(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
-        (int[] Ainter, int[] Binter) = MarkPoints(A, B, Ap, Bp, intersections);
+        (int[] Ainter, int[] Binter) = MarkPoints(Ap, Bp, intersections);
         (EdgeSide[] Aedges, EdgeSide[] Bedges) = MarkEdges(Ainter, Binter, A, B);
         return PolygonIntersectionTypeIdentify(Bedges);
     }
@@ -644,14 +735,6 @@ public static class GHPolygonMerge
         PolygonIntersection pi = Is_BPoly_Inside_APoly(A, B, Ap, Bp, intersections); return pi == PolygonIntersection.InsideTouching | pi == PolygonIntersection.InsideFull;
     }
 
-    private static void DebugStepState(int[] defAside, int[] defBside, List<int> start_A, List<int> start_B, List<CH2D_P_Index> A, List<CH2D_P_Index> B)
-    {
-        string n = "A side: "; for (int i = 0; i < defAside.Length; i++) n += intDecider(defAside[i]) + ", "; Debug.Log(n);
-        n = "B side: "; for (int i = 0; i < defBside.Length; i++) n += intDecider(defBside[i]) + ", "; Debug.Log(n);
-        n = "start A c:" + start_A.Count + ": "; for (int i = 0; i < start_A.Count; i++) n += "(" + start_A[i] + " " + A[start_A[i]] + "), "; Debug.Log(n);
-        n = "start B c:" + start_B.Count + ": "; for (int i = 0; i < start_B.Count; i++) n += "(" + start_B[i] + " " + B[start_B[i]] + "), "; Debug.Log(n);
-        
-    }
     private static string intDecider(int value)
     {
         if (value == inn_point ) return "inn";
@@ -667,10 +750,11 @@ public static class GHPolygonMerge
         public AllowedSides(bool Ainside, bool Aoutside, bool Binside, bool Boutside ) { this.Ainside = Ainside; this.Aoutside = Aoutside; this.Binside = Binside; this.Boutside = Boutside; } 
     }
 
-    private static (int[] Aside, int[] Bside) MarkPoints(List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
+    // TODO: replace Poly2DToolbox.IsPointInsidePolygon for Geo3D.SomeSecotrFuncitonForgotNameItsTooLong // Thinksing, about it, i can do it directly in MarkEdges
+    private static (int[] Aside, int[] Bside) MarkPoints(List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
-        int[] Ainter = new int[A.Count]; // default value - 0
-        int[] Binter = new int[B.Count];
+        int[] Ainter = new int[Ap.Count]; // default value - 0
+        int[] Binter = new int[Bp.Count];
         for (int i = 0; i < Ainter.Length; i++) Ainter[i] = used_point;
         for (int i = 0; i < Binter.Length; i++) Binter[i] = used_point;
 
