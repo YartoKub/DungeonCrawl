@@ -8,8 +8,8 @@ using System.Linq;
 // TODO: Вместо шагохода для сборки полигонов использовать однонаправленный граф, все грани одного типа объединить в интерфалы 
 // TODO: Прикрутить поддержку многоуровневых полигонов, ту же самую которую я реализовал в GH алгоритме для Vector2 полигонов, но для CH2D_P_Vertice
 // TODO: Прикрутить выпуклую декомпозицию, ту же самую которая лежит в Poly2DToolbox
-// TODO: Если будет свободное время то переписать этот алгоритм так чтобы он мог принимать только Vector2 а не CH2D_P_Vertice+Vector2
-// TOOD: сделать простеньую операцию для обрезация полигона об прямоугольник. Сложно быть не должно.
+// TODO: Если будет свободное время то сделать копию этого алгоритма так чтобы он мог принимать только Vector2 а не CH2D_P_Vertice+Vector2
+// TOOD: сделать простеньую операцию для обрезация полигона об прямоугольник/шестиугольник для регулярных чанков. Сложно быть не должно.
 // ЕЩВЩ: Блин, еще надо как-то улучшить начальный этап поиска пересечений. Щас там просто O(N*N) брут форс перебор. И я не хочу использовать sweep line, он привязан к осям, и поэтому я не могу ему доверять
 
 // Кажется эта штука работает. С ней в целом проблем много быть не должно. 
@@ -60,13 +60,15 @@ public static class GHPolygonMerge
         return (Ainter, Binter, BufferAedge, BufferBedge);
     }
     public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(
-        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting)
+        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting,
+        bool DebugUnion = false, bool DebugAonly = false, bool DebugBonly = false, bool DebugInter = false)
     {
         (int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) = GetIntersectionAndMarkings(A, B, Ap, Bp, intersections);
-        return CutPolyInt(V, A, B, Ap, Bp, intersections, setting, Ainter, Binter, BufferAedge, BufferBedge);
+        return CutPolyInt(V, A, B, Ap, Bp, intersections, setting, Ainter, Binter, BufferAedge, BufferBedge, DebugUnion, DebugAonly, DebugBonly, DebugInter);
     }
     public static (List<CH2D_Polygon> union, List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) CutPolyInt(
-        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting, int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge)
+        List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, CutPolyIntSetting setting, int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge,
+        bool DebugUnion = false, bool DebugAonly = false, bool DebugBonly = false, bool DebugInter = false )
     {
         EdgeSide[] Aedges = new EdgeSide[BufferAedge.Length]; BufferAedge.CopyTo(Aedges, 0);
         EdgeSide[] Bedges = new EdgeSide[BufferBedge.Length]; BufferBedge.CopyTo(Bedges, 0);
@@ -104,34 +106,38 @@ public static class GHPolygonMerge
             Debug.Log("<color='red'>==== B ONLY ====</color>");
             Bonly = IsolateLoops(A, B, Ainter, Binter, Aedges, Bedges, BooleanOperation.Bonly);
         }
-        /*
+        
         //"<color='red'>==== Intersectiion ====</color>");
         float default_offset = 2f;
         float ab_offset = 1f + Mathf.Max(Aonly.Count, Bonly.Count);
         float union_offset = 1f + Union.Count;
+        if (DebugInter)
         for (int i = 0; i < Inter.Count; i++) {
             int a_v_count = Inter[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0f, 0.5f, 0f), new Color(0.2f, 1f, 0.2f), x, a_v_count - 1), default_offset + ab_offset + union_offset + 1f * i); //2f + 1f * i, 0.3f
+                DebugUtilities.DebugDrawLine(V[Inter[i].vertices[x]], V[Inter[i].vertices[(x + 1) % a_v_count]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + ab_offset + union_offset + 1f * i); //2f + 1f * i, 0.3f
         }
         //"<color='red'>==== Union ====</color>");
-        for (int i = 0; i < Union.Count; i++) {
+        if (DebugUnion)
+            for (int i = 0; i < Union.Count; i++) {
             int a_v_count = Union[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
                 DebugUtilities.DebugDrawLine(V[Union[i].vertices[x]], V[Union[i].vertices[(x + 1) % a_v_count]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + ab_offset + 1f * i); //2f + 1f * i, 0.3f
         }
         //"<color='red'>==== A ONLY ====</color>");
-        for (int i = 0; i < Aonly.Count; i++) {
+        if (DebugAonly)
+            for (int i = 0; i < Aonly.Count; i++) {
             int a_v_count = Aonly[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0.5f, 0f, 0f), new Color(1f, 0.2f, 0.2f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
+                DebugUtilities.DebugDrawLine(V[Aonly[i].vertices[x]], V[Aonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + 1f * i); //2f + 1f * i, 0.3f
         }
         //"<color='red'>==== B ONLY ====</color>");
-        for (int i = 0; i < Bonly.Count; i++) {
+        if (DebugBonly)
+            for (int i = 0; i < Bonly.Count; i++) {
             int a_v_count = Bonly[i].vertices.Count;
             for (int x = 0; x < a_v_count; x++)
-                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.HSVGradient(new Color(0f, 0f, 0.5f), new Color(0.2f, 0.2f, 1f), x, a_v_count - 1), default_offset + 1f * i); //2f + 1f * i, 0.3f
-        }*/
+                DebugUtilities.DebugDrawLine(V[Bonly[i].vertices[x]], V[Bonly[i].vertices[(x + 1) % a_v_count]], DebugUtilities.PickGradient(x, a_v_count - 1, DebugUtilities.GradientOption.Rainbow_Red2Violet), default_offset + 1f * i); //2f + 1f * i, 0.3f
+        }
 
         Debug.Log("<b><color=red> Aonly: " + Aonly.Count + "</color><color=blue> Bonly: " + Bonly.Count + "</color> <color=green>Inter: " + Inter.Count + "</color><color=yellow> Union: " + Union.Count + " </color></b>");
         return (Union, Inter, Aonly, Bonly);
@@ -486,6 +492,8 @@ public static class GHPolygonMerge
             default: return (a, b);
         }
     }
+
+    //private static 
 
     private static (EdgeSide[], EdgeSide[]) MarkEdges(List<Vector2> A, List<Vector2> B, List<Pair> intersections)
     {   // План прост: Использовать функцию Geo3D.IsVectorInSectorLongNameForgot(0 для определения стороны? а затем по соседям определить принадлежность

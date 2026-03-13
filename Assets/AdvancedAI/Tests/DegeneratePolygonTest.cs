@@ -4,17 +4,7 @@ using UnityEditor;
 
 public class DegeneratePolygonTest : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
+    // ADD POLYGON TESTS FOR CHUNK AND GLOBAL MAP
     public static void AddEncompassedDegenerates()
     {
         List<Vector2> p1 = new List<Vector2> { new Vector2(-0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 1) };
@@ -210,6 +200,11 @@ public class DegeneratePolygonTest : MonoBehaviour
         PolygonManager.GetManager().AddPolygon(poly3);
 
     }
+
+    // ADD POLYGON TESTS FOR DEBUGGING POLYGON BOOLEAN
+    // “ут подразумеваетс€ что все тесты будут использовать Dangerous Add Polygon, чтобы полигоны могли накладыватьс€ друг на друга. 
+    // Ёти функции очищают чанк дл€ добавлени€ полигонов и легкости выбора индексов полигона
+
 }
 [CustomEditor(typeof(DegeneratePolygonTest))]
 public class DegeneratePolygonTestEditor : Editor 

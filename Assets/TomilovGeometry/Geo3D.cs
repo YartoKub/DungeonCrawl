@@ -246,7 +246,17 @@ public static class Geo3D
         return true;
     }
 
+    public static Vector2 MirrorVectorToVector(Vector2 mirror, Vector2 vector)
+    {
+        Vector2 m_norm = mirror.normalized;
+        Vector2 v_norm = vector.normalized; float v_mag = vector.magnitude;
+        float dot = Vector2.Dot(m_norm, v_norm);
+        Vector2 result = m_norm *  2 * dot - v_norm;
+        return result * v_mag;
 
+        //float dot = Vector2.Dot(start.normalized, end.normalized);
+        //(-end.normalized + (start.normalized * dot) * 2) * end.magnitude
+    }
 
     /*
     public static bool BBoxCheck(BBox A, BBox B) {

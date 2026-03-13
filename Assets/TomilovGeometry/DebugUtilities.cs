@@ -377,5 +377,41 @@ public static class DebugUtilities
         return n;
     }
 
+    // This might be the worst spline in the history of splines.
+    // My unwillingness to fix it is stronger that my will to work on tasks of different nature, therefore the PoopSplite shall remain unchanged, akin to ruins of civilizations lost to time 
+    public static void DebugDrawPoopSpline(Vector2 start, Vector2 corner, Vector2 end, Color color, int divisions)
+    {
+        if (divisions <= 1) {DebugDrawLine(start, end, color); return;};
+            Vector2 prev_divisiob = start; Vector2 last_division = Vector2.zero;
+
+
+        for (int i = 1; i < divisions + 1; i++)
+        {
+            last_division = PoopSplineFormula(start, corner, end, divisions * 2 + 1, i);
+            DebugDrawLine(start + Geo3D.MirrorVectorToVector(corner - start, prev_divisiob - start), start + Geo3D.MirrorVectorToVector(corner - start, last_division - start), color);
+            prev_divisiob = last_division;
+        }
+        DebugDrawLine(start + Geo3D.MirrorVectorToVector(corner - start, last_division - start), corner, color);
+        DebugDrawLine(corner, corner + Geo3D.MirrorVectorToVector(end - corner, last_division - corner), color);
+        for (int i = 1; i < divisions; i++)
+        {
+            last_division = PoopSplineFormula(start, corner, end, divisions * 2 + 1, divisions + i + 1);
+            DebugDrawLine(corner + Geo3D.MirrorVectorToVector(end - corner, prev_divisiob - corner), corner + Geo3D.MirrorVectorToVector(end - corner, last_division - corner), color);
+            prev_divisiob = last_division;
+        }
+        DebugDrawLine(corner + Geo3D.MirrorVectorToVector(end - corner, last_division - corner), end, color);
+        //DebugDrawLine(last_division, end, Color.blue);
+
+    }
+    public static Vector2 PoopSplineFormula(Vector2 start, Vector2 corner, Vector2 end, int divisions, int step)
+    {
+        float ratio = ((float)step / (float)divisions);
+        float corner_ratio = Mathf.Abs(ratio - 0.5f) * 2f;
+        Vector2 point = start * (1 - ratio) + end * (ratio);
+        Vector2 spline = point * corner_ratio + corner * (1f - corner_ratio);
+
+        return spline;
+    }
+
 }
 

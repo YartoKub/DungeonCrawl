@@ -2165,7 +2165,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1266008486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2183,7 +2183,7 @@ MonoBehaviour:
   PointHighlighter: -1
   option: 4
   orientation: 2
-  polygonAddMode: 1
+  polygonAddMode: 0
   points:
   - {x: -10.481063, y: -2.9422631}
   - {x: -10.26203, y: -4.1262293}
@@ -2220,6 +2220,10 @@ MonoBehaviour:
   selected2: -1
   selectionColorScheme: 0
   SelectedChunkAction: 0
+  Union: 1
+  Inter: 0
+  Aonly: 0
+  Bonly: 0
 --- !u!4 &1266008487
 Transform:
   m_ObjectHideFlags: 0

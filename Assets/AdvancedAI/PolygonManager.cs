@@ -34,6 +34,8 @@ public class PolygonManager : MonoBehaviour
     private List<int> selection;
     enum SelectionColorScheme { GreenRedDirected, Rainbow}
     [SerializeField] private ChunkAction SelectedChunkAction;
+
+    public bool Union, Inter, Aonly, Bonly;
     private enum ChunkAction
     {
         Nothing,
@@ -70,7 +72,7 @@ public class PolygonManager : MonoBehaviour
                 if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
                 if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
                 if (selected1 == selected2) { Debug.Log("Выбран один и тот же полигон!"); break; }
-                my_chunk.PolyMergeDelegate(selected1, selected2);
+                my_chunk.PolyMergeDelegate(selected1, selected2, Union, Aonly, Bonly, Inter);
                 break;
             case ChunkAction.GetNewVectorForTests:
                 if (selected1 == -1) { Debug.Log("Нужно один полигон!"); break; }
@@ -104,7 +106,7 @@ public class PolygonManager : MonoBehaviour
             default:
                 break;
         }
-
+        selected1 = -1; selected2 = -1;
         SelectedChunkAction = ChunkAction.Nothing;
     }
     private void GetNewVectorsForTests(int polyindex)

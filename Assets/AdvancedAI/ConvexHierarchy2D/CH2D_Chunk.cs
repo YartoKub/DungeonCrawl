@@ -10,12 +10,12 @@ using System.Linq;
 public class CH2D_Chunk
 {
     public List<CH2D_Polygon> polygons;
-    public GraphDynamicList connections; // Сериализация не работает с абстрактными классами, поэтому тут нужно какой-то определенный выбирать. 
+    public GraphDynamicList connections; // Сериализация не работает с абстрактными классами, поэтому тут нужно какой-то определенный выбирать. Либо свой писать.
     // Чтобы получить выбор между несколькими дочерними классами можно создать wrapper, в которм enumератором указывать на тот который нужно использовать
     public const UInt16 MaxVertices = 1000; //UInt16.MaxValue; // Если число вершин выходит за пределы этого числа, чанк нужно разбить на меньшие части
     [SerializeField] public List<Vector2> vertices;
     public List<CH2D_P_Index> ConvexHull;
-    public enum PolygonAddMode { Monolith, FillHoles}
+    public enum PolygonAddMode { Monolith, FillHoles, RawAdd}
     public CH2D_Chunk()
     {
         polygons = new List<CH2D_Polygon>();
@@ -147,8 +147,15 @@ public class CH2D_Chunk
                 }
                 Debug.Log(new_polygons.Count);
                 break;
+            case PolygonAddMode.RawAdd:
+                int_poly.vertices = new List<CH2D_P_Index>(int_poly.vertices);
+                int_poly.initialized = true;
+                this.DangerousAddPolygon(int_poly);
+                break;
+                
             default:
                 return (null, null);
+            
         }
         // ДОБАВЛЕНИЕ НОВЫХ ПОЛИГОНОВ
         for (int i = 0; i < old_polygons.Count; i++)
@@ -499,10 +506,10 @@ public class CH2D_Chunk
     }
 
 
-    public void PolyMergeDelegate(int A, int B)
+    public void PolyMergeDelegate(int A, int B, bool Union, bool Aonly, bool Bonly, bool Inter)
     {
         List<Pair> pairs = PolyPolySharedPoints(polygons[A].vertices, polygons[B].vertices, polygons[A].BBox, polygons[B].BBox);
-        var result = GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs, GHPolygonMerge.default_setting);
+        var result = GHPolygonMerge.CutPolyInt(this.vertices, polygons[A].vertices, polygons[B].vertices, GetPolyVertices(A), GetPolyVertices(B), pairs, GHPolygonMerge.default_setting, Union, Aonly, Bonly, Inter);
         string data = "Union: " + result.union + " only A: " + result.onlyA + " only B: " + result.onlyB + " overlap: " + result.overlap + "\n";
         data += "Union: " + result.union.Count + "\n";
         for (int i = 0; i < result.union.Count; i++)
