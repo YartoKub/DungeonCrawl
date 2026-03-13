@@ -1,6 +1,5 @@
 using UnityEngine;
-<<<<<<< Updated upstream:Assets/BoundsMathHelper.cs
-=======
+
 using System;
 [Serializable] 
 public struct LipomaBounds
@@ -38,7 +37,7 @@ public struct LipomaBounds
         return "Lipomabounds: " + this.min + " " + this.max;
     }
 } 
->>>>>>> Stashed changes:Assets/TomilovGeometry/BoundsMathHelper.cs
+
 
 public static class BoundsMathHelper
 {
