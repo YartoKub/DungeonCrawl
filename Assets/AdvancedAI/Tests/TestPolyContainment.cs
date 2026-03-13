@@ -40,7 +40,7 @@ public class TestPolyContainment : MonoBehaviour
         Poly2D Cp = new Poly2D(polygonCM);
         Poly2D Dp = new Poly2D(polygonDM);
 
-        SuperPoly2D gigaPoly = new SuperPoly2D();
+        HierarchicalPoly2D gigaPoly = new HierarchicalPoly2D();
         gigaPoly.polygons.Add(Ap);
         gigaPoly.polygons.Add(Bp);
         gigaPoly.polygons.Add(Cp);

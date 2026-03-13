@@ -38,8 +38,8 @@ public class TestLineJumper : MonoBehaviour
         for (int i = 0; i < polygonB.Count; i++) polygonCM.Add(polygonB[i] + polyCMoffset);
 
         stitched = Poly2DToolbox.UniteHoles(new Poly2D(polygonAM), new List<Poly2D>() { new Poly2D(polygonBM), new Poly2D(polygonCM) });
-        List<Vector3Int> triangles = Poly2DToolbox.EarClip(stitched);
-        ConvexPoly2D.HealScars(stitched, triangles);
+        List<Triangle> triangles = Poly2DToolbox.EarClip(stitched, false);
+        Poly2DToolbox.HealScars(stitched, triangles);
 
         if (showA) for (int i = 0; i < polygonAM.Count; i++) DebugUtilities.DebugDrawLine(polygonAM[i], polygonAM[(i + 1) % polygonAM.Count], Color.red);
         if (showB) for (int i = 0; i < polygonBM.Count; i++) DebugUtilities.DebugDrawLine(polygonBM[i], polygonBM[(i + 1) % polygonBM.Count], Color.cyan);
@@ -59,12 +59,12 @@ public class TestLineJumper : MonoBehaviour
         List<Vector3Int> connections = ConvexPoly2D.EstablishConnections(stitched, triangles);
         if (showTriangulation)
         {
-            foreach (Vector3Int abc in triangles)
+            foreach (Triangle abc in triangles)
             {
-                DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
-                DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
-                DebugUtilities.DebugDrawCross((stitched[abc.x] + stitched[abc.y] + stitched[abc.z]) / 3, Color.yellow);
+                DebugUtilities.DebugDrawLine(stitched[abc.a], stitched[abc.b], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.b], stitched[abc.c], Color.green);
+                DebugUtilities.DebugDrawLine(stitched[abc.c], stitched[abc.a], Color.green);
+                DebugUtilities.DebugDrawCross((stitched[abc.a] + stitched[abc.b] + stitched[abc.c]) / 3, Color.yellow);
             }
             ConvexPoly2D. DrawPolygonConnections(connections, triangles, stitched);
         }
@@ -74,8 +74,9 @@ public class TestLineJumper : MonoBehaviour
 
         if (showVoronoi)
         {
-            foreach (Vector3Int abc in triangles)
+            foreach (Triangle t in triangles)
             {
+                Vector3Int abc = t.vec3();
                 DebugUtilities.DebugDrawLine(stitched[abc.x], stitched[abc.y], Color.green);
                 DebugUtilities.DebugDrawLine(stitched[abc.y], stitched[abc.z], Color.green);
                 DebugUtilities.DebugDrawLine(stitched[abc.z], stitched[abc.x], Color.green);
@@ -86,7 +87,7 @@ public class TestLineJumper : MonoBehaviour
 
         if (ShowTriangle >= 0 && ShowTriangle < triangles.Count)
         {
-            Vector3Int triangle = triangles[ShowTriangle];
+            Vector3Int triangle = triangles[ShowTriangle].vec3();
             DebugUtilities.DebugDrawCross((stitched[triangle.x] + stitched[triangle.y] + stitched[triangle.z]) / 3, Color.purple);
         }
         if (ShowVertice >= 0 && ShowVertice < stitched.Count)

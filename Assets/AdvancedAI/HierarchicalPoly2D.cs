@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 // Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
-public class SuperPoly2D
+
+
+public class HierarchicalPoly2D
 {
     // Супер полигон, состоящий из нескольких полигонов или дырок. 
     // Этот класс должен содержать в себе функции для саморазбиения на выпуклые треугольнички.
@@ -13,7 +15,7 @@ public class SuperPoly2D
     public int PolygonDepth;
 
 
-    public SuperPoly2D()
+    public HierarchicalPoly2D()
     {
         polygons = new List<Poly2D>();
         compiled = false;

@@ -29,7 +29,7 @@ public class PolygonMerge : MonoBehaviour
         for (int i = 0; i < polygonB.Count; i++) polygonBM.Add(polygonB[i] + polygonBoffset);
 
 
-        SuperPoly2D combined = GHPolygonMerge.CompleteGH(polygonAM, polygonBM, Abool, Bbool, 0.01f); // List<Vector2> resultlings = 
+        HierarchicalPoly2D combined = GHPolygonMerge.CompleteGH(polygonAM, polygonBM, Abool, Bbool, 0.01f); // List<Vector2> resultlings = 
         combined.Compile();
 
         if (showA) for (int i = 0; i < polygonAM.Count; i++) DebugUtilities.DebugDrawLine(polygonAM[i], polygonAM[(i + 1) % polygonAM.Count], Color.red);
@@ -61,7 +61,8 @@ public class PolygonMerge : MonoBehaviour
                 break;
             }
         }
-        Debug.Log(canUniteHoles + " " + combined.PolygonDepth);
+        //Debug.Log(canUniteHoles + " " + combined.PolygonDepth);
+        
         if (!canUniteHoles | combined.PolygonDepth != 2)
         {
             Debug.Log("Bad polygons, can not triangulate!");

@@ -6,38 +6,74 @@ using System.Collections.Generic;
 // Работа с двухмерными полигонами. 
 // Полигоны в 3D пространстве надо привести к двухмерному виду при помощи алгоритма из NavPoly3D
 // TODO: Перекинуть все связанное с триангуляцией в отдельный файлик
+public struct ComplexPolyVertexIndex
+{
+    int parent_polygon; int vertex_index;
+    public ComplexPolyVertexIndex(int parent_polygon, int vertex_index) { this.parent_polygon = parent_polygon; this.vertex_index = vertex_index; }
+}
+public struct Triangle
+{
+    public int a, b, c; public bool isHole;
+    public Triangle(int a, int b, int c, bool isHole) { this.a = a; this.b = b; this.c = c; this.isHole = isHole; }
+    public Vector3Int vec3() { return new Vector3Int(this.a, this.b, this.c); }
+}
+public struct Neighbours
+{   // номера соседей треугольника
+    int A, B, C;
+    public Neighbours(int a, int b, int c) { this.A = a; this.B = b; this.C = c; }
+}
+public enum Orientation { None, Clockwise, CounterClockwise, Any}
+/// <summary>
+/// Describes how polygon B relates to polygon A. <br/>
+/// Full describes poly B completely inside/outside poly A, not points are shared <br/>
+/// Touching describes poly B fully outside/inside poly A, but they share at least one edge, or a point perhaps<br/>
+/// Intersecting describes that poly B intersects with A, so some edges of B are inside A, and some edges of A are inside B.<br/>
+/// Functions should return on e of following: OutsideTouching, OutsideFull, Intersecting, InsideFull, InsideTouching<br/>
+/// OutsideAny and InsideAny should be reserved for checks, and None i do not know why, but let it be, let it be, let it be, let it be, whisper words of wisdom, let it be
+/// </summary>
+public enum PolygonIntersection { OutsideFull, OutsideTouching, Intersecting, InsideTouching, InsideFull, OutsideAny, InsideAny, None, SameExact, SameOpposite}
+
 public static class Poly2DToolbox
 {
-    public static float straightAngle = 179.5f;
-    public static float flatAngle = 0.01f;
+    public const float straightAngle = 179.5f;
+    public const float flatAngle = 0.01f;
     
     // Предполагается что полигоны появились в результате GH объединения. Наружный полигон содержит 
     // Не забывай сохранять подаваемые на вход полигоны-дыры, они тоже могут быть важны для навигации 
-    public static List<Vector3Int> EarClip(List<Vector2> vectorList)
+    public static List<Triangle> EarClip(List<Vector2> vectorList, bool isHole)
     {   // Я хочу получить integer-список, 
-        List<Vector3Int> triangles = new List<Vector3Int>(vectorList.Count - 2); // Количество треугольников равно количеству вершин -2
+        List<Triangle> triangles = new List<Triangle>(vectorList.Count - 2); // Количество треугольников равно количеству вершин -2
         List<int> indices = new List<int>(vectorList.Count);
         for (int i = 0; i < vectorList.Count; i++) indices.Add(i);
+
+
+        if (isHole)
+        {
+            indices.Reverse();
+        }
 
         int safety = 0;
         while (safety < 100 && indices.Count != 3) { safety += 1;
             for (int i = 0; i < indices.Count; i++) 
             {
+                //Debug.Log("inside");
                 int A = indices[wrapAround(i, -1, indices.Count)];
                 int B = indices[i];
                 int C = indices[wrapAround(i, 1, indices.Count)];
                 float currAngle = Get_ABC_angle(vectorList[A], vectorList[B], vectorList[C]);
                 //Debug.Log(currAngle + " " + (currAngle >= straightAngle | currAngle <= flatAngle));
-                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;
+                if (currAngle >= straightAngle | currAngle <= flatAngle) continue;  // Тут могту появиться проблемы на очень больших полигонах, где все углы приближаются к 180. Но Это маловероятно
                 if (MassContainPoint(A, B, C, vectorList)) continue;
                 //if (ReturnFirstIntersectingEdge(vectorList, A, C)) { continue; }
-                triangles.Add(new Vector3Int(A, B, C));
+                triangles.Add(new Triangle(A, B, C, isHole));
+                //Debug.Log(A + " " + B + " " + C + " " + isHole);
                 indices.RemoveAt(i);
                 break;
             } 
         }
         // Добавление последних трех оставшихся вершин
-        triangles.Add(new Vector3Int(indices[0], indices[1], indices[2]));
+        triangles.Add(new Triangle(indices[0], indices[1], indices[2], isHole));
+        //Debug.Log(indices[0] + " " + indices[1] + " " + indices[2] + " " + isHole);
         /*
         Vector3Int lt = new Vector3Int(indices[0], indices[1], indices[2]);
         Vector3Int pt = triangles[triangles.Count - 1];
@@ -51,10 +87,12 @@ public static class Poly2DToolbox
             triangles[triangles.Count - 1] = new Vector3Int(A2.x, A2.y, A1.x);
             triangles.Add(new Vector3Int(A1.x, A1.y, A2.x));
         }*/
-        
+
         //string sterrrrng = "";for (int i = 0; i < triangles.Count; i++) sterrrrng+= triangles[i].ToString() + " "; Debug.Log(sterrrrng);
         return triangles;
     }
+
+    
 
     public static List<Vector3Int> EarClipLimited(List<Vector2> vectorList, int limit)
     {
@@ -82,7 +120,86 @@ public static class Poly2DToolbox
         if (safety < limit) triangles.Add(new Vector3Int(indices[0], indices[1], indices[2]));
         return triangles;
     }
+    // Каждая ранка от объединения полигона с его дыркой оставляет дегенеративную грань, состоящую из двух наложеных друг на друга граней.
+    // Эти грании должны быть объединены в одну, а треугольники корректно переформированы
+    public static void HealScars(List<Vector2> vectorList, List<Triangle> triangleList)
+    {
+        List<Vector2Int> all_overlaps = DetectOverlaps(vectorList);
+        //for (int i = 0; i < all_overlaps.Count; i++) Debug.Log(all_overlaps[i] + " " + vectorList[all_overlaps[i][0]] + " " + vectorList[all_overlaps[i][1]] );
 
+        for (int i = all_overlaps.Count - 1; i >= 0; i--)
+        {
+            Vector2Int localOverlap = all_overlaps[i]; //Debug.Log("===" +  localOverlap + " " + vectorList[localOverlap[0]] + " " + vectorList[localOverlap[1]]);
+            all_overlaps.RemoveAt(i);
+            HealScar(vectorList, triangleList, localOverlap, all_overlaps);
+        }
+    }
+
+    public static void HealScar(List<Vector2> vectorList, List<Triangle> triangleList, Vector2Int overlap, List<Vector2Int> overlaps)
+    {
+        // What it does it removes a vertice from list.
+        // Triangle is a list of vertice ids, so if it had an id equal to vertice, then it replaces it with an analogue
+        // If triangle has vertices that go after vertice, then their ids are id - 1
+        // overlaps are also modified
+        int a = overlap[0];
+        int b = overlap[1]; // upper bound, every value equal or above is lovered
+        vectorList.RemoveAt(b);
+
+        for (int i = 0; i < triangleList.Count; i++) // Degenerate edge can only have a single triangle neighbour
+        {
+            if (triangleList[i].a == b) { triangleList[i] = new Triangle(a, triangleList[i].b, triangleList[i].c, triangleList[i].isHole); continue; }
+            if (triangleList[i].b == b) { triangleList[i] = new Triangle(triangleList[i].a, a, triangleList[i].c, triangleList[i].isHole); continue; }
+            if (triangleList[i].c == b) { triangleList[i] = new Triangle(triangleList[i].a, triangleList[i].b, a, triangleList[i].isHole); continue; }
+            continue;
+        }
+
+        for (int i = 0; i < triangleList.Count; i++)
+        {
+            Triangle originT = triangleList[i];
+            Triangle triangle = new Triangle(
+                originT.a <= b ? originT.a : originT.a - 1,
+                originT.b <= b ? originT.b : originT.b - 1,
+                originT.c <= b ? originT.c : originT.c - 1, originT.isHole);
+            triangleList[i] = triangle; //Debug.Log(originT + " -> " + triangle);
+        }
+
+        for (int i = 0; i < overlaps.Count; i++)
+        {
+            Vector2Int pair = overlaps[i];
+            Vector2Int newPair = new Vector2Int(
+                pair.x <= b ? pair.x : pair.x - 1,
+                pair.y <= b ? pair.y : pair.y - 1);
+            overlaps[i] = newPair; //Debug.Log(pair + " -> " + newPair);
+        }
+
+    }
+
+    public static List<Vector2Int> DetectOverlaps(List<Vector2> vertices)
+    {
+        List<Vector2Int> overlaps = new List<Vector2Int>();
+        for (int a = 0; a < vertices.Count; a++)
+            for (int b = a + 1; b < vertices.Count; b++)
+                if (Poly2DToolbox.PointSimilarity(vertices[a], vertices[b]))
+                    overlaps.Add(new Vector2Int(a, b));
+
+        return overlaps;
+    }
+
+    public static List<int> PolygonConvexHull(List<Vector2> points)
+    {   // Так как полигон уже готов, делать с ним особо ничего не надо, просто поудалять вершины на местах
+        List<int> hull = new List<int>();
+        for (int i = 0; i < points.Count; i++) hull.Add(i);
+        for (int i = 0; i < hull.Count; i++)
+        {
+            int prev = (i - 1 + hull.Count) % hull.Count;
+            int curr = (i + hull.Count) % hull.Count;
+            int next = (i + 1) % hull.Count;
+            if (SignedAngle(points[hull[prev]], points[hull[curr]], points[hull[next]]) <= 180.0f) continue;
+            hull.RemoveAt(curr);
+            i -= 2;
+        }
+        return hull;
+    }
 
     public static List<Vector2> UniteHoles(Poly2D A, List<Poly2D> B)
     {
@@ -90,7 +207,7 @@ public static class Poly2DToolbox
 
         for (int i = 0; i < B.Count; i++)
         {
-            (int ai, int bi) = UniteHole(combined, B[i]);
+            (int ai, int bi) = UniteHole(combined, B[i].vertices);
             combined = StitchHole(combined, B[i].vertices, ai, bi);
         }
         return combined;
@@ -115,80 +232,99 @@ public static class Poly2DToolbox
     // Присоединяет дырку 
     // Наивная имплементация, нет оптимизации проверки
     // TODO: make binary space partitioning optimization
-    public static (int,int) UniteHole(List <Vector2> A, List<Vector2> B)
+    public static (int, int) UniteHole(List<Vector2> A, List<Vector2> B, int currAoverride = 0, int currBoverride = 0)
     {   // Алгоритм прыжковый, если есть пересечение с A, то перепрыгивает на грань с которой было пересечение
         // Если есть пересечение с самим собой, то перепрыгивает на грань где было пересечение
-        int currA = 0; int currB = 0;
+        int currA = currAoverride; int currB = currBoverride;
         int safety = 0; bool hasChanged = true;
-        while (safety < 10)
+        while (safety < 25)
         { safety += 1;
             //Vector2 locA = A[currA]; Vector2 locB = B[currB];
             if (!hasChanged) break; // если не было изменений значит не было пересечений
             hasChanged = false;//DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.red);
+            //Debug.Log(currA + " " + currB + " " + A.Count);
             if (ReturnFirstIntersectingEdge(A[currA], B, currB, out int newB))
             {
                 hasChanged = true;
-                //DebugUtilities.DebugDrawLine(B[currB], B[newB], Color.violet);
+                //DebugUtilities.DebugDrawLine(B[currB], B[newB ], Color.blue);
                 currB = newB;
             }
             
             if (ReturnFirstIntersectingEdge(B[currB], A, currA, out int newA))
             {
                 hasChanged = true;
-                //DebugUtilities.DebugDrawLine(A[currA], A[newA], Color.yellow);
+                //DebugUtilities.DebugDrawLine(A[currA], A[newA ], Color.red );
                 currA = newA;
             }
-        }
-        //DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.green);
-        return (currA, currB);
-    }
-
-    // Uses heuristics to find two points that are separated by the least distance.
-    public static (int, int) UniteHole(List<Vector2> A, Poly2D B)
-    {   // Алгоритм прыжковый, если есть пересечение с A, то перепрыгивает на грань с которой было пересечение
-        // Если есть пересечение с самим собой, то перепрыгивает на грань где было пересечение
-        int currA = 0; int currB = 0;
-        int safety = 0; bool hasChanged = true;
-
-        int[] AindicesArr = new int[A.Count];
-        for (int i = 0; i < A.Count; i++) AindicesArr[i] = i;
-        Vector2 center = B.BBox.center;
-        List<int> Aindices = new List<int>(AindicesArr);
-        Aindices.Sort((a, b) => { // Sort by distance to center
-            return (center - A[a]).magnitude.CompareTo((center - A[b]).magnitude);
-        });
-        currA = Aindices[0];
-        //DebugUtilities.DebugDrawLine(A[currA], B.vertices[currB], Color.pink);
-        while (safety < 20)
-        {
-            safety += 1;
-            if (!hasChanged) break; // если не было изменений значит не было пересечений
-            hasChanged = false;
-            if (ReturnFirstIntersectingEdge(A[currA], B.vertices, currB, out int newB))
-            {
-                //DebugUtilities.DebugDrawLine(B.vertices[currB], B.vertices[newB], Color.violet);
-                hasChanged = true;
-                currB = newB;
-            }
-            if (ReturnFirstIntersectingEdge(B.vertices[currB], A, currA, out int newA))
-            {
-                //DebugUtilities.DebugDrawLine(A[currA], A[newA], Color.yellow);
-                hasChanged = true;
-                currA = newA;
-            }
-            if (JumpCloserToTarget(A[currA], B.vertices, currB, out int jumpB))
+            // Прыжок на соседнюю вершину, если она ближе чем текущая. Производится дополнительная проверка на пересечение для новой точки.
+            if (JumpCloserToTarget(A[currA], B, currB, out int jumpB) && ReturnFirstIntersectingEdge(A[currA], B, jumpB, out int dummyB))
             {
                 hasChanged = true;
+                //DebugUtilities.DebugDrawLine(B[currB], B[jumpB], Color.cyan);
                 currB = jumpB;
             }
-            if (JumpCloserToTarget(B.vertices[currB], A, currA, out int jumpA))
+            if (JumpCloserToTarget(B[currB], A, currA, out int jumpA) && ReturnFirstIntersectingEdge(B[currB], A, jumpA, out int dummyA))
             {
                 hasChanged = true;
+                //DebugUtilities.DebugDrawLine(A[currA], A[jumpA], Color.pink);
                 currA = jumpA;
             }
         }
-        //DebugUtilities.DebugDrawLine(A[currA], B.vertices[currB], Color.green);
+        //Debug.Log(safety);
+        //DebugUtilities.DebugDrawLine(A[currA], B[currB], Color.green);
         return (currA, currB);
+    }
+    public static (int, int) UniteHoleOptimization(List<Vector2> A, List<Vector2> B, Bounds B_BBox)
+    {
+        int smallA = -1; float smallAdistance = float.PositiveInfinity;
+        Vector2 center = B_BBox.center;
+        for (int i = 0; i < A.Count; i++)
+        {
+            float dist = (A[i] - center).magnitude;
+            if (dist < smallAdistance)
+            {
+                smallA = i;
+                smallAdistance = dist;
+            }
+        }
+        if (smallA == -1) return UniteHole(A, B);
+        int smallB = -1; float smallBdistance = float.PositiveInfinity;
+        Vector2 small_A_vertice = A[smallA];
+        for (int i = 0; i < B.Count; i++)
+        {
+            float dist = (B[i] - small_A_vertice).magnitude;
+            if (dist < smallAdistance)
+            {
+                smallB = i;
+                smallBdistance = dist;
+            }
+        }
+        //DebugUtilities.DebugDrawLine(A[smallA], B[smallB], Color.yellow); Debug.Log("Debug draw here");
+        if (smallB == -1) return UniteHole(A, B);
+        return UniteHole(A, B, smallA, smallB);
+    }
+
+    // Если грань между полигонами А и B пересекается с одним из obstacles, значит есть более короткая грань с этим obstacle
+    public static int LinePolyIntersection(Vector2 A, Vector2 B, List<Poly2D> obstacles)
+    {   
+        for (int i = 0; i < obstacles.Count; i++) if (LinePolyIntersection(A, B, obstacles[i])) return i;
+        return -1;
+    }
+    public static bool LinePolyIntersection(Vector2 A, Vector2 B, Poly2D obstacle)
+    {
+        return LinePolyIntersection(A, B, obstacle.vertices, obstacle.BBox);
+    }
+    public static bool LinePolyIntersection(Vector2 A, Vector2 B, List<Vector2> obstacle, Bounds BBox)
+    {
+        bool BBoxCheck = BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, BBox.min, BBox.max);
+        if (!BBoxCheck) return false;
+        for (int i = 0; i < obstacle.Count; i++)
+        {
+            Vector2 v1 = obstacle[i];
+            Vector2 v2 = obstacle[(i + 1) % obstacle.Count];
+            if (LineLineIntersection(A, B, v1, v2, out Vector2 dummy)) return true;
+        }
+        return false;
     }
 
     public static bool DoesContainPoint(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
@@ -212,7 +348,7 @@ public static class Poly2DToolbox
     }
 
     public static bool IsPointInside(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
-    {
+    {   // Этот кусочек кода - дубликат DoesContainPoint, был создан когда я подумал что DoesContainPoint сломана. (Проблема оказалась в качестве функции UnityHole)
         float AB = Vector2.SignedAngle(B - A, P - A);
         float BC = Vector2.SignedAngle(C - B, P - B);
         float CA = Vector2.SignedAngle(A - C, P - C);
@@ -230,13 +366,15 @@ public static class Poly2DToolbox
             //Debug.Log(Points[A] + " " + Points[B] + " " + Points[C] + " " + Points[i]);
             if (PointSimilarity(Points[A], Points[i]) || PointSimilarity(Points[B], Points[i]) || PointSimilarity(Points[C], Points[i])) continue;
             //if (DoesContainPoint(Points[A], Points[B], Points[C], Points[i])) return true;
-            if (IsPointInside(Points[A], Points[B], Points[C], Points[i])) return true;
+            if (DoesContainPoint(Points[A], Points[B], Points[C], Points[i])) return true;
         }
         //Debug.Log(A + " " + B + " " + C + " False");
         return false;
     }
 
     // Stitches A and B, new list will contain A+B+2 points. There wil be a duplicate point in both A and B to create a degenerate line.
+    // It is possible to, instead of adding two degenerate vertices, represent combined polygon as a list of integer indices, same as what i do with Triangles.
+    // benefit of approach above is no need to search for duplicate nodes to eliminate, which will provide a speedup
     public static List<Vector2> StitchHole(List<Vector2> A, List<Vector2> B, int Aindex, int Bindex)
     {
         Vector2[] stitched = new Vector2[A.Count + B.Count + 2];
@@ -298,28 +436,31 @@ public static class Poly2DToolbox
         return false;
     }
     // Делает ровно один прыжок на одну из соседних точек если та находится ближе к целевой точке
-    public static bool JumpCloserToTarget(Vector2 Outsider, List<Vector2> Poly, int Pvert, out int Pa /*, out int Pb*/) // Pb = Pa +1
+    public static bool JumpCloserToTarget(Vector2 Outsider, List<Vector2> Poly, int prev_vert, out int new_vert /*, out int Pb*/) // Pb = Pa +1
     {
-        int nextID = (Pvert + 1) % Poly.Count;
-        int prevID = (Pvert + 1 + Poly.Count) % Poly.Count;
-        Vector2 currP = Poly[Pvert];
+        int nextID = (prev_vert + 1) % Poly.Count;
+        int prevID = (prev_vert - 1 + Poly.Count) % Poly.Count;
+        Vector2 currP = Poly[prev_vert];
         Vector2 nextP = Poly[nextID];
         Vector2 prevP = Poly[prevID];
         float currM = (currP - Outsider).magnitude;
         float nextM = (nextP - Outsider).magnitude;
         float prevM = (prevP - Outsider).magnitude;
-        Pa = Pvert;
-        //Debug.Log(currM + " " + nextM + " " + prevM);
+        new_vert = prev_vert;
+        /*Debug.Log(currM + " " + nextM + " " + prevM);
+        DebugUtilities.DebugDrawLine(currP, Outsider, Color.red);
+        DebugUtilities.DebugDrawLine(nextP, Outsider, Color.orange);
+        DebugUtilities.DebugDrawLine(prevP, Outsider, Color.yellow);*/
         if (nextM < prevM)  {
             if (nextM < currM)
             {
-                Pa = nextID;
+                new_vert = nextID;
                 return true;
             }
         } else {
             if (prevM < currM)
             {
-                Pa = prevID;
+                new_vert = prevID;
                 return true;
             }
         }
@@ -370,21 +511,42 @@ public static class Poly2DToolbox
 
         return result;
     }
+    /// <summary>
+    /// Находит  линию или же точку если вершина находится на границе полигона
+    /// </summary>
+    /// <param name="point"></param>
+    /// <param name="points"></param>
+    /// <returns>(-1, -1) - Точка не найдена <br/>
+    /// (n, -1) - Точка равняется точке n внутри полигона<br/>
+    /// (n, m) - Точка коллинеарна линии (n, m), и лежит между этими двумя точками
+    /// </returns>
+    public static (int, int) PointOnBorder(Vector2 point, List<Vector2> points)
+    {   // Находит линию или же точку если вершина находится на границе полигона
+        // Возвращает пару индексов верин полигона. Если пара равна (n, -1) значит точка равна точке n
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (Poly2DToolbox.PointSimilarity(point, points[i])) return (i, -1);
+            int j = (i + 1) % points.Count;
+            Edge2D edge = new Edge2D(points[i], points[j]);
+
+            if (!PointBelongToLine2D(points[i], points[j], point)) continue;
+            if (Poly2DToolbox.PointSimilarity(point, points[j])) return (j, -1);
+            return (i, j);
+        }
+        return (-1, -1);
+    }
 
     // Returns FALSE if point is outside, and TRUE if inside
     public static bool IsPointInsidePolygon(Vector2 point, List<Vector2> points)
     { // Я кидаю луч с лева (-1) на право до точки. 
         bool intersection_counter = false; // Я его просто флипаю, а не инкрементриурю. Иначе в конце придется сделать IC % 2
-        //int debug_counter = 0;
         for (int i = 0; i < points.Count; i++)
         {
             if (PointInsidePolygonHorizontalRaycast(points[i], points[(i + 1) % points.Count], point))
             {
                 intersection_counter = !intersection_counter;
-                //debug_counter += 1;
             }
         }
-        //Debug.Log(debug_counter);
         return intersection_counter;
     }
 
@@ -392,6 +554,24 @@ public static class Poly2DToolbox
     {
         return (targetPoint.y < A.y != targetPoint.y < B.y) &&
             (targetPoint.x < A.x + ((targetPoint.y - A.y) / (B.y - A.y)) * (B.x - A.x));
+    }
+
+
+    public static bool IsPointInsidePolygonConvex(List<Vector2> vertices, Vector2 p, bool isHole)
+    {
+        if (isHole == true) // Ориентация часовой
+            for (int i = vertices.Count - 1; i < 0; i--)
+            {
+                int j = (i - 1 + vertices.Count) % vertices.Count;
+                if (isLeft(p, vertices[i], vertices[j])) return false;
+            }
+        else
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                int j = (i + 1) % vertices.Count;
+                if (isRight(p, vertices[i], vertices[j])) return false;
+            }
+        return true;
     }
 
     public static bool AreCrossing(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out Vector2 crossing)
@@ -427,18 +607,15 @@ public static class Poly2DToolbox
         return a.x * b.y - a.y * b.x;
     }
     // Возвращает точку пересечения между линией AB и CD.
-    // Также возвращает расстояние от точки А до точки пересечения.
+    // Также возвращает расстояние от точки А до точки пересечения, это не нормализированное расстояние, поэтому оно не очень полезно
     public static bool LineLineIntersection(Vector2 A, Vector2 B, Vector2 C, Vector2 D, out Vector2 interPoint, out float distance)
     {   // Выдернуто из другого проекта
         interPoint = Vector2.zero;
         distance = 0;
         float det = (A.x - B.x) * (C.y - D.y) - (A.y - B.y) * (C.x - D.x);
-        //Debug.Log("hi");
-        if (Mathf.Abs(det) < Geo3D.epsilon) 
-        {
-            
-            return false;
-        }
+
+        if (Mathf.Abs(det) < Geo3D.epsilon)  return false;
+        
         float X = (A.x * B.y - A.y * B.x) * (C.x - D.x) - (A.x - B.x) * (C.x * D.y - C.y * D.x);
         float Y = (A.x * B.y - A.y * B.x) * (C.y - D.y) - (A.y - B.y) * (C.x * D.y - C.y * D.x);
         det = 1 / det;
@@ -490,15 +667,63 @@ public static class Poly2DToolbox
         return ( A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y)) * 0.5f;
     }
 
+    public static float Perimeter(List<Vector2> points)
+    {
+        float perimeter = 0;
+        for (int i = 0; i < points.Count - 1; i++) // Все звенья кроме последнего
+            perimeter += Vector2.Distance(points[i], points[i + 1]);
+        perimeter += Vector2.Distance(points[points.Count - 1], points[0]); // последнее звено
+        return perimeter;
+    }
+
+    public static bool IsCounterClockwise(List<Vector2> vertices)
+    {
+        return AreaShoelace(vertices) > 0;
+    }
+    public static bool IsClockwise(List<Vector2> vertices)
+    {
+        return AreaShoelace(vertices) < 0;
+    }
+    public static bool SelfIntersectionNaive(List<Vector2> points)
+    {
+        if (points.Count < 3) return true;
+        if (points.Count == 3) return false;
+
+        for (int a = 0; a < points.Count; a++)
+        {
+            int a2 = (a + 1) % points.Count;
+            for (int b = 2; b <= points.Count - 2; b++)
+            {
+                int b1 = (b + a + points.Count + 0) % points.Count;
+                int b2 = (b + a + points.Count + 1) % points.Count;
+                //Debug.Log("ab: " + a + " " + b + " a1 a2: " + a + " " + a2 + " b1 b2: " + b1 + " " + b2);
+                if (LineLineIntersection(points[a], points[a2], points[b1], points[b2], out Vector2 dummy))  return true;
+            }
+        }
+        return false;
+    }
+    public static bool HasDoubleVertices(List<Vector2> points)
+    {   // Проверяет наличие вершин, которые посещаются дважды
+        for (int i = 0; i < points.Count -1; i++)
+            for (int j = i + 1; j < points.Count; j++)
+                if (points[i] == points[j]) return true;
+        return false;
+    }
+
     // Does A belong to B?
     // 1 B inside A / 0 even level / -1 A inside B
     // If polygons are a result of Greiner-Hoffmann's algorithm, then they are almost guaranteed to have no intersections
+    // It means that there are only 3 cases: A fully engulfed by B, A and B are separate, A fully engulfs B (so there are no reason to check all points, single point is sufficient)
     // There are so degenerate cases, mostly when a point A belongs to an edge B.
     public static int DoesPolygonContainOther(Poly2D A, Poly2D B)
     {
-        if (!A.BBox.Intersects(B.BBox)) { return 0; }// Они раздельны
-        bool is_B_Inside = IsPointInsidePolygon(B.vertices[0], A.vertices);
-        bool is_A_Inside = IsPointInsidePolygon(A.vertices[0], B.vertices);
+        return DoesPolygonContainOther(A.vertices, B.vertices, A.BBox, B.BBox);
+    }
+    public static int DoesPolygonContainOther(List<Vector2> A, List<Vector2> B, Bounds Ab, Bounds Bb)
+    {
+        if (!Ab.Intersects(Bb)) { return 0; }// Они раздельны
+        bool is_B_Inside = IsPointInsidePolygon(B[0], A);
+        bool is_A_Inside = IsPointInsidePolygon(A[0], B);
         //Debug.Log(is_B_Inside.ToString() + " " + is_A_Inside.ToString());
         if (is_B_Inside) return 1;
         if (is_A_Inside) return -1;
@@ -522,8 +747,42 @@ public static class Poly2DToolbox
 
     public static bool DoesLineIntersectPolygon(Vector2 A, Vector2 B, Poly2D P)
     {
+        Debug.Log("Not implemented function");
         //P.BBox.
         return false;
+    }
+    //public static bool PointBelongToLine2D(Vector2 origin, Vector2 direction, Vector2 point) { return PointBelongToRay2D(origin, direction, point) | PointBelongToRay2D(origin, -direction, point); }
+    public static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point)
+    {   // Просто сравниваю направления векторов, если они слишком разнятся то точка не принадлежит линии
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        return true;
+    }
+    public static bool PointBelongToLine2D(Vector2 p1, Vector2 p2, Vector2 point)
+    {
+        if (Mathf.Abs(Cross(p1 - point, p2 - point)) >= Geo3D.epsilon) return false;
+        Vector2 dp = p2 - p1;
+        if (Mathf.Abs(dp.x) > Mathf.Abs(dp.y)) {
+            return (dp.x > 0) ?
+                p1.x <= point.x && point.x <= p2.x :
+                p2.x <= point.x && point.x <= p1.x;
+        }  else {
+            return (dp.y > 0) ?
+                p1.y <= point.y && point.y <= p2.y :
+                p2.y <= point.y && point.y <= p1.y;
+        }
+    }
+    public static bool PointBelongToRay2D(Vector2 origin, Vector2 direction, Vector2 point, out float t)
+    {   // Просто сравниваю направления векторов, если они слишком разнятся то точка не принадлежит линии
+        t = 0;
+        if (direction.x <= Geo3D.epsilon & direction.y <= Geo3D.epsilon) return false;
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        if (direction.x > Geo3D.epsilon) t = p_dir.x / direction.x; 
+        else if (direction.x > Geo3D.epsilon) t = p_dir.y / direction.y;
+        return true;
     }
 
     public static float TriangleCross(Vector2 p1, Vector2 p2, Vector2 p3)
@@ -541,6 +800,7 @@ public static class Poly2DToolbox
     {
         return TriangleCross(Q, p1, p2) > Geo3D.epsilon;
     }
+    //public static bool Coll
 
     public static float SignedAngle(Vector2 P2, Vector2 P1, Vector2 P3)
     {   // Я помню что реализовывал эту функцию, куда она потерялась?
@@ -552,6 +812,26 @@ public static class Poly2DToolbox
     {
         return SignedAngle(P2, P1, P3) > 180.0f;
     }
+
+    public static bool IsConvex(List<Vector2> points, bool isHole)
+    {
+        if (points.Count < 3) return false;
+        if (points.Count == 3) return true;
+        int pc = points.Count;
+        
+        for (int i = 0; i < pc; i++)
+        {
+            int a = i;
+            int b = (i + 1) % pc;
+            int c = (i + 2) % pc;
+            if (isHole) (a, c) = (c, a); // Меняются местами для установления корректного порядка
+            float angle = SignedAngle(points[a], points[b], points[c]);
+            if (angle >= straightAngle) return false;
+        }
+        return true;
+    }
+
+
 
 
 }

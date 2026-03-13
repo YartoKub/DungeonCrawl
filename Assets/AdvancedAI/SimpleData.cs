@@ -6,7 +6,16 @@ public struct Pair
     {
         this.A = A; this.B = B; this.doesExit = doesExit;
     }
-
+    public override string ToString()
+    {
+        return "(" + A.ToString() + " " + B.ToString() + " " + doesExit + ")";
+    }
+    public static bool PairEquivalence(Pair A, Pair B)
+    {   // Просто проверка в случае если B отзеркаленная A.
+        if (A.A == B.A & A.B == B.B) return true;
+        if (A.B == B.A & A.A == B.B) return true;
+        return false;   
+    }
 }
 
 
@@ -15,6 +24,11 @@ public struct Edge2D
 {
     public Vector2 A;
     public Vector2 B;
+    public Edge2D(Vector2 A, Vector2 B)
+    {
+        this.A = A;
+        this.B = B;
+    }
 
     public Vector2 sideCenter() {
         return A + (B - A) / 2;

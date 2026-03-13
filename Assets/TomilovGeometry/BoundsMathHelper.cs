@@ -75,6 +75,39 @@ public static class BoundsMathHelper
         intBounds.SetMinMax(toReturn[0], toReturn[1]);
         return intBounds;
     }
+    public static Bounds Intersect(Bounds roomA, Bounds roomB)
+    {
+        Vector3 myA = roomA.min; Vector3 myB = roomA.max;
+        Vector3 otherA = roomB.min; Vector3 otherB = roomB.max;
+
+        Vector3[] preview = new Vector3[2];
+        preview[0] = new Vector3(
+            Mathf.Clamp(myB.x, otherA.x, otherB.x),
+            Mathf.Clamp(myB.y, otherA.y, otherB.y),
+            Mathf.Clamp(myB.z, otherA.z, otherB.z)
+            );
+        preview[1] = new Vector3(
+            Mathf.Clamp(otherA.x, myA.x, myB.x),
+            Mathf.Clamp(otherA.y, myA.y, myB.y),
+            Mathf.Clamp(otherA.z, myA.z, myB.z)
+            );
+
+        Vector3[] toReturn = new Vector3[2];
+        toReturn[0] = new Vector3(
+            Mathf.Min(preview[0].x, preview[1].x),
+            Mathf.Min(preview[0].y, preview[1].y),
+            Mathf.Min(preview[0].z, preview[1].z)
+            );
+        toReturn[1] = new Vector3(
+            Mathf.Max(preview[0].x, preview[1].x),
+            Mathf.Max(preview[0].y, preview[1].y),
+            Mathf.Max(preview[0].z, preview[1].z)
+            );
+        Bounds intBounds = new Bounds();
+        intBounds.SetMinMax(toReturn[0], toReturn[1]);
+        return intBounds;
+    }
+
 
     public static BoundsInt ExpandToInclude(BoundsInt roomA, BoundsInt roomB)
     {
@@ -91,6 +124,21 @@ public static class BoundsMathHelper
         BoundsInt toReturn = new BoundsInt();
         toReturn.SetMinMax(newMin, newMax);
         return toReturn;
+    }
+
+    public static bool InclusiveContains(Vector2 min, Vector2 max, Vector2 V)
+    {
+        bool belong = (min.x <= V.x) && (V.x <= max.x) && (min.y <= V.y) && (V.y <= max.y);
+        /*Debug.Log(belong + "\n" + min.x.ToString() + " " + min.y.ToString() + "\n " + max.x.ToString() + " " + max.y.ToString() + "\n v: " + V.x.ToString() + " " + V.y.ToString());
+        Debug.Log(min.y + " " +  V.y + " " + (min.y <= V.y) + " \n X:" 
+            + DebugUtilities.DebugListString( BitConverter.GetBytes(min.x)) + " " + DebugUtilities.DebugListString(BitConverter.GetBytes(V.x)) + "\n Y:"
+            + DebugUtilities.DebugListString(BitConverter.GetBytes(min.y)) + " " + DebugUtilities.DebugListString(BitConverter.GetBytes(V.y)) );*/
+        // This comment exists because Unity.Bounds has some weird rounding error. I replaced it with LipomaBounds, a simpler emplementation
+        return belong;
+    }
+    public static bool InclusiveContains(Vector3 min, Vector3 max, Vector3 V)
+    {
+        return (min.x <= V.x) && (V.x <= max.x) && (min.y <= V.y) && (V.y <= max.y) && (min.z <= V.z) && (V.z <= max.z);
     }
 
     public static Vector3[] Get_8_Corners(Bounds bounds)
@@ -250,8 +298,13 @@ public static class BoundsMathHelper
         Debug.DrawLine(xyc, ayc, color);
         Debug.DrawLine(xyc, xbc, color);
     }
-
-
+    // Smaller box is completelly surrounded by the larger box 
+    public static bool Encompassed(Bounds small_box, Bounds larger_box)
+    {
+        if (small_box.min.x < larger_box.min.x | small_box.min.y < larger_box.min.y) return false;
+        if (small_box.max.x > larger_box.max.x | small_box.max.y > larger_box.max.y) return false;
+        return true;
+    }
 
     public static bool Intersects(BoundsInt a, BoundsInt b)
     { // Почему у boundsint нет intersect-а?
@@ -320,17 +373,34 @@ public static class BoundsMathHelper
     }
 
     // Note: Не возвращает точку пересечения
-    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Bounds BBox)
+    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Vector2 box_min, Vector2 box_max)
     {
-        Vector2 B1 = BBox.min; Vector2 B2 = BBox.max;
+        Vector2 B1 = box_min; Vector2 B2 = box_max;
         if (L2.x < B1.x && L1.x < B1.x) return false;
         if (L2.x > B2.x && L1.x > B2.x) return false;
         if (L2.y < B1.y && L1.y < B1.y) return false;
         if (L2.y > B2.y && L1.y > B2.y) return false;
         if (L1.x > B1.x && L1.x < B2.x && L1.y > B1.y && L1.y < B2.y) return true;
 
-        return BBoxLineEquation2D(BBox, GetLineEquation(L1, L2));
+        return BBoxLineEquation2D(B1, B2, GetLineEquation(L1, L2));
     }
+
+    public static bool DoesPlaneIntersectBox(Plane plane, Bounds BBox)
+    {
+        Vector3[] corvers = Get_8_Corners(BBox);
+        Poly3D.Type opposite = Poly3D.Type.SamePlane;
+        for (int i = 0; i < corvers.Length; i++)
+        {
+            Poly3D.Type type = Poly3D.PlaneSide(plane, corvers[i]);
+            if (type == Poly3D.Type.SamePlane) return true;
+            opposite |= type;
+            if (opposite == Poly3D.Type.Intersects) return true;
+
+        }
+
+        return false;
+    }
+
 
     // 
     public static Vector3 GetLineEquation(Vector2 a, Vector2 b)
@@ -345,9 +415,9 @@ public static class BoundsMathHelper
     }
 
 
-    public static bool BBoxLineEquation2D(Bounds BBox, Vector3 lineEq)
+    public static bool BBoxLineEquation2D(Vector2 box_min, Vector2 box_max, Vector3 lineEq)
     {
-        Vector2 a = BBox.min;               Vector2 c = BBox.max; 
+        Vector2 a = box_min;               Vector2 c = box_max; 
         Vector2 b = new Vector2(a.x, c.y);  Vector2 d = new Vector2(c.x, a.y);
 
         if (lineEq == Vector3.zero) return false;

@@ -2,14 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEditor;
 
-
-public class Poly2D
+[System.Serializable]
+public class Poly2D : I_BBoxSupporter
 {
     public List<Vector2> vertices;
     public bool isHole;
     public bool convex;
-    public Bounds BBox;
+    public Bounds BBox; public Bounds i_bounds { get { return BBox; } set { BBox = value; } }
 
     public Poly2D(List<Vector2> _vertices)
     {
@@ -30,12 +31,31 @@ public class Poly2D
         vertices.AddRange(_vertices);
         CalculateBBox();
     }
+    private Poly2D()
+    {
+        // Dummy poly
+    }
+
+    public static bool CompilePolygon(List<Vector2> points, out Poly2D out_poly, Orientation orientation = Orientation.Any)
+    {
+        out_poly = new Poly2D();
+        if (points.Count < 3) return false;
+        if (Poly2DToolbox.SelfIntersectionNaive(points)) return false;
+        if (Poly2DToolbox.HasDoubleVertices(points)) return false;
+        out_poly = new Poly2D(new List<Vector2>(points));
+        if (orientation == Orientation.CounterClockwise) out_poly.Orient(false);
+        else if (orientation == Orientation.Clockwise) out_poly.Orient(true);
+        else out_poly.isHole = out_poly.IsClockwise();
+        out_poly.convex = Poly2DToolbox.IsConvex(out_poly.vertices, out_poly.isHole);
+        //Debug.Log(out_poly.convex);
+        return true;
+    }
 
     public void CalculateBBox()
     {
         Bounds newBounds = new Bounds();
-        newBounds.SetMinMax(vertices[0], vertices[1]);
-        for (int i = 2; i < vertices.Count; i++)
+        newBounds.SetMinMax(vertices[0], vertices[0]);
+        for (int i = 1; i < vertices.Count; i++)
         {
             newBounds.Encapsulate(vertices[i]);
         }
@@ -49,9 +69,9 @@ public class Poly2D
         return cross > 0;
     }*/
 
-    public bool IsCounterClockwise()
-    {
-        return this.SignedArea() < 0;
+    public bool IsClockwise()
+    {   // “ту хрень с названием была, может эта штука сломана, хз.
+        return Poly2DToolbox.IsCounterClockwise(this.vertices);
     }
 
     public float BBoxArea()
@@ -60,12 +80,10 @@ public class Poly2D
     }
 
     public void Orient(bool IsCounterClockwise)
-    {
-        //Debug.Log(this.IsCounterClockwise() + " " + IsCounterClockwise + " " + SignedArea());
-        //Debug.Log(this.IsCounterClockwise() == IsCounterClockwise);
-        if (this.IsCounterClockwise() == IsCounterClockwise) return;
+    {// “ту хрень с названием была, может эта штука сломана, хз.
+        isHole = IsCounterClockwise;
+        if (this.IsClockwise() != IsCounterClockwise) return; 
         this.vertices.Reverse();
-        //Debug.Log(this.IsCounterClockwise() + " " + IsCounterClockwise + " " + SignedArea());
     }
     public float Area()
     {
@@ -78,17 +96,31 @@ public class Poly2D
 
     public bool BBoxLineIntersection(Vector2 A, Vector2 B)
     {
-        return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox);
+        return BoundsMathHelper.DoesLineIntersectBoundingBox2D(A, B, this.BBox.min, this.BBox.max);
     }
 
     public void DebugDrawSelf(Color color)
     {
+        //Debug.Log(vertices.Count);
         for (int i = 0; i < vertices.Count - 1; i++)
         {
             DebugUtilities.DebugDrawLine(vertices[i], vertices[i+1], color);
         }
         DebugUtilities.DebugDrawLine(vertices[vertices.Count - 1], vertices[0], color);
     }
+    public void HandlesDrawSelf(Color color)
+    {
+        //Debug.Log(vertices.Count);
+        Color tmp = Handles.color;
+        Handles.color = color;
+        for (int i = 0; i < vertices.Count - 1; i++)
+            Handles.DrawLine(vertices[i], vertices[i + 1]);
+        
+        Handles.DrawLine(vertices[vertices.Count - 1], vertices[0]);
+        Handles.color = tmp;
+    }
+
+    
 
     public Vector2 AveragePoint()
     {
@@ -98,6 +130,33 @@ public class Poly2D
             summ += vertices[i];
         }
         return summ / vertices.Count;
+    }
+
+    public bool IsInsidePolygon(Vector2 p)
+    {
+        if (this.convex) return Poly2DToolbox.IsPointInsidePolygonConvex(this.vertices, p, isHole);
+        else             return Poly2DToolbox.IsPointInsidePolygon(p, this.vertices);
+    }
+
+    public List<Vector3> GetMesh()
+    {
+        Debug.Log("Not implemented");
+        List<Vector3> meshList = new List<Vector3>();
+
+        return meshList;
+    }
+
+    public static void SortListByCenters(List<Poly2D> list)
+    {
+        list.Sort(
+            (a, b) => {
+                Vector2 ac = a.BBox.center;
+                Vector2 bc = b.BBox.center;
+                int x_com = ac.x.CompareTo(bc.x);
+                if (x_com != 0) return x_com;
+                return ac.y.CompareTo(bc.y);
+                }
+            );
     }
 
 }

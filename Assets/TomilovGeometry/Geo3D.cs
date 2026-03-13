@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 // Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 
@@ -110,7 +111,7 @@ public static class Geo3D
     {
         t = -1;
         float denom = Vector3.Dot(planeNormal, r1 - r0);
-        if (Mathf.Abs(denom) > 0.0001f) // your favorite epsilon
+        if (Mathf.Abs(denom) > epsilon) // your favorite epsilon
         {
             t = Vector3.Dot((pointOnPlane - r0), planeNormal) / denom;
             if (t >= 0) return true; // you might want to allow an epsilon here too
@@ -165,6 +166,30 @@ public static class Geo3D
 
         return sortedPoints;
     }
+    /// <summary>
+    /// Sector, Vector, Between, Clockwise, CounterClockwise <br/>
+    /// Checks whether vector D lies in a sector defined by A and B in a counter clockwise order. <br/>
+    /// This one expects that all vectors share a common origin point
+    /// </summary>
+    public static bool DoesVectorDLieInSectorAB(Vector2 common_origin, Vector2 A, Vector2 B, Vector2 D)
+    {
+        Vector2 ao = A - common_origin; Vector2 bo = B - common_origin; Vector2 dir_o = D - common_origin;
+        return DoesVectorLieBetween_A_and_B_CCW(ao, bo, dir_o);
+    }
+    /// <summary>
+    /// Sector, Vector, Between, Clockwise, CounterClockwise <br/>
+    /// Checks whether vector D lies in a sector defined by A and B in a counter clockwise order.
+    /// </summary>
+    public static bool DoesVectorLieBetween_A_and_B_CCW(Vector2 A, Vector2 B, Vector2 D)
+    {
+        float cross_ab = Det2x2(A, B);
+        float cross_dir_a = Det2x2(A, D);
+        float cross_dir_b = Det2x2(B, D);
+        if (Mathf.Abs(cross_dir_a) < epsilon && Vector2.Dot(A, D) > epsilon) return true; // Проверка на коллинеарность, затем на сонаправленнось
+        if (Mathf.Abs(cross_dir_b) < epsilon && Vector2.Dot(B, D) > epsilon) return true;
+        if (cross_ab >= 0) return cross_dir_a >= 0 & cross_dir_b <= 0;
+        else return !(cross_dir_a < 0 & cross_dir_b > 0);
+    }
 
     public static Vector2 IncircleCenter(Vector2 p1, Vector2 p2, Vector2 p3)
     {
@@ -196,6 +221,31 @@ public static class Geo3D
         Angle = Angle / 180 * Mathf.PI;
         return A + (B - A) * Angle;
     }
+
+    public static void SortPoints(List<Vector2> list)
+    {
+        list.Sort(
+            (a, b) => {
+                int x_com = a.x.CompareTo(b.x);
+                if (x_com != 0) return x_com;
+                return a.y.CompareTo(b.y);
+        });
+    }
+
+    public static bool PointBelongToLine3D(Vector3 origin, Vector3 direction, Vector3 point)
+    {
+        return PointBelongToRay3D(origin, direction, point) | PointBelongToRay3D(origin, -direction, point);
+    }
+
+    public static bool PointBelongToRay3D(Vector3 origin, Vector3 direction, Vector3 point)
+    {   // Просто сравниваю направления векторов, если они слишком разнятся то точка не принадлежит линии
+        Vector3 p_dir = (point - origin).normalized;
+        if (Mathf.Abs(p_dir.x - direction.x) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.y - direction.y) > Geo3D.epsilon) return false;
+        if (Mathf.Abs(p_dir.z - direction.z) > Geo3D.epsilon) return false;
+        return true;
+    }
+
 
 
     /*
