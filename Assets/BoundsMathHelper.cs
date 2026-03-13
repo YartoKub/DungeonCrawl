@@ -1,4 +1,44 @@
 using UnityEngine;
+<<<<<<< Updated upstream:Assets/BoundsMathHelper.cs
+=======
+using System;
+[Serializable] 
+public struct LipomaBounds
+{   // The same as Unity.Bounds but, hopefully, has properly functioning encapsulate function.
+    // Seems like native Unity.Bounds are defined by Center +- Size, because of that i have encountered floating point errors at lower bound of Unity.Bounds.
+    // There was an issue when i would go Unity.Bounds.Encapsulate(list of points), and then: Unity.Bounds.Contains(list of points), and not all points would be contained.
+    public Vector2 min;
+    public Vector2 max;
+    public Vector2 center { get { return (min + max) / 2; } }
+    public Vector2 size { get { return min - max; } }
+    public LipomaBounds(Vector2 min, Vector2 max) { this.min = min; this.max = max; }
+    public LipomaBounds(Bounds B) { this.min = B.min; this.max = B.max; }
+    public bool Contains(Vector2 p) => BoundsMathHelper.InclusiveContains(min, max, p);
+    public void Encapsulate(Vector2 p)
+    {
+        if (p.x < this.min.x) this.min.x = p.x;
+        if (p.y < this.min.y) this.min.y = p.y;
+        if (p.x > this.max.x) this.max.x = p.x;
+        if (p.y > this.max.y) this.max.y = p.y;
+    }
+
+    public void SetAB(Vector2 A, Vector2 B)
+    {
+        this.min.x = Mathf.Min(A.x, B.x);
+        this.min.y = Mathf.Min(A.y, B.y);
+        this.max.x = Mathf.Max(A.x, B.x);
+        this.max.y = Mathf.Max(A.y, B.y);
+    }
+
+    public bool Intersects(LipomaBounds B) {
+        return (this.min.x <= B.max.x && this.max.x >= B.min.x) && (this.min.y <= B.max.y && this.max.y >= B.min.y);
+    }
+    public override string ToString()
+    {
+        return "Lipomabounds: " + this.min + " " + this.max;
+    }
+} 
+>>>>>>> Stashed changes:Assets/TomilovGeometry/BoundsMathHelper.cs
 
 public static class BoundsMathHelper
 {

@@ -1424,6 +1424,220 @@ Transform:
   - {fileID: 254233112}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< Updated upstream
+=======
+--- !u!1 &1266008485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1266008487}
+  - component: {fileID: 1266008486}
+  m_Layer: 0
+  m_Name: PolygonManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1266008486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266008485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 068744d680e308241ad271eac1265b55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
+  DisplayHierarchy: 1
+  HierarchyLevel: -1
+  PointHighlighter: -1
+  option: 4
+  orientation: 2
+  polygonAddMode: 1
+  points:
+  - {x: -10.481063, y: -2.9422631}
+  - {x: -10.26203, y: -4.1262293}
+  - {x: -10.122658, y: 1.2771649}
+  - {x: -9.903619, y: -3.421597}
+  - {x: -9.445663, y: 5.3374033}
+  - {x: -9.047411, y: -4.56242}
+  - {x: -8.541956, y: 2.497141}
+  - {x: -8.368019, y: 3.3751974}
+  - {x: -8.368012, y: -0.79658806}
+  - {x: -7.672261, y: 4.021757}
+  - {x: -7.440344, y: 5.192499}
+  - {x: -7.3436966, y: -2.7607336}
+  - {x: -6.9765, y: 2.9333231}
+  - {x: -6.647939, y: -2.036196}
+  - {x: -6.3580494, y: 3.9694088}
+  - {x: -6.338716, y: -0.43621796}
+  - {x: -5.7782397, y: -3.026347}
+  - {x: -5.2044544, y: 5.156355}
+  - {x: -4.865952, y: 4.2541304}
+  - {x: -4.7265677, y: 2.8689473}
+  - {x: -4.527446, y: 0.17854702}
+  - {x: -4.0495553, y: -4.35833}
+  - {x: -3.8902752, y: 4.158262}
+  - {x: -3.5915859, y: -3.5327258}
+  - {x: -3.591585, y: -3.9545016}
+  - {x: -3.053966, y: -4.6147823}
+  polygons: []
+  my_chunk:
+    polygons:
+    - vertices:
+      - i: 0
+      - i: 10
+      - i: 8
+      - i: 1
+      - i: 2
+      - i: 9
+      - i: 11
+      - i: 3
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: 1.8326474, y: 0.818182}
+        max: {x: 4.360919, y: 4.5022354}
+    - vertices:
+      - i: 7
+      - i: 11
+      - i: 9
+      - i: 22
+      - i: 23
+      - i: 6
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: 4.2585554, y: 1.6061009}
+        max: {x: 7.8523417, y: 3.659478}
+    - vertices:
+      - i: 10
+      - i: 4
+      - i: 5
+      - i: 16
+      - i: 17
+      - i: 8
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: -1.0327272, y: 1.0108123}
+        max: {x: 2.402423, y: 2.6741326}
+    - vertices:
+      - i: 14
+      - i: 28
+      - i: 29
+      - i: 17
+      - i: 16
+      - i: 13
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: -0.9604907, y: -3.5641558}
+        max: {x: 1.6400173, y: 1.2032665}
+    - vertices:
+      - i: 20
+      - i: 23
+      - i: 22
+      - i: 31
+      - i: 30
+      - i: 19
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: 5.9019613, y: -3.3956044}
+        max: {x: 8.333918, y: 1.9475108}
+    - vertices:
+      - i: 28
+      - i: 30
+      - i: 31
+      - i: 29
+      isHole: 0
+      convex: 1
+      initialized: 1
+      BBox:
+        min: {x: 1.3338124, y: -3.2045698}
+        max: {x: 6.1952863, y: -1.273309}
+    - vertices:
+      - i: 22
+      - i: 9
+      - i: 2
+      - i: 1
+      - i: 8
+      - i: 17
+      - i: 29
+      - i: 31
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0.69936013, y: -2.0122533}
+        max: {x: 6.628632, y: 1.8620744}
+    vertices:
+    - {x: 1.8326474, y: 3.2982962}
+    - {x: 2.530932, y: 0.96265465}
+    - {x: 4.360919, y: 0.818182}
+    - {x: 4.1923676, y: 4.5022354}
+    - {x: -0.9604907, y: 2.1665936}
+    - {x: -1.0327272, y: 1.0108123}
+    - {x: 7.8523417, y: 1.9980421}
+    - {x: 7.804184, y: 3.659478}
+    - {x: 2.402423, y: 1.3924956}
+    - {x: 4.32487, y: 1.6061009}
+    - {x: 2.019253, y: 2.6741326}
+    - {x: 4.2585554, y: 3.055552}
+    - {x: -0.38260007, y: 1.5164666}
+    - {x: -0.9604907, y: -2.8417923}
+    - {x: 1.6400173, y: -3.5641558}
+    - {x: 0.58055115, y: 1.8054119}
+    - {x: -0.4409292, y: 1.0765675}
+    - {x: 0.69936013, y: 1.2032665}
+    - {x: 6.720639, y: 2.5277753}
+    - {x: 5.9019613, y: -3.3956044}
+    - {x: 8.333918, y: -2.649162}
+    - {x: 7.2744513, y: 2.5518541}
+    - {x: 6.628632, y: 1.8620744}
+    - {x: 7.397559, y: 1.9475108}
+    - {x: 0.6287086, y: -2.119429}
+    - {x: 1.3751508, y: -3.227053}
+    - {x: 6.3594575, y: -2.649162}
+    - {x: 6.648403, y: -1.2044353}
+    - {x: 1.5690675, y: -3.2045698}
+    - {x: 1.3338124, y: -2.0122533}
+    - {x: 5.999357, y: -2.6909125}
+    - {x: 6.1952863, y: -1.273309}
+    ConvexHull: []
+  selected1: -1
+  selected2: -1
+  selectionColorScheme: 0
+  SelectedChunkAction: 0
+--- !u!4 &1266008487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266008485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.36, y: -1.47, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> Stashed changes
 --- !u!1 &1293271200
 GameObject:
   m_ObjectHideFlags: 0
