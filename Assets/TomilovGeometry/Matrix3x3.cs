@@ -143,6 +143,29 @@ public struct Matrix3x3
 
 public static class Matrix 
 {
+    // Для таких маленьких рапсширений надо бы отдельный класс сдеать, но пока тут пусть поживут, вместе с матрицами.
+    /// <summary>
+    /// Creates an array of said size and filles every value with provided value. <br/>
+    /// Made for brievety as i had to create a lot of all -1 arrays, and all -2 arrays, will be helpful for <b>enums</b>[]<br/>
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public static T[] GetSetArray<T>(int size, T value) 
+    {
+        if (size < 0) throw new ArgumentException("Negative size of an array, not permitted");
+        T[] array = new T[size];
+        for (int i = 0; i < size; i++) array[i] = value;
+        return array;
+    }
+    public static T[,] GetSetArray<T>(int sizeX, int sizeY, T value)
+    {
+        if (sizeX < 0 | sizeY < 0) throw new ArgumentException("Negative size of an array, not permitted");
+        T[,] array = new T[sizeX, sizeY];
+        for (int x = 0; x < sizeX; x++) 
+            for (int y = 0; y < sizeY; y++)
+                array[x, y] = value;
+        return array;
+    }
     public static Vector2 VectorMatrixMultiplication2D(Vector2 V, Vector2 row1, Vector2 row2)
     {
         return new Vector3(V.x * row1.x + V.y * row2.x,

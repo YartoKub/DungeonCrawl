@@ -347,17 +347,6 @@ public static class Poly2DToolbox
         return true;
     }
 
-    public static bool IsPointInside(Vector2 A, Vector2 B, Vector2 C, Vector2 P)
-    {   // Ётот кусочек кода - дубликат DoesContainPoint, был создан когда € подумал что DoesContainPoint сломана. (ѕроблема оказалась в качестве функции UnityHole)
-        float AB = Vector2.SignedAngle(B - A, P - A);
-        float BC = Vector2.SignedAngle(C - B, P - B);
-        float CA = Vector2.SignedAngle(A - C, P - C);
-        //Debug.Log(AB + " " + BC + " " + CA);
-        if (AB <= -1.0f) return false;
-        if (BC <= -1.0f) return false;
-        if (CA <= -1.0f) return false;
-        return true;
-    }
 
 
     public static bool MassContainPoint(int A, int B, int C, List<Vector2> Points)
@@ -729,6 +718,28 @@ public static class Poly2DToolbox
         if (is_A_Inside) return -1;
         return 0;
     }
+
+    public static List<int> PointsInsideBounds(List<Vector2> points, LipomaBounds bounds)
+    {
+        List<int> to_return = new List<int>();
+        for (int i = 0; i < points.Count; i++)
+            if (bounds.Contains(points[i])) to_return.Add(i);
+        return to_return;
+    }
+
+    public static List<Pair> EdgesInsideBounds(List<Vector2> poly, LipomaBounds bounds)
+    {
+        List<Pair> edges = new();
+        int c = poly.Count;
+        for (int i = 0; i < c; i++)
+        {
+            int j = (i + 1) % c;
+            if (!BoundsMathHelper.DoesLineIntersectBoundingBox2D(poly[i], poly[j], bounds.min, bounds.max)) continue;
+            edges.Add(new Pair(i, j, false));
+        }
+        return edges;
+    }
+
     public static bool DoesPolygonContainOtherBool(Poly2D A, Poly2D B)
     {
         return (DoesPolygonContainOther(A, B) == 1);

@@ -2,9 +2,111 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor;
 
-public class DegeneratePolygonTest : MonoBehaviour
+public class PolygonTestBox : MonoBehaviour
 {
     // ADD POLYGON TESTS FOR CHUNK AND GLOBAL MAP
+
+    public enum PolygonTestCase { 
+        two_boxes_apart,
+        two_boxes_sharing_a_side,
+        two_boxes_sharing_a_side_downward_offset,
+        two_boxes_sharing_a_side_many_points,
+        two_boxes_half_overlap,
+        four_boxes_touching_corners_clover,
+        four_boxes_touching_corners_00_10_11,
+        two_croissants_sharing_point
+    }
+
+    public static List<Poly2D> GetPolyList(PolygonTestCase testcase)
+    {
+        switch (testcase) { 
+            case PolygonTestCase.two_boxes_apart: return TwoBoxesApart();
+            case PolygonTestCase.two_boxes_sharing_a_side: return TwoBoxesSharingSide();
+            case PolygonTestCase.two_boxes_sharing_a_side_downward_offset: return TwoBoxesSharingSideDownwardOffset();
+            case PolygonTestCase.two_boxes_sharing_a_side_many_points: return TwoBoxesSharingSideManyPoints();
+            case PolygonTestCase.two_boxes_half_overlap: return TwoBoxesHalfOverlap();
+            case PolygonTestCase.four_boxes_touching_corners_clover: return TwoBoxesCornersTouchingClover();
+            case PolygonTestCase.four_boxes_touching_corners_00_10_11: return TwoBoxesCornersTouching00_10_11();
+            case PolygonTestCase.two_croissants_sharing_point: return TwoCroissantsSharingSinglePoint();
+            default: return null;
+        }
+
+    }
+
+    private static List<Poly2D> TwoBoxesApart()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2( 1, 0), new Vector2( 3, 0), new Vector2( 3, 2), new Vector2( 1, 2)));
+        polygons.Add(new Poly2D(new Vector2(-3, 0), new Vector2(-1, 0), new Vector2(-1, 2), new Vector2(-3, 2)));
+        return polygons;
+    }
+
+    private static List<Poly2D> TwoBoxesSharingSide()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(2, 2), new Vector2(0, 2)));
+        polygons.Add(new Poly2D(new Vector2(2, 0), new Vector2(4, 0), new Vector2(4, 2), new Vector2(2, 2)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoBoxesSharingSideDownwardOffset()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(2, 2), new Vector2(0, 2)));
+        polygons.Add(new Poly2D(new Vector2(2, -1), new Vector2(4, -1), new Vector2(4, 1), new Vector2(2, 1)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoBoxesSharingSideManyPoints()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(0, -3), new Vector2(2, -3), new Vector2(2, 3), new Vector2(0, 3)));
+        polygons.Add(new Poly2D(new Vector2(2, -2), new Vector2(4, -2), new Vector2(4, 2), new Vector2(2, 2), new Vector2(2, 1), new Vector2(2, 0), new Vector2(2, -1)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoBoxesHalfOverlap()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(0, 0), new Vector2(2, 0), new Vector2(2, 2), new Vector2(0, 2)));
+        polygons.Add(new Poly2D(new Vector2(1, 0), new Vector2(3, 0), new Vector2(3, 2), new Vector2(1, 2)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoBoxesCornersTouchingClover()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(-5, -2), new Vector2(-1, -2), new Vector2(-1,  2), new Vector2(-5, 2)));
+        polygons.Add(new Poly2D(new Vector2( 1, -2), new Vector2( 5, -2), new Vector2( 5,  2), new Vector2( 1, 2)));
+        polygons.Add(new Poly2D(new Vector2(-2,  1), new Vector2( 2,  1), new Vector2( 2,  5), new Vector2(-2, 5)));
+        polygons.Add(new Poly2D(new Vector2(-2, -5), new Vector2( 2, -5), new Vector2( 2, -1), new Vector2(-2, -1)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoBoxesCornersTouching00_10_11()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(-5, -2), new Vector2(-1, -2), new Vector2(-1,  2), new Vector2(-5,  2)));
+        polygons.Add(new Poly2D(new Vector2( 1, -6), new Vector2( 5, -6), new Vector2( 5, -2), new Vector2( 1, -2)));
+        polygons.Add(new Poly2D(new Vector2(-2,  1), new Vector2( 2,  1), new Vector2( 2,  5), new Vector2(-2,  5)));
+        polygons.Add(new Poly2D(new Vector2(-2, -5), new Vector2( 2, -5), new Vector2( 2, -1), new Vector2(-2, -1)));
+        return polygons;
+    }
+    private static List<Poly2D> TwoCroissantsSharingSinglePoint()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(-3, 0), new Vector2(0, 0), new Vector2(-2, 1), new Vector2(-1, 2), new Vector2(0, 0), new Vector2(0, 3), new Vector2(-3, 3)));
+        polygons.Add(new Poly2D(new Vector2(0, -3), new Vector2(3, -3), new Vector2(3, 0), new Vector2(0, 0), new Vector2(2, -1), new Vector2(1, -2), new Vector2(0, 0)));
+        return polygons;
+    }
+
+    public static void AddPolygons(List<Poly2D> polygons, PolygonManager.TargetDebugTestChunk target, CH2D_Chunk.PolygonAddMode mode)
+    {
+        for (int i = 0; i < polygons.Capacity; i++)
+        {
+            PolygonManager.GetManager().AddPolygon(polygons[i], target, mode);
+        }
+    }
+    public static void AddPolygon(Poly2D polygon, PolygonManager.TargetDebugTestChunk target, CH2D_Chunk.PolygonAddMode mode)
+    {
+        PolygonManager.GetManager().AddPolygon(polygon, target, mode);
+    }
+
     public static void AddEncompassedDegenerates()
     {
         List<Vector2> p1 = new List<Vector2> { new Vector2(-0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 1) };
@@ -205,16 +307,70 @@ public class DegeneratePolygonTest : MonoBehaviour
     // “ут подразумеваетс€ что все тесты будут использовать Dangerous Add Polygon, чтобы полигоны могли накладыватьс€ друг на друга. 
     // Ёти функции очищают чанк дл€ добавлени€ полигонов и легкости выбора индексов полигона
 
+
 }
-[CustomEditor(typeof(DegeneratePolygonTest))]
+[CustomEditor(typeof(PolygonTestBox))]
 public class DegeneratePolygonTestEditor : Editor 
 {
     public override void OnInspectorGUI()
     {
-
-        if (GUILayout.Button("Encompassed Degenerate")) DegeneratePolygonTest.AddEncompassedDegenerates();
-        if (GUILayout.Button("Multiple Overlap Degenerate")) DegeneratePolygonTest.AddOverlapDegenerates();
-        if (GUILayout.Button("Duplicate Vertices")) DegeneratePolygonTest.DuplicateVertices();
+        if (GUILayout.Button("Purge chunk fast")) PolygonManager.GetManager().PurgeChunk();
+        if (GUILayout.Button("Encompassed Degenerate")) PolygonTestBox.AddEncompassedDegenerates();
+        if (GUILayout.Button("Multiple Overlap Degenerate")) PolygonTestBox.AddOverlapDegenerates();
+        if (GUILayout.Button("Duplicate Vertices")) PolygonTestBox.DuplicateVertices();
+        if (GUILayout.Button("Boxes Apart"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_boxes_apart);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Boxes Side Touching"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_boxes_sharing_a_side);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        
+        if (GUILayout.Button("Boxes Side Touching with offset"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_boxes_sharing_a_side_downward_offset);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Boxes Side Touching multipoint edge"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_boxes_sharing_a_side_many_points);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Boxes Half Overlap"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_boxes_half_overlap);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Boxes Corner touching clover shape"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.four_boxes_touching_corners_clover);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[2], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[3], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Boxes Corner touching chain shape"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.four_boxes_touching_corners_00_10_11);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[2], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[3], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Two croissants sharing a single point at corners"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.two_croissants_sharing_point);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
         base.OnInspectorGUI();
     }
 }

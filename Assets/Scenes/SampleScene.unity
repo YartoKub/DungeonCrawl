@@ -136,7 +136,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 1
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!64 &2654432
 MeshCollider:
@@ -2179,11 +2179,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
   DisplayHierarchy: 1
+  DebugDisplayLeveledPolygons: 1
   HierarchyLevel: -1
   PointHighlighter: -1
   option: 4
   orientation: 2
-  polygonAddMode: 0
+  target_chunk: 2
+  polygonAddMode: 1
   points:
   - {x: -10.481063, y: -2.9422631}
   - {x: -10.26203, y: -4.1262293}
@@ -2216,13 +2218,112 @@ MonoBehaviour:
     polygons: []
     vertices: []
     ConvexHull: []
+  world_map:
+    regular_chunks: []
+    complex_chunks: []
+  leveled_one:
+    polygons:
+    - vertices:
+      - i: 0
+      - i: 10
+      - i: 1
+      - i: 11
+      - i: 8
+      - i: 2
+      - i: 9
+      - i: 3
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -5, y: -2}
+        max: {x: -1, y: 2}
+    - vertices:
+      - i: 4
+      - i: 5
+      - i: 6
+      - i: 12
+      - i: 7
+      - i: 13
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 1, y: -6}
+        max: {x: 5, y: -2}
+    vertices:
+    - {x: -5, y: -2}
+    - {x: -1, y: -2}
+    - {x: -1, y: 2}
+    - {x: -5, y: 2}
+    - {x: 1, y: -6}
+    - {x: 5, y: -6}
+    - {x: 5, y: -2}
+    - {x: 1, y: -2}
+    - {x: -1, y: 1}
+    - {x: -2, y: 2}
+    - {x: -2, y: -2}
+    - {x: -1, y: -1}
+    - {x: 2, y: -2}
+    - {x: 1, y: -5}
+    ConvexHull: []
+    global_position: {x: 0, y: 0}
+  leveled_two:
+    polygons:
+    - vertices:
+      - i: 0
+      - i: 8
+      - i: 1
+      - i: 2
+      - i: 3
+      - i: 9
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -2, y: 1}
+        max: {x: 2, y: 5}
+    - vertices:
+      - i: 4
+      - i: 13
+      - i: 5
+      - i: 12
+      - i: 6
+      - i: 7
+      - i: 11
+      - i: 10
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -2, y: -5}
+        max: {x: 2, y: -1}
+    vertices:
+    - {x: -2, y: 1}
+    - {x: 2, y: 1}
+    - {x: 2, y: 5}
+    - {x: -2, y: 5}
+    - {x: -2, y: -5}
+    - {x: 2, y: -5}
+    - {x: 2, y: -1}
+    - {x: -2, y: -1}
+    - {x: -1, y: 1}
+    - {x: -2, y: 2}
+    - {x: -2, y: -2}
+    - {x: -1, y: -1}
+    - {x: 2, y: -2}
+    - {x: 1, y: -5}
+    ConvexHull: []
+    global_position: {x: 0, y: 0}
+  level1_offset: {x: 0, y: 0}
+  level2_offset: {x: 0, y: 0}
   selected1: -1
   selected2: -1
   selectionColorScheme: 0
   SelectedChunkAction: 0
-  Union: 1
+  Union: 0
   Inter: 0
-  Aonly: 0
+  Aonly: 1
   Bonly: 0
 --- !u!4 &1266008487
 Transform:
@@ -2992,7 +3093,7 @@ GameObject:
   - component: {fileID: 1822449377}
   - component: {fileID: 1822449376}
   m_Layer: 0
-  m_Name: GameObject (1)
+  m_Name: Test Case Library
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

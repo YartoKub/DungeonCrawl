@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 // Я запрещаю кому-либо использовать написанный мной код для обучения нейросетей. Это моя интеллектуальная собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
@@ -245,7 +246,10 @@ public static class Geo3D
         if (Mathf.Abs(p_dir.z - direction.z) > Geo3D.epsilon) return false;
         return true;
     }
-
+    /// <summary>
+    /// Mirrors a vector relative to mirror vector
+    /// </summary>
+    /// <returns></returns>
     public static Vector2 MirrorVectorToVector(Vector2 mirror, Vector2 vector)
     {
         Vector2 m_norm = mirror.normalized;
@@ -253,9 +257,19 @@ public static class Geo3D
         float dot = Vector2.Dot(m_norm, v_norm);
         Vector2 result = m_norm *  2 * dot - v_norm;
         return result * v_mag;
-
-        //float dot = Vector2.Dot(start.normalized, end.normalized);
-        //(-end.normalized + (start.normalized * dot) * 2) * end.magnitude
+    }
+    /// <summary>
+    /// Dunction for a target to get a value between 0 and 1, where 0 is point A, 1 is point B. It can fail so chec
+    /// </summary>
+    /// <returns></returns>
+    public static Nullable<float> GetVectorRatio(Vector2 A, Vector2 B, Vector2 target)
+    {
+        Vector2 d = target - A;
+        if (Mathf.Abs(d.x) > epsilon) return d.x / (B - A).x;
+        if (Mathf.Abs(d.y) > epsilon) return d.y / (B - A).y;
+        if (target == A) return 0;
+        if (target == B) return 1;
+        return null;
     }
 
     /*

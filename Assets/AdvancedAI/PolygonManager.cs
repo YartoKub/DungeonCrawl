@@ -7,11 +7,15 @@ public class PolygonManager : MonoBehaviour
     // Обеспечивает доступ агентов к полигонам
     // Предоставляет инструменты для редактирования полигонов
     
-
+    public enum TargetDebugTestChunk { global, first_leveled, second_leveled, convex_hierarchy } // Выбор места куда добавляется полигон
     private static PolygonManager manager;
     public static PolygonManager GetManager()
     {
-        if (manager == null) manager = new PolygonManager();
+        if (manager == null)
+        {
+            GameObject managerGameObject = new GameObject("PolygonManager"); 
+            manager = managerGameObject.AddComponent<PolygonManager>();
+        }
         if (manager.polygons == null) manager.polygons = new List<Poly2D>();
         return manager;
     }
@@ -19,15 +23,23 @@ public class PolygonManager : MonoBehaviour
     
     [SerializeField] BinaryBBoxRoot root;
     public bool DisplayHierarchy;
+    public bool DebugDisplayLeveledPolygons;
     [Range(-1, 20)] public int HierarchyLevel;
     [Range(-1, 100)] public int PointHighlighter;
     [SerializeField] public DebugUtilities.GradientOption option;
     [SerializeField] public Orientation orientation;
+    [SerializeField] public TargetDebugTestChunk target_chunk;
     [SerializeField] public CH2D_Chunk.PolygonAddMode polygonAddMode;
     [SerializeField] public List<Vector2> points;
     [SerializeField] public List<Poly2D> polygons;
 
+
     public CH2D_Chunk my_chunk;
+    public ConvexHierarchy2D world_map;
+    public CH2D_LeveledChunk leveled_one;
+    public CH2D_LeveledChunk leveled_two;
+    public Vector2 level1_offset;
+    public Vector2 level2_offset;
     public int selected1;
     public int selected2;
     [SerializeField] SelectionColorScheme selectionColorScheme;
@@ -44,10 +56,11 @@ public class PolygonManager : MonoBehaviour
         PolyMergeDelegate,
         RainbowColor,
         GetNewVectorForTests,
-        FindSharedEdge,
         RecalculateConnectionGraph,
         FindSharedEdgeContinuities,
-        PathfindNodeAB
+        PathfindNodeAB,
+        ChunkChunkIntersections
+
     }
     public void CallFunctionOnChosen()
     {
@@ -79,13 +92,6 @@ public class PolygonManager : MonoBehaviour
                 if ((selected1 >= my_chunk.polygons.Count)) { Debug.Log("Выбран полигон с индексом превышающий количество полигонов в чанке!"); break; }
                 this.GetNewVectorsForTests(selected1);
                 break;
-            case ChunkAction.FindSharedEdge:
-                if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
-                if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
-                (bool found, CH2D_P_Index i1, CH2D_P_Index i2) = my_chunk.GetSharedEdge(selected1, selected2);
-                if (found) DebugUtilities.DebugDrawLine(my_chunk.vertices[i1], my_chunk.vertices[i2], Color.red, 5f);
-                else { Debug.Log("No shared edge!"); }
-                break;
             case ChunkAction.FindSharedEdgeContinuities:
                 if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
                 if ((selected1 >= my_chunk.polygons.Count) | (selected2 >= my_chunk.polygons.Count)) { Debug.Log("Есть запредельный полигон!"); break; }
@@ -102,6 +108,9 @@ public class PolygonManager : MonoBehaviour
                 List<Vector2> centers = new List<Vector2>();
                 for (int i = 0; i < nodes.Count; i++) centers.Add(this.my_chunk.polygons[nodes[i]].BBox.center);
                 DebugUtilities.DrawPath(centers, Color.orange, 5f);
+                break;
+            case ChunkAction.ChunkChunkIntersections:
+                GHPolygonMerge.GetGraph(this.leveled_one, this.leveled_two);
                 break;
             default:
                 break;
@@ -160,6 +169,14 @@ public class PolygonManager : MonoBehaviour
         this.my_chunk.HandlesDrawSelf(DisplayHierarchy);
         HandlesDrawSelectionSecondary();
         HandlesDrawSelection();
+
+        world_map.DrawWorld();
+
+        if (DebugDisplayLeveledPolygons)
+        {
+            this.leveled_one.HandlesDrawSelf(DisplayHierarchy);
+            this.leveled_two.HandlesDrawSelf(DisplayHierarchy);
+        }
         
     }
 
@@ -179,6 +196,20 @@ public class PolygonManager : MonoBehaviour
     public void PurgeChunk()
     {
         this.my_chunk = new CH2D_Chunk();
+        this.leveled_one = new CH2D_LeveledChunk();
+        this.leveled_two = new CH2D_LeveledChunk();
+        this.level1_offset = Vector2.zero;
+        this.level2_offset = Vector2.zero;
+        
+    }
+    public void PurgeWorld()
+    {
+        this.world_map.PurgeSelf();
+        Debug.Log("Сюда бы функцию для полного выноса всех сохранений на диске");
+    }
+    public void RegenerateWorld()
+    {
+        this.world_map.DefaultRegeneration();
     }
     public void DebugIntersection()
     {
@@ -193,8 +224,28 @@ public class PolygonManager : MonoBehaviour
     {
         string p1 = ""; foreach (var item in p.vertices) p1 += "new Vector2(" + item.x + ", " + item.y + "),"; Debug.Log(p1);
         Debug.Log(polygonAddMode);
-        this.my_chunk.AddPolygon(p, polygonAddMode);
+        switch (target_chunk)
+        {
+            case TargetDebugTestChunk.global: this.my_chunk.AddPolygon(p, polygonAddMode); break;
+            case TargetDebugTestChunk.second_leveled: this.leveled_two.AddPolygon(p, polygonAddMode); break;
+            case TargetDebugTestChunk.first_leveled: this.leveled_one.AddPolygon(p, polygonAddMode); break;
+        }
+        
     }
+
+    public void AddPolygon(Poly2D p, TargetDebugTestChunk target, CH2D_Chunk.PolygonAddMode mode)
+    {
+        string p1 = ""; foreach (var item in p.vertices) p1 += "new Vector2(" + item.x + ", " + item.y + "),"; Debug.Log(p1);
+        Debug.Log(mode + " " + target);
+        switch (target)
+        {
+            case TargetDebugTestChunk.global: this.my_chunk.AddPolygon(p, mode); break;
+            case TargetDebugTestChunk.second_leveled: this.leveled_two.AddPolygon(p, mode); break;
+            case TargetDebugTestChunk.first_leveled: this.leveled_one.AddPolygon(p, mode); break;
+        }
+
+    }
+
     public void AddPolygon(List<Vector2> p)
     {
         this.my_chunk.AddPolygon(p, polygonAddMode);

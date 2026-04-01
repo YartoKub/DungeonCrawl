@@ -5,7 +5,13 @@ using System.Linq;
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 // TODO: придумать имя для класса. Тут теперь не только Greiner-Horrmann живет, но и самоделка.
 // TODO: Перерисовать ASCII картинку. Я теперь работаю с гранями а не с точками.
+
+// Сначала реализовать рабочие многоуровневые CH2D_P_Index полигоны.
+// Добавление новых полигонов к ним через менеджер с относительной позицией
 // TODO: Вместо шагохода для сборки полигонов использовать однонаправленный граф, все грани одного типа объединить в интерфалы 
+// TODO: Из-за шагохода нужно отмечать каждую пройденную грань и хранить информацию о гранях которые уже были использованы
+// TODO: С графовой штукой придется делать все то же самое, но грани будут иметь длину в 1 интервал, может проще будет.
+
 // TODO: Прикрутить поддержку многоуровневых полигонов, ту же самую которую я реализовал в GH алгоритме для Vector2 полигонов, но для CH2D_P_Vertice
 // TODO: Прикрутить выпуклую декомпозицию, ту же самую которая лежит в Poly2DToolbox
 // TODO: Если будет свободное время то сделать копию этого алгоритма так чтобы он мог принимать только Vector2 а не CH2D_P_Vertice+Vector2
@@ -21,7 +27,7 @@ public static class GHPolygonMerge
     // Цель: Найти все пересечения и все разница как отдельные полигоны
     const int inn_point = -1;
     const int out_point = -2;
-    const int used_point = -3;
+    const int used_point = -3; // Эта вся штука бесполезна с новым методом разметки граней.
     const int no_point = -4;
     public enum EdgeSide {
         None = 0, 
@@ -50,6 +56,162 @@ public static class GHPolygonMerge
         }
     }
     public static CutPolyIntSetting default_setting { get { return new CutPolyIntSetting(true, true, true, true); } }
+
+    // Да даже чанки брать не обязательно. Просто скормить список полигонов. Дальше оно само рассосется, система хорошая. 
+    // Надо получить общее облако точек, и общие индексы для вершин. Обновить каждый полигон с учетом точек пересечения.
+    // Наверное полигоны можно не обновлять. Достаточно найти пересекающиеся вершины и сохранить их пары.
+    // Затем, если с одной гранью есть несколько пересечений, можно по данным текущего пересечения определить какое пересечение должно быть следующим.
+    // По итогу нет нужды обновлять полигоны. Тоесть тут выбор между вычислительной нагрузкой и нагрузкой на пасять.
+    // Либо я обновляю полигоны, произвожу много простых операций и может быть имею нужду расширить массиф
+    // Либо я не обновляю полигоны, и проверяю вообще все пересечения с каждой из граней. Из плюсов получается то что два изначальных полигона остаются неизменны и операцию можно в любой момент отменить.
+    // Внутри каждой из групп не должно быть переесчений граней. Может быть допустимы касания вершин, вообще штука должна с ними справиться, но тут хз.
+    /// <summary>
+    /// It does not modify th
+    /// I assume that polygons within groups do not have intersections. Once it is done i will see whether it can handle single point intersections or not.
+    /// 
+    /// Hope it will, because it should handle them without extra logic.
+    /// </summary>
+    /// <returns></returns>
+    public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B) 
+    {
+        List<Pair> intersections = GetPairIntersections(A, B);
+        //GraphDynamicList graph = GetGraphNoIntersection(groupA, groupB, pointsA, pointsB, intersections);
+        return null;
+    }
+    public static GraphDynamicList GetGraphNoIntersection(List<CH2D_Polygon> groupA, List<CH2D_Polygon> groupB, List<Vector2> pointsA, List<Vector2> pointsB, List<Level2IntersectionRatio> intersections)
+    {
+
+
+        return null;
+
+    }
+    /// <summary>
+    /// Iteratively updates every polygon to include shared points and find intersections
+    /// </summary>
+    /// <returns></returns>
+    public static List<Pair> GetPairIntersections(CH2D_Chunk A, CH2D_Chunk B)
+    {
+        // Part responsible for finding intersections and adding them
+        for (int a = 0; a < A.polygons.Count; a++)
+        { // there is no need to perfor intersection and vertice insertion on both boxes. Intersection points are inserted only into A, as they will then be picked up by collinearity operation
+            CH2D_Polygon ap = A.polygons[a];
+            for (int b = 0; b < B.polygons.Count; b++)
+            {
+                CH2D_Polygon bp = B.polygons[b];
+                if (!ap.BBox.Intersects(bp.BBox)) continue;
+                CH2D_Chunk.PolyPolyOnlineIntersectionOnesided(A, B, a, b);
+            }
+        }
+
+        // Part responsible for handling shared and collinear points that already exist, and incorporating them into both chunks
+        List<Pair> pairs = new();
+        for (int a = 0; a < A.polygons.Count; a++)
+        {
+            CH2D_Polygon ap = A.polygons[a];
+            for (int b = 0; b < B.polygons.Count; b++)
+            {
+                CH2D_Polygon bp = B.polygons[b];
+                if (!ap.BBox.Intersects(bp.BBox)) continue;
+                Debug.Log("vertice count before operation " +  A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
+                List<Pair> point_pairsAB = CH2D_Chunk.Incorporate_Bvertice_To_PolyA(A, B, a, b);
+                List<Pair> point_pairsBA = CH2D_Chunk.Incorporate_Bvertice_To_PolyA(B, A, b, a);
+                Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
+                Debug.Log(a + DebugUtilities.DebugListString(point_pairsAB.ToArray()) + " " + b + " " + DebugUtilities.DebugListString(point_pairsBA.ToArray())) ;
+                pairs.AddRange(point_pairsAB);
+                for (int i = 0; i < point_pairsBA.Count; i++) pairs.Add(new Pair(point_pairsBA[i].B, point_pairsBA[i].A, false));
+            }
+        }
+        pairs = pairs.Distinct().ToList();
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            DebugUtilities.DebugDrawCross(A.vertices[pairs[i].A], Color.yellow, 1.0f);
+            Debug.Log(pairs[i].A + " " + pairs[i].B + " " + A.vertices[pairs[i].A] + " " + B.vertices[pairs[i].B]);
+        }
+
+        return pairs;
+    }
+
+    /// <summary>
+    /// This functions finds all shared points and intersections of two multileveled polygons. It just searches for them. 
+    /// Not optimal algorithm. <br/>
+    /// I begin to suspect that this function is shit as it overcomplicates the task that could be done simpler by not being greedy with memory
+    /// </summary>
+    /// <returns></returns>
+    public static List<Level2IntersectionRatio> GetPairPairIntersections(List<CH2D_Polygon> groupA, List<CH2D_Polygon> groupB, List<Vector2> pointsA, List<Vector2> pointsB)
+    {
+        List<Level2IntersectionRatio> intersections = new();
+        List<Pair> pairs = new();
+        for (int a = 0; a < groupA.Count; a++)
+            for (int b = 0; b < groupB.Count; b++)
+                if (groupA[a].BBox.Intersects(groupB[b].BBox)) pairs.Add(new Pair(a, b, false));
+
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            CH2D_Polygon ap = groupA[pairs[i].A];
+            CH2D_Polygon bp = groupB[pairs[i].B];
+            // Здесь есть ошибка
+            List<Vector2> av = CH2D_Chunk.GetVertices(ap.vertices, pointsA);
+            List<Vector2> bv = CH2D_Chunk.GetVertices(bp.vertices, pointsB);
+            List<Pair> edgesA = Poly2DToolbox.EdgesInsideBounds(av, bp.BBox.GetNewLargerBox(new Vector2(Geo3D.epsilon, Geo3D.epsilon)));
+            List<Pair> edgesB = Poly2DToolbox.EdgesInsideBounds(bv, ap.BBox.GetNewLargerBox(new Vector2(Geo3D.epsilon, Geo3D.epsilon)));
+            Debug.Log(av.Count + " " + bv.Count + " " + ap.BBox + " " + bp.BBox);
+            Debug.Log(DebugUtilities.DebugListString(edgesA.ToArray()));
+            Debug.Log(DebugUtilities.DebugListString(edgesB.ToArray()));
+            for (int a = 0; a < edgesA.Count; a++)
+            {
+                Edge2D edgeA = new Edge2D(av[edgesA[a].A], av[edgesA[a].B]);
+                
+                for (int b = 0; b < edgesB.Count; b++)
+                {
+                    Edge2D edgeB = new Edge2D(bv[edgesB[b].A], bv[edgesB[b].B]);
+
+                    if (pairs[i].A == 3 & pairs[i].B == 3) { DebugUtilities.DebugDrawLine(edgeA.A, edgeA.B, Color.red, 1.0f); DebugUtilities.DebugDrawLine(edgeB.A, edgeB.B, Color.yellow, 1.0f); }
+                    
+                    if (Poly2DToolbox.PointBelongToLine2D(edgeB.A, edgeB.B, edgeA.A))
+                    {
+                        float? Bratio_loc = Geo3D.GetVectorRatio(edgeB.A, edgeB.B, edgeA.A);
+                        if (Bratio_loc.Value == 1) continue;
+                        intersections.Add(new Level2IntersectionRatio(pairs[i].A, pairs[i].B, edgesA[a].A, edgesB[b].A, 0, Bratio_loc.Value));
+                        continue;
+                    }
+                    if (Poly2DToolbox.PointBelongToLine2D(edgeA.A, edgeA.B, edgeB.A))
+                    {
+                        float? Aratio_loc = Geo3D.GetVectorRatio(edgeA.A, edgeA.B, edgeB.A);
+                        if (Aratio_loc.Value == 1) continue;
+                        intersections.Add(new Level2IntersectionRatio(pairs[i].A, pairs[i].B, edgesA[a].A, edgesB[b].A, Aratio_loc.Value, 0));
+                        continue;
+                    }
+
+
+                    if (!Poly2DToolbox.LineLineIntersection(edgeA.A, edgeA.B, edgeB.A, edgeB.B, out Vector2 new_point)) continue;
+
+                    float? Aratio = Geo3D.GetVectorRatio(edgeA.A, edgeA.B, new_point);
+                    float? Bratio = Geo3D.GetVectorRatio(edgeB.A, edgeB.B, new_point);
+                    if (Aratio == 1 | Bratio == 1 | Aratio == 0 | Bratio == 0) continue;
+                    if (Aratio == null | Bratio == null) continue; 
+                    intersections.Add(new Level2IntersectionRatio(pairs[i].A, pairs[i].B, edgesA[a].A, edgesB[b].A, Aratio.Value, Bratio.Value));
+                    
+                }
+            }
+        }
+        Debug.Log(intersections.Count);
+        for (int i = 0; i < intersections.Count; i++)
+        {
+            Debug.Log(intersections[i]);
+            CH2D_P_Index p1 = groupA[intersections[i].A].vertices[intersections[i].a];
+            CH2D_P_Index p2 = groupA[intersections[i].A].vertices[(intersections[i].a + 1) % groupA[intersections[i].A].vertices.Count];
+            Vector2 inter = pointsA[p1] + (pointsA[p2] - pointsA[p1]) * intersections[i].Aratio;
+            Debug.Log(inter);
+            DebugUtilities.DebugDrawCross(inter, Color.red, 1.0f);
+        }
+        Debug.Log("This function may produce duplicate intersection points.");
+        // This function has to be modified to fix duplicates at some point, but not now.
+        // Не, это хрень. Я тут проверяю только edge/edge пересечения, а способов определить point/edge и point/point у меня нет. Да и не понятно что с ними делать.
+        // point связана с двумя гранями минимум, получается edge/point будет иметь две связи в одной точке? Вообще логично
+        // Как вариант можно представить грань как начальную точку до конечной точки не включая конечную. Так не будет двойственности.
+
+        return intersections;
+    }
     public static (int[] Ainter, int[] Binter, EdgeSide[] BufferAedge, EdgeSide[] BufferBedge) GetIntersectionAndMarkings(
         List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections)
     {
@@ -142,6 +304,8 @@ public static class GHPolygonMerge
         Debug.Log("<b><color=red> Aonly: " + Aonly.Count + "</color><color=blue> Bonly: " + Bonly.Count + "</color> <color=green>Inter: " + Inter.Count + "</color><color=yellow> Union: " + Union.Count + " </color></b>");
         return (Union, Inter, Aonly, Bonly);
     }
+
+    //public static 
 
     public static (List<CH2D_Polygon> overlap, List<CH2D_Polygon> onlyA, List<CH2D_Polygon> onlyB) PolyPolyTest(List<Vector2> V, List<CH2D_P_Index> A, List<CH2D_P_Index> B, List<Vector2> Ap, List<Vector2> Bp, List<Pair> intersections, bool drawPoints, bool drawEdges, bool InterCalc, bool UnionCalc, bool AonlyCalc, bool BonlyCalc)
     {   // Ничего не записывает, но все отображает
@@ -307,8 +471,8 @@ public static class GHPolygonMerge
         n = "Bedge: "; for (int i = 0; i < Binter.Length; i++) n += Binter[i] + " "; Debug.Log(n);*/
         int safety = -1;
         bool goodLoop = false;
-        
-        while (safety < 35)
+        int safety_margin = 50;
+        while (safety < safety_margin)
         {
             points.Add(curr_a < 0 ? Bv[curr_b] : Av[curr_a]);
             safety++;
@@ -395,7 +559,7 @@ public static class GHPolygonMerge
 
 
         }
-        if (safety >= 35) Debug.Log("<color=orange>Ran out of safety margins, Comissar Yarrick, please consider rising safety limit here to a highert value</color>");
+        if (safety >= safety_margin) Debug.Log("<color=orange>Ran out of safety margins, Comissar Yarrick, please consider rising safety limit here to a highert value</color>");
         return (goodLoop, points);
     }
 

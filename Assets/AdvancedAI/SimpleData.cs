@@ -17,7 +17,31 @@ public struct Pair
         return false;   
     }
 }
+public struct PairPair {
+    public int A, B, a, b;
+    public PairPair(int A, int B, int a, int b)
+    {
+        this.A = A; this.B = B; this.a = a; this.b = b;
+    }
+    public override string ToString()
+    {
+        return "(A " + A.ToString() + " B " + B.ToString() + " a " + a.ToString() + " b " + b.ToString() + ")";
+    }
+}
 
+public struct Level2IntersectionRatio
+{
+    public int A, B, a, b;
+    public float Aratio; public float Bratio;
+    public Level2IntersectionRatio(int A, int B, int a, int b, float Ar, float Br)
+    {
+        this.A = A; this.B = B; this.a = a; this.b = b; this.Aratio = Ar; this.Bratio = Br;
+    }
+    public override string ToString()
+    {
+        return "(A " + A.ToString() + " B " + B.ToString() + " a " + a.ToString() + " b " + b.ToString() + " a_ratio " + Aratio.ToString() + " b_ratio " + Bratio.ToString() + ")";
+    }
+}
 
 
 public struct Edge2D

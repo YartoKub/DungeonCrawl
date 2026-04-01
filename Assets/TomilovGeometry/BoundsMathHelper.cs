@@ -36,6 +36,10 @@ public struct LipomaBounds
     {
         return "Lipomabounds: " + this.min + " " + this.max;
     }
+    public LipomaBounds GetNewLargerBox(Vector2 padding)
+    {
+        return new LipomaBounds(min - padding, max + padding);
+    }
 } 
 
 
@@ -372,9 +376,8 @@ public static class BoundsMathHelper
     }
 
     // Note: Не возвращает точку пересечения
-    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Vector2 box_min, Vector2 box_max)
+    public static bool DoesLineIntersectBoundingBox2D(Vector2 L1, Vector2 L2, Vector2 B1, Vector2 B2)
     {
-        Vector2 B1 = box_min; Vector2 B2 = box_max;
         if (L2.x < B1.x && L1.x < B1.x) return false;
         if (L2.x > B2.x && L1.x > B2.x) return false;
         if (L2.y < B1.y && L1.y < B1.y) return false;
