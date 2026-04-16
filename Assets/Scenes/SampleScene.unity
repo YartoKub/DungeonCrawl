@@ -2180,11 +2180,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
   DisplayHierarchy: 1
   DebugDisplayLeveledPolygons: 1
-  HierarchyLevel: -1
+  HierarchyLevel: 7
   PointHighlighter: -1
   option: 4
   orientation: 2
-  target_chunk: 2
+  target_chunk: 1
   polygonAddMode: 1
   points:
   - {x: -10.481063, y: -2.9422631}
@@ -2225,12 +2225,14 @@ MonoBehaviour:
     polygons:
     - vertices:
       - i: 0
-      - i: 10
+      - i: 30
+      - i: 24
       - i: 1
-      - i: 11
-      - i: 8
+      - i: 29
+      - i: 28
       - i: 2
-      - i: 9
+      - i: 23
+      - i: 31
       - i: 3
       isHole: 0
       convex: 0
@@ -2240,43 +2242,113 @@ MonoBehaviour:
         max: {x: -1, y: 2}
     - vertices:
       - i: 4
+      - i: 26
+      - i: 12
       - i: 5
       - i: 6
-      - i: 12
-      - i: 7
       - i: 13
+      - i: 25
+      - i: 7
+      - i: 19
+      - i: 20
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 1, y: -2}
+        max: {x: 5, y: 2}
+    - vertices:
+      - i: 8
+      - i: 9
+      - i: 5
+      - i: 12
+      - i: 26
+      - i: 4
+      - i: 22
+      - i: 27
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
         min: {x: 1, y: -6}
         max: {x: 5, y: -2}
+    - vertices:
+      - i: 18
+      - i: 19
+      - i: 7
+      - i: 25
+      - i: 13
+      - i: 14
+      - i: 15
+      - i: 16
+      - i: 17
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: 1}
+        max: {x: 4, y: 4}
+    - vertices:
+      - i: 20
+      - i: 21
+      - i: 10
+      - i: 22
+      - i: 4
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: -4}
+        max: {x: 1, y: -1}
     vertices:
     - {x: -5, y: -2}
     - {x: -1, y: -2}
     - {x: -1, y: 2}
     - {x: -5, y: 2}
+    - {x: 1, y: -2}
+    - {x: 5, y: -2}
+    - {x: 5, y: 2}
+    - {x: 1, y: 2}
     - {x: 1, y: -6}
     - {x: 5, y: -6}
-    - {x: 5, y: -2}
-    - {x: 1, y: -2}
-    - {x: -1, y: 1}
+    - {x: 0, y: -4}
+    - {x: 2, y: -4}
+    - {x: 4, y: -2}
+    - {x: 4, y: 2}
+    - {x: 2, y: 4}
+    - {x: 0, y: 4}
+    - {x: 0, y: 3}
+    - {x: 0, y: 2}
+    - {x: 0, y: 1}
+    - {x: 1, y: 1}
+    - {x: 1, y: -1}
+    - {x: 0, y: -1}
+    - {x: 1, y: -4}
     - {x: -2, y: 2}
     - {x: -2, y: -2}
-    - {x: -1, y: -1}
+    - {x: 2, y: 2}
     - {x: 2, y: -2}
     - {x: 1, y: -5}
+    - {x: -1, y: 1}
+    - {x: -1, y: -1}
+    - {x: -4, y: -2}
+    - {x: -4, y: 2}
     ConvexHull: []
     global_position: {x: 0, y: 0}
   leveled_two:
     polygons:
     - vertices:
       - i: 0
-      - i: 8
+      - i: 13
+      - i: 14
+      - i: 22
       - i: 1
+      - i: 23
+      - i: 27
       - i: 2
       - i: 3
-      - i: 9
+      - i: 16
+      - i: 20
       isHole: 0
       convex: 0
       initialized: 1
@@ -2285,19 +2357,39 @@ MonoBehaviour:
         max: {x: 2, y: 5}
     - vertices:
       - i: 4
-      - i: 13
+      - i: 26
       - i: 5
-      - i: 12
+      - i: 24
       - i: 6
-      - i: 7
+      - i: 25
       - i: 11
-      - i: 10
+      - i: 12
+      - i: 7
+      - i: 21
+      - i: 19
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
         min: {x: -2, y: -5}
         max: {x: 2, y: -1}
+    - vertices:
+      - i: 18
+      - i: 19
+      - i: 21
+      - i: 7
+      - i: 12
+      - i: 13
+      - i: 0
+      - i: 20
+      - i: 16
+      - i: 17
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -4, y: -4}
+        max: {x: -1, y: 4}
     vertices:
     - {x: -2, y: 1}
     - {x: 2, y: 1}
@@ -2307,12 +2399,26 @@ MonoBehaviour:
     - {x: 2, y: -5}
     - {x: 2, y: -1}
     - {x: -2, y: -1}
+    - {x: 0, y: -4}
+    - {x: 0, y: -3}
+    - {x: 0, y: -2}
+    - {x: 0, y: -1}
+    - {x: -1, y: -1}
     - {x: -1, y: 1}
+    - {x: 0, y: 1}
+    - {x: 0, y: 4}
+    - {x: -2, y: 4}
+    - {x: -4, y: 2}
+    - {x: -4, y: -2}
+    - {x: -2, y: -4}
     - {x: -2, y: 2}
     - {x: -2, y: -2}
-    - {x: -1, y: -1}
+    - {x: 1, y: 1}
+    - {x: 2, y: 2}
     - {x: 2, y: -2}
+    - {x: 1, y: -1}
     - {x: 1, y: -5}
+    - {x: 2, y: 4}
     ConvexHull: []
     global_position: {x: 0, y: 0}
   level1_offset: {x: 0, y: 0}

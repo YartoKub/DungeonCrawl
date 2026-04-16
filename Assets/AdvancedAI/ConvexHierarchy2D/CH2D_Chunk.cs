@@ -957,7 +957,21 @@ public class CH2D_Chunk
 
     // Incorporate collinear vertices
     // Совпадающие вершины должны 
-    public static List<Pair> Incorporate_Bvertice_To_PolyA(CH2D_Chunk A, CH2D_Chunk B, int api, int bpi)
+    /// <summary>
+    /// Get point pairs that are vertice indices from chunkA and chunkB
+    /// </summary>
+    public static List<Pair> Incorporate_B_to_A_GetChunkPointPairs(CH2D_Chunk A, CH2D_Chunk B, int api, int bpi)
+    {
+        return Incorporate_Bvertice_To_PolyA(A, B, api, bpi, true);
+    }
+    /// <summary>
+    /// Get point pairs that are vertice indices from polyA and polyB
+    /// </summary>
+    public static List<Pair> Incorporate_B_to_A_GetPpolyPointPairs(CH2D_Chunk A, CH2D_Chunk B, int api, int bpi)
+    {
+        return Incorporate_Bvertice_To_PolyA(A, B, api, bpi, false);
+    }
+    public static List<Pair> Incorporate_Bvertice_To_PolyA(CH2D_Chunk A, CH2D_Chunk B, int api, int bpi, bool point_pair)
     {
         CH2D_Polygon ap = A.polygons[api];
         CH2D_Polygon bp = B.polygons[bpi];
@@ -974,7 +988,10 @@ public class CH2D_Chunk
                 safety += 1;
                 Vector2 bpoint = bv[b];
                 //Debug.Log(a + " " + b + " " + ae.A + " " + ae.B + " " + bpoint);
-                if (bpoint == ae.A) { shared_points.Add(new Pair(ap.vertices[a], bp.vertices[b], false)); continue; }
+                if (bpoint == ae.A) { 
+                    if (point_pair) shared_points.Add(new Pair(ap.vertices[a], bp.vertices[b], false)); 
+                    else shared_points.Add(new Pair(a, b, false));
+                    continue; }
                 if (bpoint == ae.B) { continue;  /*на следующей итерации предыдущая проверка сделает свое дело*/}
 
                 bool success = Poly2DToolbox.PointBelongToLine2D(ae.A, ae.B, bpoint);

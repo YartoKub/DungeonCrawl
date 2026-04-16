@@ -43,6 +43,19 @@ public struct Level2IntersectionRatio
     }
 }
 
+public struct Level2IntersectionChunkPoint
+{
+    public int polyA, polyB, va, vb; public CH2D_P_Index ca, cb;
+    public Level2IntersectionChunkPoint(int polyA, int polyB, int va, int vb, CH2D_P_Index ca, CH2D_P_Index cb)
+    {
+        this.polyA = polyA; this.polyB = polyB; this.va = va; this.vb = vb; this.ca = ca; this.cb = cb;
+    }
+    public override string ToString()
+    {
+        return "(pA " + polyA.ToString() + " pB " + polyB.ToString() + " va " + va.ToString() + " vb " + vb.ToString() + " ca " + ca.ToString() + " cb " + cb.ToString() + ")";
+    }
+}
+
 
 public struct Edge2D
 {

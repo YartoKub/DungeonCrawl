@@ -14,7 +14,8 @@ public class PolygonTestBox : MonoBehaviour
         two_boxes_half_overlap,
         four_boxes_touching_corners_clover,
         four_boxes_touching_corners_00_10_11,
-        two_croissants_sharing_point
+        two_croissants_sharing_point,
+        ingyang_multiedge,
     }
 
     public static List<Poly2D> GetPolyList(PolygonTestCase testcase)
@@ -28,6 +29,7 @@ public class PolygonTestBox : MonoBehaviour
             case PolygonTestCase.four_boxes_touching_corners_clover: return TwoBoxesCornersTouchingClover();
             case PolygonTestCase.four_boxes_touching_corners_00_10_11: return TwoBoxesCornersTouching00_10_11();
             case PolygonTestCase.two_croissants_sharing_point: return TwoCroissantsSharingSinglePoint();
+            case PolygonTestCase.ingyang_multiedge: return SolidIngYangTouchingMultiedges();
             default: return null;
         }
 
@@ -93,6 +95,47 @@ public class PolygonTestBox : MonoBehaviour
         polygons.Add(new Poly2D(new Vector2(-3, 0), new Vector2(0, 0), new Vector2(-2, 1), new Vector2(-1, 2), new Vector2(0, 0), new Vector2(0, 3), new Vector2(-3, 3)));
         polygons.Add(new Poly2D(new Vector2(0, -3), new Vector2(3, -3), new Vector2(3, 0), new Vector2(0, 0), new Vector2(2, -1), new Vector2(1, -2), new Vector2(0, 0)));
         return polygons;
+    }
+    /// <summary>
+    /// Ing Yang shape, A has edge with multiple points that touches B's solid edge, and the other way around
+    /// </summary>
+    /// <returns></returns>
+    private static List<Poly2D> SolidIngYangTouchingMultiedges()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(0, -4), new Vector2(2, -4), new Vector2(4, -2), new Vector2(4, 2), new Vector2(2, 4), new Vector2(0, 4), new Vector2(0, 3), new Vector2(0, 2), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, -1), new Vector2(0, -1)));
+        polygons.Add(new Poly2D(new Vector2(0, -4), new Vector2(0, -3), new Vector2(0, -2), new Vector2(0, -1), new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(0, 1), new Vector2(0, 4), new Vector2(-2, 4), new Vector2(-4, 2), new Vector2(-4, -2), new Vector2(-2, -4)));
+        return polygons;
+    }
+
+
+    /// <summary>
+    /// A polygon with several problematic  properties: <br/>
+    /// It features following issues: overlapping edges of two polygons, overlapping single points, <br/>
+    /// It does not feature the following: self intersecting polygons, 0 length vertices, untriangulable polygons with 0 width doubledirectional edges, wrong CCW/CW orientations <br/>
+    /// (!) CutPolyInt can handle overlapping edges, but it can not handle overlapping single points when there are more than 4 connected edges because of limited graph implementation
+    /// </summary>
+    private static List<Poly2D> ProblematicPolygon()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(-3, 0), new Vector2(0, 0), new Vector2(-2, 1), new Vector2(-1, 2), new Vector2(0, 0), new Vector2(0, 3), new Vector2(-3, 3)));
+        polygons.Add(new Poly2D(new Vector2(0, -3), new Vector2(3, -3), new Vector2(3, 0), new Vector2(0, 0), new Vector2(2, -1), new Vector2(1, -2), new Vector2(0, 0)));
+        return polygons;
+    }
+    /// <summary>
+    /// A polygon so offensively degenerate even league of legends players look normal in comparison. It features following issues:  <br/>
+    /// overlapping edges of two polygons, 
+    /// overlapping single points, 
+    /// self intersecting polygons, 
+    /// 0 length vertices, aka double vertices
+    /// 0 width bidirectional edges, like extended hourglass
+    /// wrong CCW/CW orientation sequences in hierarchy
+    /// CCW and nested CW polygon of the same chunk sharing an edge.
+    /// </summary>
+    private static List<Poly2D> DegenerusMaximus()
+    {
+        // TODO: make the world polygon in the history of polygons
+        return null;
     }
 
     public static void AddPolygons(List<Poly2D> polygons, PolygonManager.TargetDebugTestChunk target, CH2D_Chunk.PolygonAddMode mode)
@@ -371,6 +414,14 @@ public class DegeneratePolygonTestEditor : Editor
             PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
             PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
         }
+        if (GUILayout.Button("Ing Yang multiedge"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.ingyang_multiedge);
+            PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        
+
         base.OnInspectorGUI();
     }
 }

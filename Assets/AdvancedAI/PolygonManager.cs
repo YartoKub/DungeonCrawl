@@ -78,8 +78,15 @@ public class PolygonManager : MonoBehaviour
                 my_chunk.Incorporate_Bvertice_To_PolyA(selected1, selected2);
                 break;
             case ChunkAction.RainbowColor:
-                if (selected1 == -1 | selected1 >= my_chunk.polygons.Count) { Debug.Log("Запредельный полигон"); break; }
-                my_chunk.DebugRainbowPolygon(selected1, 5.0f, 0.3f);
+                CH2D_Chunk tchunk = my_chunk;
+                switch (target_chunk)
+                {
+                    case TargetDebugTestChunk.global: tchunk = my_chunk; break;
+                    case TargetDebugTestChunk.first_leveled: tchunk = leveled_one; break;
+                    case TargetDebugTestChunk.second_leveled: tchunk = leveled_two; break;
+                }
+                if (selected1 == -1 | selected1 >= tchunk.polygons.Count) { Debug.Log("Запредельный полигон"); break; }
+                tchunk.DebugRainbowPolygon(selected1, 5.0f, 0.3f);
                 break;
             case ChunkAction.PolyMergeDelegate:
                 if (selected1 == -1 | selected2 == -1) { Debug.Log("Нужно выбрать два полигона!"); break; }
@@ -110,7 +117,7 @@ public class PolygonManager : MonoBehaviour
                 DebugUtilities.DrawPath(centers, Color.orange, 5f);
                 break;
             case ChunkAction.ChunkChunkIntersections:
-                GHPolygonMerge.GetGraph(this.leveled_one, this.leveled_two);
+                GHPolygonMerge.GetGraph(this.leveled_one, this.leveled_two, HierarchyLevel);
                 break;
             default:
                 break;

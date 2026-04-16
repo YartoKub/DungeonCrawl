@@ -6,6 +6,7 @@ using System;
 // я запрещаю кому-либо использовать написанный мной код дл€ обучени€ нейросетей. Ёто мо€ интеллектуальна€ собственность.
 // I forbid anyone to use code, written by me, to train neural networks. It is my intellectual property.
 
+// TODO: –азбить вот это вот на Geo2D и Geo3D
 public static class Geo3D
 {
     public const float epsilon = 0.0001f;
@@ -177,6 +178,7 @@ public static class Geo3D
         Vector2 ao = A - common_origin; Vector2 bo = B - common_origin; Vector2 dir_o = D - common_origin;
         return DoesVectorLieBetween_A_and_B_CCW(ao, bo, dir_o);
     }
+
     /// <summary>
     /// Sector, Vector, Between, Clockwise, CounterClockwise <br/>
     /// Checks whether vector D lies in a sector defined by A and B in a counter clockwise order.
