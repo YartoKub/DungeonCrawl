@@ -2180,7 +2180,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
   DisplayHierarchy: 1
   DebugDisplayLeveledPolygons: 1
-  HierarchyLevel: 7
+  HierarchyLevel: 4
   PointHighlighter: -1
   option: 4
   orientation: 2

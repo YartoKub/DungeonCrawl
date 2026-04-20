@@ -209,21 +209,19 @@ public static class GHPolygonMerge
         }
         // Затем в каждой точке отсортировать эджи по глобальному углу
         for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
-        if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B);
+        
         // Есть излишние эджи-дубликаты. Надо все эджи с одним исходящим углом объеденить в одну супер-эджу.
         // Пришлось переписать PGEdge из структуры в класс. Так меньше ебли с перезаписью индексов. 
         
         Debug.Log("<color=orange> ДО ОБЪЕДИНЕНИЯ <color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
         
-        for (int i = 0; i < PGPoints.Count; i++)
-        {
-            UnifyEdgesInPoint(i, PGPoints, edges);
-        }
+        for (int i = 0; i < PGPoints.Count; i++) TryUnifyEdgesInPoint(i, PGPoints, edges);
+        
         Debug.Log("<color=orange> ПОСЛЕ ОБЪЕДИНЕНИЯ <color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
-        
 
+        if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
 
 
@@ -233,18 +231,46 @@ public static class GHPolygonMerge
 
 
         return null;
-        void UnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
+        bool WhereDoesEdgeLie(PGPointIntwise target_point, List<PGEdge> edges)
+        {   // Анализ порядка граней точки. Порядок граней позволяет определить с какой стороны грань полигона Б находится внутри А.
+            // Также порядок граней в точке пересечения двух полигонов принадлежащих чанку А может определить его дегенеративность или самопересечения
+            // Например, когда в чанке есть два полигона первого уровня иерархии с противоположными порядками вершин, что приносит несогласованность вструктуру. 
+            // В корректном чанке порядок граней в пересепчении: Вход-Выход-Вход-Выход и т.д., Birirectional ситуативно удовлетворяет оба этих условия. 
+
+            return false; // тут может быть определен
+        }
+        void TryUnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges) 
         {   // Сравнение соседних углов, объединение одинаковых в один.
+            // Граф разнится если граф пересечений построен на пересечениях чанков, или же на пересечении всех полигонов вовсе. 
+            // В пересечении чанков могут появляться грани, начинающиеся коллинеарно, а заканчивающиеся разрозненно.
+            // Это происходит когда чанк состоит из отдельных, но касающихся полигонов. В этом случае есть выбор отрезать начальную коллинеарную часть, или же оставить дегенеративную грань
+
+            // Я слишком сильно абстрагировал задачу от входных данных. Объединяя грани я теряю информацию о принадлежности к полигону. 
+            // Я понял что мой подход имеет проблемы в случае когда соседние грани внутри точки оба bidirectional. Я теряю информацию о том как определить грань внутри или снаружи полигона.
+
+            // Тут я хрень сделал. Надо хранить не грани связанные с пересечением, а полигоны. Я верю иерархическим чанкам, обоим из них, поэтому вся эта абстракция никому не сдалась.
+            // Нужно сохранить информацию о пересечении, и все-таки надо сохранять структуру на чанк+полигон+индекс. Я так смогу определять в какую сторону направлена исходящая грань.
+            // Структура содержит ссылку на чанк, и проэтому надо будет провести проверку всеА * всеБ для определения принадлежности грани. 
+            // Подход со звездой векторов работает, но требуется определять иерархию полигонов.
+            // Тоесть грани грани одного полигона одного чанка должны идти соседствующими парочками. 
+            // Вопрос только в том как определить правильный порядок граней когда обе грани biderectional. 
+            // На бумажке видно что для этого нужна информация об порядке обоих полигонов одного чанка. Это можно выдавить из иерархии или из объединение Chunk+Poly+Index структур в список.
+
+            // Самая вонючая проблема в этом случае - полностью двунаправленный треугольник.
+            // Без информации об иерархии не понятно, это CCW внутри которого CW (дырка в пустоте), или CW у которого внутри CCW (трава в траве)
+
+            // Тоесть вся это что я сделал хуйня полная.
             PGPointIntwise tp = PGPoints[target_p];
             for (int i = 0; i < tp.con_list.Count; i++)
             {
                 int edge1 = i;
                 int edge2 = (i + 1) % tp.con_list.Count;
                 if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
+
                 {
                     PGEdge e1 = tp.con_list[edge1].edge_id; PGEdge e2 = tp.con_list[edge2].edge_id;
-                    if (e1.start == e2.start & e1.end == e2.end) continue;
-                    if (e1.start == e2.end & e1.end == e2.start) continue;
+                    //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
+                    if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
                 }
 
                 int other_point = tp.con_list[i].edge_id.start == target_p ? tp.con_list[i].edge_id.end : tp.con_list[i].edge_id.start;
@@ -259,11 +285,12 @@ public static class GHPolygonMerge
                 Debug.Log(tp.con_list.Count);*/
                 // Обновление оригинального и удаление дубликата в соседней вершиен
                 if (index_to_remove != -1) {
-                    PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
+                    PGPoints[other_point].con_list[index_to_edit] = PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
                     PGPoints[other_point].con_list.RemoveAt(index_to_remove);
                 }
                 // Обновление оригинального и удаление дубликата у себя дома
-                tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir);
+                
+                tp.con_list[edge1] = tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir); // Тут копируется сущность из массива, оперируется, и вставляется обратно. Фигня полная но пох.
                 tp.con_list.RemoveAt(edge2);
                 edges.RemoveAt(edge2);
             }
@@ -399,7 +426,7 @@ public static class GHPolygonMerge
         public PGDirection dir; // каждая грань одномвременно входная и выходная, поэтому направление живет в связи. 
         public float angle;// каждая грань одномвременно входная и выходная, и имеет два угла на вход и на выход, поэтому угол живет в связи. 
         public PGConnection(PGEdge edge_id, PGDirection dir, float angle) { this.edge_id = edge_id; this.dir = dir; this.angle = angle; }
-        public void UpdateDirection(PGDirection dir) { this.dir |= dir; }
+        public PGConnection UpdateDirection(PGDirection o_dir) { this.dir = this.dir | o_dir; return this; }
     }
     protected class PGEdge
     {   // Надо жестче разделить вершины и грани. 
