@@ -117,7 +117,7 @@ public class PolygonManager : MonoBehaviour
                 DebugUtilities.DrawPath(centers, Color.orange, 5f);
                 break;
             case ChunkAction.ChunkChunkIntersections:
-                GHPolygonMerge.GetGraph(this.leveled_one, this.leveled_two, HierarchyLevel);
+                LipomaPolygonClipping.GetGraph(this.leveled_one, this.leveled_two, HierarchyLevel);
                 break;
             default:
                 break;

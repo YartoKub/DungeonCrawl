@@ -13,67 +13,7 @@ public static class LipomaPolygonClipping
     // Либо я обновляю полигоны, произвожу много простых операций и может быть имею нужду расширить массиф
     // Либо я не обновляю полигоны, и проверяю вообще все пересечения с каждой из граней. Из плюсов получается то что два изначальных полигона остаются неизменны и операцию можно в любой момент отменить.
     // Внутри каждой из групп не должно быть переесчений граней. Может быть допустимы касания вершин, вообще штука должна с ними справиться, но тут хз.
-    public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, bool dummy, int draw_connection = -1)
-    {
-        List<Level2IntersectionChunkPoint> intersections = GetPairIntersections(A, B);
-        // Надо из этой хрени достать, по порядку:
-        // Одинаковые значения ca или cb и из них создать PGPoints
-        // Пары полигонаА + полигонБ
-        // Найти все уникальные va и vb и уже на их основе заполнить PGCon 
-        List<List<Level2IntersectionChunkPoint>> unique_ppvv = intersections.GroupBy(v => v.ca).Select(v => v.ToList()).ToList(); // созданы списки с одинаковым ca+cb
-
-        // В DataStructures я написал фигню без поддержки <T> для граней и без поддержки значений вне матрицы. Пишу здесь новый граф.
-        //Debug.Log("Uniqeus: "); // Тест на инь-яне говорит что пары единичны для каждого случая (так и надо) // Тест на круасанf[ выдает четыре пары для одной точки (тоже корректно)
-        //for (int i = 0; i < unique_ppvv.Count; i++) Debug.Log(unique_ppvv[i]);
-
-        List<PGPoint> PGpoints = new();
-        for (int i = 0; i < unique_ppvv.Count; i++)
-        {
-            List<Level2IntersectionChunkPoint> local_inter_list = unique_ppvv[i]; // в нем все ca и cb одинаковые
-            PGPoint new_point = new(); new_point.Aindex = local_inter_list[0].ca; new_point.Bindex = local_inter_list[0].cb; new_point.connections = new List<PGCon>();
-
-            List<List<Level2IntersectionChunkPoint>> pairs_of_polygons = local_inter_list.GroupBy(poly_pair => (poly_pair.polyA, poly_pair.polyB)).Select(v => v.ToList()).ToList();
-
-            // Сгруппированы по паре polyA+polyB
-            for (int p = 0; p < pairs_of_polygons.Count; p++)
-            {
-                int polyA_index = pairs_of_polygons[p][0].polyA;
-                int polyB_index = pairs_of_polygons[p][0].polyB;
-
-                HashSet<int> hash_va = new();
-                HashSet<int> hash_vb = new();
-                for (int u = 0; u < pairs_of_polygons[p].Count; u++)
-                {
-                    hash_va.Add(pairs_of_polygons[p][u].va);
-                    hash_vb.Add(pairs_of_polygons[p][u].vb);
-                }
-                List<int> unique_va = hash_va.ToList();
-                List<int> unique_vb = hash_vb.ToList();
-
-                for (int ua = 0; ua < unique_va.Count; ua++)
-                {
-                    CH2D_Polygon polygon = A.polygons[polyA_index];
-                    new_point.connections.Add(new PGCon(PGDirection.Outgoing, PGBelong.A, polyA_index, unique_va[ua]));
-                    new_point.connections.Add(new PGCon(PGDirection.Ingoing, PGBelong.A, polyA_index, (unique_va[ua] - 1 + polygon.vertices.Count) % polygon.vertices.Count));
-                }
-
-                for (int ub = 0; ub < unique_vb.Count; ub++)
-                {
-                    CH2D_Polygon polygon = B.polygons[polyB_index];
-                    new_point.connections.Add(new PGCon(PGDirection.Outgoing, PGBelong.B, polyB_index, unique_vb[ub]));
-                    new_point.connections.Add(new PGCon(PGDirection.Ingoing, PGBelong.B, polyB_index, (unique_vb[ub] - 1 + polygon.vertices.Count) % polygon.vertices.Count));
-                }
-            }
-            PGpoints.Add(new_point);
-        }
-        // Chaos start debug draw
-        for (int i = 0; i < PGpoints.Count; i++) Debug.Log(PGpoints[i]);
-        if (draw_connection >= 0 & draw_connection < PGpoints.Count) DrawChaosStar(PGpoints[draw_connection], A, B);
-        // ХЗ что делать. С одной стороны надо скомпилировать грани графа, тоесть совершить проход по всем полигонам.
-        // С другой стороны надо скомпилировать точки. 
-        // Компиляция граней. Надо перерабо
-        return null;
-    }
+    
 
     public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, int draw_connection = -1)
     {
@@ -105,34 +45,8 @@ public static class LipomaPolygonClipping
         for (int i = 0; i < PGPoints.Count; i++) n += "\n" + PGPoints[i].ToString() + " " + A.vertices[PGPoints[i].Aindex];
         Debug.Log(n);
         // Маркировка
-        List<int[]> chunkA_marks = new(A.polygons.Count);
-        List<int[]> chunkB_marks = new(B.polygons.Count);
-        for (int i = 0; i < A.polygons.Count; i++)
-            chunkA_marks.Add(Matrix.GetSetArray(A.polygons[i].vertices.Count, -1));
-        for (int i = 0; i < B.polygons.Count; i++)
-            chunkB_marks.Add(Matrix.GetSetArray(B.polygons[i].vertices.Count, -1));
 
-        for (int i = 0; i < shared_segments.Count; i++)
-        {
-            ReturnPoint p = shared_segments[i];
-            int point_link = PGPoints.FindIndex(v => v.Aindex == p.chunk_A_index);
-            if (p.belong == PGBelong.A) chunkA_marks[p.polygon][p.index] = point_link;
-            else chunkB_marks[p.polygon][p.index] = point_link;
-        }
-
-        Debug.Log("A marks");
-        for (int i = 0; i < chunkA_marks.Count; i++)
-            Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
-        Debug.Log("B marks");
-        for (int i = 0; i < chunkB_marks.Count; i++)
-            Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
-        // Построение еджей
-        // Сначала создать пустые эджи, с данными об интервале, начале и конце, но без классификации внутренной принадлежности 
-        List<PGEdge> edges = new();
-        for (int i = 0; i < chunkA_marks.Count; i++)
-            edges.AddRange(GetEdgesFromMarks(chunkA_marks[i], PGBelong.A, i));
-        for (int i = 0; i < chunkB_marks.Count; i++)
-            edges.AddRange(GetEdgesFromMarks(chunkB_marks[i], PGBelong.B, i));
+        List<PGEdge> edges = GetEdges(A, B, shared_segments, PGPoints);
 
         Debug.Log("SEGMENTS: ");
         for (int i = 0; i < edges.Count; i++) Debug.Log(edges[i]);
@@ -168,89 +82,41 @@ public static class LipomaPolygonClipping
         if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
 
-
-
-        //for (int i = 0; i < PGpoints.Count; i++) Debug.Log(PGpoints[i]);
-        //if (draw_connection >= 0 & draw_connection < PGpoints.Count) DrawChaosStar(PGpoints[draw_connection], A, B);
-
-
         return null;
-        bool WhereDoesEdgeLie(PGPointIntwise target_point, List<PGEdge> edges)
-        {   // Анализ порядка граней точки. Порядок граней позволяет определить с какой стороны грань полигона Б находится внутри А.
-            // Также порядок граней в точке пересечения двух полигонов принадлежащих чанку А может определить его дегенеративность или самопересечения
-            // Например, когда в чанке есть два полигона первого уровня иерархии с противоположными порядками вершин, что приносит несогласованность вструктуру. 
-            // В корректном чанке порядок граней в пересепчении: Вход-Выход-Вход-Выход и т.д., Birirectional ситуативно удовлетворяет оба этих условия. 
+        
+        
+    }
+    private static List<PGEdge> GetEdges(CH2D_Chunk A, CH2D_Chunk B, List<ReturnPoint> shared_segments, List<PGPointIntwise> PGPoints )
+    {
+        List<int[]> chunkA_marks = new(A.polygons.Count);
+        List<int[]> chunkB_marks = new(B.polygons.Count);
+        for (int i = 0; i < A.polygons.Count; i++)
+            chunkA_marks.Add(Matrix.GetSetArray(A.polygons[i].vertices.Count, -1));
+        for (int i = 0; i < B.polygons.Count; i++)
+            chunkB_marks.Add(Matrix.GetSetArray(B.polygons[i].vertices.Count, -1));
 
-            return false; // тут может быть определен
+        for (int i = 0; i < shared_segments.Count; i++)
+        {
+            ReturnPoint p = shared_segments[i];
+            int point_link = PGPoints.FindIndex(v => v.Aindex == p.chunk_A_index);
+            if (p.belong == PGBelong.A) chunkA_marks[p.polygon][p.index] = point_link;
+            else chunkB_marks[p.polygon][p.index] = point_link;
         }
 
-        void CorrectSortEdges(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges) // Тут просто рабочая реализация корректной сортировки граней. Пока что не поддерживает иерархию. 
-        {   // Объединение граней вместе опасно, так я теряю информацию. Чтобы не терять информацию, нужно строить полный граф с поддержкой внутренних пересечений полигнов
-            // Грани должны быть отсортированы. 
-        }
-
-        void TryUnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
-        {   // Сравнение соседних углов, объединение одинаковых в один.
-            // Граф разнится если граф пересечений построен на пересечениях чанков, или же на пересечении всех полигонов вовсе. 
-            // В пересечении чанков могут появляться грани, начинающиеся коллинеарно, а заканчивающиеся разрозненно.
-            // Это происходит когда чанк состоит из отдельных, но касающихся полигонов. В этом случае есть выбор отрезать начальную коллинеарную часть, или же оставить дегенеративную грань
-
-            // Я слишком сильно абстрагировал задачу от входных данных. Объединяя грани я теряю информацию о принадлежности к полигону. 
-            // Я понял что мой подход имеет проблемы в случае когда соседние грани внутри точки оба bidirectional. Я теряю информацию о том как определить грань внутри или снаружи полигона.
-
-            // Тут я хрень сделал. Надо хранить не грани связанные с пересечением, а полигоны. Я верю иерархическим чанкам, обоим из них, поэтому вся эта абстракция никому не сдалась.
-            // Нужно сохранить информацию о пересечении, и все-таки надо сохранять структуру на чанк+полигон+индекс. Я так смогу определять в какую сторону направлена исходящая грань.
-            // Структура содержит ссылку на чанк, и проэтому надо будет провести проверку всеА * всеБ для определения принадлежности грани. 
-            // Подход со звездой векторов работает, но требуется определять иерархию полигонов.
-            // Тоесть грани грани одного полигона одного чанка должны идти соседствующими парочками. 
-            // Вопрос только в том как определить правильный порядок граней когда обе грани biderectional. 
-            // На бумажке видно что для этого нужна информация об порядке обоих полигонов одного чанка. Это можно выдавить из иерархии или из объединение Chunk+Poly+Index структур в список.
-
-            // Самая вонючая проблема в этом случае - полностью двунаправленный треугольник.
-            // Без информации об иерархии не понятно, это CCW внутри которого CW (дырка в пустоте), или CW у которого внутри CCW (трава в траве)
-
-            // Есть решение: отдельнная сортировка для каждого из полигонов касающихся точки. Полигоны А сортируются отдельно, согласно правилу и иерархии:
-            // Входящая и исходящая грани полигона соседствуют друг с другом. Внутренние полигона, ниже по иерархии, содержатся между жвух соседних граней. Щас я работаю с плоскими полигонами, поэтому это не важно.
-            // В целом, если соседние грани однонаправлены и идентичны, то их действительно можно объединить без потери информации.
-            // Уменьшить количество граней возможно после классификаци граней на внутренние/наружнгые
-
-            // Тоесть вся это что я сделал хуйня полная.
-            PGPointIntwise tp = PGPoints[target_p];
-            for (int i = 0; i < tp.con_list.Count; i++)
-            {
-                int edge1 = i;
-                int edge2 = (i + 1) % tp.con_list.Count;
-                if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
-
-                {
-                    PGEdge e1 = tp.con_list[edge1].edge_id; PGEdge e2 = tp.con_list[edge2].edge_id;
-                    //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
-                    if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
-                }
-
-                int other_point = tp.con_list[i].edge_id.start == target_p ? tp.con_list[i].edge_id.end : tp.con_list[i].edge_id.start;
-
-                int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge1].edge_id);
-                int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge2].edge_id);
-
-                /*Debug.Log(PGPoints[target_p]);
-                Debug.Log(PGPoints[other_point]);
-                Debug.Log(edge1 + " " + edge2);
-                Debug.Log(index_to_edit + " " + index_to_remove);
-                Debug.Log(tp.con_list.Count);*/
-                // Обновление оригинального и удаление дубликата в соседней вершиен
-                if (index_to_remove != -1)
-                {
-                    PGPoints[other_point].con_list[index_to_edit] = PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
-                    PGPoints[other_point].con_list.RemoveAt(index_to_remove);
-                }
-                // Обновление оригинального и удаление дубликата у себя дома
-
-                tp.con_list[edge1] = tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir); // Тут копируется сущность из массива, оперируется, и вставляется обратно. Фигня полная но пох.
-                tp.con_list.RemoveAt(edge2);
-                edges.RemoveAt(edge2);
-            }
-        }
+        Debug.Log("A marks");
+        for (int i = 0; i < chunkA_marks.Count; i++)
+            Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
+        Debug.Log("B marks");
+        for (int i = 0; i < chunkB_marks.Count; i++)
+            Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
+        // Построение еджей
+        // Сначала создать пустые эджи, с данными об интервале, начале и конце, но без классификации внутренной принадлежности 
+        List<PGEdge> edges = new();
+        for (int i = 0; i < chunkA_marks.Count; i++)
+            edges.AddRange(GetEdgesFromMarks(chunkA_marks[i], PGBelong.A, i));
+        for (int i = 0; i < chunkB_marks.Count; i++)
+            edges.AddRange(GetEdgesFromMarks(chunkB_marks[i], PGBelong.B, i));
+        return edges;
         List<PGEdge> GetEdgesFromMarks(int[] marked_polygon, PGBelong belong, int poly_id)
         {   //Разбивает циклический список на сегменты. Интервалы: [p != -1, p != -1) внутри содержатся все значения точек равных -1.
             List<(int a, int b)> pairs = ArrayAndListToolbox.LoopedListSegmentation(marked_polygon);
@@ -259,6 +125,63 @@ public static class LipomaPolygonClipping
             for (int i = 0; i < pairs.Count; i++)
                 edges.Add(new PGEdge(belong, poly_id, pairs[i].a, pairs[i].b, marked_polygon[pairs[i].a], marked_polygon[(pairs[i].a + pairs[i].b + 1) % marked_polygon.Length]));
             return edges;
+        }
+    }
+    private static void TryUnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
+    {   // Сравнение соседних углов, объединение одинаковых в один.
+        // Граф разнится если граф пересечений построен на пересечениях чанков, или же на пересечении всех полигонов вовсе. 
+        // В пересечении чанков могут появляться грани, начинающиеся коллинеарно, а заканчивающиеся разрозненно.
+        // Это происходит когда чанк состоит из отдельных, но касающихся полигонов. В этом случае есть выбор отрезать начальную коллинеарную часть, или же оставить дегенеративную грань
+
+        // Я слишком сильно абстрагировал задачу от входных данных. Объединяя грани я теряю информацию о принадлежности к полигону. 
+        // Я понял что мой подход имеет проблемы в случае когда соседние грани внутри точки оба bidirectional. Я теряю информацию о том как определить грань внутри или снаружи полигона.
+
+        // Тут я хрень сделал. Надо хранить не грани связанные с пересечением, а полигоны. Я верю иерархическим чанкам, обоим из них, поэтому вся эта абстракция никому не сдалась.
+        // Нужно сохранить информацию о пересечении, и все-таки надо сохранять структуру на чанк+полигон+индекс. Я так смогу определять в какую сторону направлена исходящая грань.
+        // Структура содержит ссылку на чанк, и проэтому надо будет провести проверку всеА * всеБ для определения принадлежности грани. 
+        // Подход со звездой векторов работает, но требуется определять иерархию полигонов.
+        // Тоесть грани грани одного полигона одного чанка должны идти соседствующими парочками. 
+        // Вопрос только в том как определить правильный порядок граней когда обе грани biderectional. 
+        // На бумажке видно что для этого нужна информация об порядке обоих полигонов одного чанка. Это можно выдавить из иерархии или из объединение Chunk+Poly+Index структур в список.
+
+        // Самая вонючая проблема в этом случае - полностью двунаправленный треугольник.
+        // Без информации об иерархии не понятно, это CCW внутри которого CW (дырка в пустоте), или CW у которого внутри CCW (трава в траве)
+
+        // Есть решение: отдельнная сортировка для каждого из полигонов касающихся точки. Полигоны А сортируются отдельно, согласно правилу и иерархии:
+        // Входящая и исходящая грани полигона соседствуют друг с другом. Внутренние полигона, ниже по иерархии, содержатся между жвух соседних граней. Щас я работаю с плоскими полигонами, поэтому это не важно.
+        // В целом, если соседние грани однонаправлены и идентичны, то их действительно можно объединить без потери информации.
+        // Уменьшить количество граней возможно после классификаци граней на внутренние/наружнгые
+
+        // Тоесть вся это что я сделал хуйня полная.
+        PGPointIntwise tp = PGPoints[target_p];
+        for (int i = 0; i < tp.con_list.Count; i++)
+        {
+            int edge1 = i;
+            int edge2 = (i + 1) % tp.con_list.Count;
+            if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
+
+            {
+                PGEdge e1 = tp.con_list[edge1].edge_id; PGEdge e2 = tp.con_list[edge2].edge_id;
+                //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
+                if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
+            }
+
+            int other_point = tp.con_list[i].edge_id.start == target_p ? tp.con_list[i].edge_id.end : tp.con_list[i].edge_id.start;
+
+            int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge1].edge_id);
+            int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge2].edge_id);
+
+            // Обновление оригинального и удаление дубликата в соседней вершиен
+            if (index_to_remove != -1)
+            {
+                PGPoints[other_point].con_list[index_to_edit] = PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
+                PGPoints[other_point].con_list.RemoveAt(index_to_remove);
+            }
+            // Обновление оригинального и удаление дубликата у себя дома
+
+            tp.con_list[edge1] = tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir); // Тут копируется сущность из массива, оперируется, и вставляется обратно. Фигня полная но пох.
+            tp.con_list.RemoveAt(edge2);
+            edges.RemoveAt(edge2);
         }
     }
     // TODO: преобразовать все ссылки на edge-ы из интежеров в классовую просто-ссылку.
@@ -314,43 +237,7 @@ public static class LipomaPolygonClipping
         }
     }
 
-    private static void DrawChaosStar(PGPoint point, CH2D_Chunk A, CH2D_Chunk B)
-    {
-        Vector2 center_point = A.vertices[point.Aindex];
-        DebugUtilities.DebugDrawSquare(center_point, Color.yellow, 0.2f, 4f);
-        DebugUtilities.DebugDrawSquare(center_point, Color.yellow, 0.4f, 4f);
-        for (int i = 0; i < point.connections.Count; i++)
-        {
-            PGCon con = point.connections[i];
-            Color color = Color.black;
-            switch (con.dir)
-            {
-                case PGDirection.Ingoing: color = Color.cyan; break;
-                case PGDirection.Outgoing: color = Color.pink; break;
-                case PGDirection.Bidirectional: color = Color.yellow; break;
-                default: break;
-            }
-            Vector2 p1; Vector2 p2; // заполнение этих значений позициями из корректного чанка
-            {
-                CH2D_Chunk target_chunk = (con.belong == PGBelong.A) ? A : B;
-                CH2D_Polygon poly = target_chunk.polygons[con.poly_index];
-                p1 = target_chunk.vertices[poly.vertices[con.edge_index]];
-                p2 = target_chunk.vertices[poly.vertices[(con.edge_index + 1) % poly.vertices.Count]];
-            }
-            Vector2 target_order_point = p1 == center_point ? p2 : p1;
 
-            DebugUtilities.DebugDrawLine(p1, p2, color, 4f);
-            DebugUtilities.DebugDrawSquare(target_order_point, DebugUtilities.RainbowGradient_Red2Violet(i, point.connections.Count - 1), 0.1f, 4f);
-            DebugUtilities.DebugDrawSquare(target_order_point, DebugUtilities.RainbowGradient_Red2Violet(i, point.connections.Count - 1), 0.2f, 4f);
-        }
-    }
-
-    public static GraphDynamicList GetGraphNoIntersection(CH2D_Chunk A, CH2D_Chunk B, List<Pair> intersections)
-    {   // Есть пары точек, общих для обоих чанков в intersections
-        // Проблема - я не знаю какая точка следует за каждой из точек потому что я храню только точки, а не полигоны
-        // А надо index полигона + index точки в полигоне
-        return null;
-    }
 
     protected class PGPointIntwise
     {
@@ -454,54 +341,7 @@ public static class LipomaPolygonClipping
         public CH2D_P_Index chunk_A_index;
         public ReturnPoint(PGBelong belong, int polygon, int index, CH2D_P_Index chunk_A_index) { this.belong = belong; this.polygon = polygon; this.index = index; this.chunk_A_index = chunk_A_index; }
     }
-    /// <summary>
-    /// Iteratively updates every polygon to include shared points and find intersections
-    /// </summary>
-    /// <returns></returns>
-    public static List<Level2IntersectionChunkPoint> GetPairIntersections(CH2D_Chunk A, CH2D_Chunk B)
-    {
-        // Part responsible for finding intersections and adding them
-        for (int a = 0; a < A.polygons.Count; a++)
-        { // there is no need to perfor intersection and vertice insertion on both boxes. Intersection points are inserted only into A, as they will then be picked up by collinearity operation
-            CH2D_Polygon ap = A.polygons[a];
-            for (int b = 0; b < B.polygons.Count; b++)
-            {
-                CH2D_Polygon bp = B.polygons[b];
-                if (!ap.BBox.Intersects(bp.BBox)) continue;
-                CH2D_Chunk.PolyPolyOnlineIntersectionOnesided(A, B, a, b);
-            }
-        }
-
-        // Part responsible for handling shared and collinear points that already exist, and incorporating them into both chunks
-        List<Level2IntersectionChunkPoint> pairs = new();
-        for (int a = 0; a < A.polygons.Count; a++)
-        {
-            CH2D_Polygon ap = A.polygons[a];
-            for (int b = 0; b < B.polygons.Count; b++)
-            {
-                CH2D_Polygon bp = B.polygons[b];
-                if (!ap.BBox.Intersects(bp.BBox)) continue;
-                Debug.Log("vertice count before operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
-                List<Pair> point_pairsAB = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(A, B, a, b);
-                List<Pair> point_pairsBA = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(B, A, b, a);
-                Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
-                Debug.Log(a + DebugUtilities.DebugListString(point_pairsAB.ToArray()) + " " + b + " " + DebugUtilities.DebugListString(point_pairsBA.ToArray()));
-                //pairs.AddRange(point_pairsAB);
-                for (int i = 0; i < point_pairsAB.Count; i++)
-                    pairs.Add(new Level2IntersectionChunkPoint(a, b, point_pairsAB[i].A, point_pairsAB[i].B, ap.vertices[point_pairsAB[i].A], bp.vertices[point_pairsAB[i].B]));
-                for (int i = 0; i < point_pairsBA.Count; i++)
-                    pairs.Add(new Level2IntersectionChunkPoint(a, b, point_pairsBA[i].B, point_pairsBA[i].A, ap.vertices[point_pairsBA[i].B], bp.vertices[point_pairsBA[i].A]));
-            }
-        }
-        //pairs = pairs.Distinct().ToList();
-        for (int i = 0; i < pairs.Count; i++)
-        {
-            DebugUtilities.DebugDrawCross(A.vertices[pairs[i].ca], Color.yellow, 1.0f);
-            Debug.Log(pairs[i]);
-        }
-
-        return pairs;
-    }
+   
 
     private static (List<(CH2D_P_Index A, CH2D_P_Index B)>, List<ReturnPoint>) GetPairIntersectionsSimpler(CH2D_Chunk A, CH2D_Chunk B)
     {
@@ -562,6 +402,154 @@ public static class LipomaPolygonClipping
         }
 
         return (unique_points, unique_segments);
+    }
+    // ТУТ ВСЕ МЕРТВО
+
+    public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, bool dummy, int draw_connection = -1)
+    {
+        List<Level2IntersectionChunkPoint> intersections = GetPairIntersections(A, B);
+        // Надо из этой хрени достать, по порядку:
+        // Одинаковые значения ca или cb и из них создать PGPoints
+        // Пары полигонаА + полигонБ
+        // Найти все уникальные va и vb и уже на их основе заполнить PGCon 
+        List<List<Level2IntersectionChunkPoint>> unique_ppvv = intersections.GroupBy(v => v.ca).Select(v => v.ToList()).ToList(); // созданы списки с одинаковым ca+cb
+
+        // В DataStructures я написал фигню без поддержки <T> для граней и без поддержки значений вне матрицы. Пишу здесь новый граф.
+        //Debug.Log("Uniqeus: "); // Тест на инь-яне говорит что пары единичны для каждого случая (так и надо) // Тест на круасанf[ выдает четыре пары для одной точки (тоже корректно)
+        //for (int i = 0; i < unique_ppvv.Count; i++) Debug.Log(unique_ppvv[i]);
+
+        List<PGPoint> PGpoints = new();
+        for (int i = 0; i < unique_ppvv.Count; i++)
+        {
+            List<Level2IntersectionChunkPoint> local_inter_list = unique_ppvv[i]; // в нем все ca и cb одинаковые
+            PGPoint new_point = new(); new_point.Aindex = local_inter_list[0].ca; new_point.Bindex = local_inter_list[0].cb; new_point.connections = new List<PGCon>();
+
+            List<List<Level2IntersectionChunkPoint>> pairs_of_polygons = local_inter_list.GroupBy(poly_pair => (poly_pair.polyA, poly_pair.polyB)).Select(v => v.ToList()).ToList();
+
+            // Сгруппированы по паре polyA+polyB
+            for (int p = 0; p < pairs_of_polygons.Count; p++)
+            {
+                int polyA_index = pairs_of_polygons[p][0].polyA;
+                int polyB_index = pairs_of_polygons[p][0].polyB;
+
+                HashSet<int> hash_va = new();
+                HashSet<int> hash_vb = new();
+                for (int u = 0; u < pairs_of_polygons[p].Count; u++)
+                {
+                    hash_va.Add(pairs_of_polygons[p][u].va);
+                    hash_vb.Add(pairs_of_polygons[p][u].vb);
+                }
+                List<int> unique_va = hash_va.ToList();
+                List<int> unique_vb = hash_vb.ToList();
+
+                for (int ua = 0; ua < unique_va.Count; ua++)
+                {
+                    CH2D_Polygon polygon = A.polygons[polyA_index];
+                    new_point.connections.Add(new PGCon(PGDirection.Outgoing, PGBelong.A, polyA_index, unique_va[ua]));
+                    new_point.connections.Add(new PGCon(PGDirection.Ingoing, PGBelong.A, polyA_index, (unique_va[ua] - 1 + polygon.vertices.Count) % polygon.vertices.Count));
+                }
+
+                for (int ub = 0; ub < unique_vb.Count; ub++)
+                {
+                    CH2D_Polygon polygon = B.polygons[polyB_index];
+                    new_point.connections.Add(new PGCon(PGDirection.Outgoing, PGBelong.B, polyB_index, unique_vb[ub]));
+                    new_point.connections.Add(new PGCon(PGDirection.Ingoing, PGBelong.B, polyB_index, (unique_vb[ub] - 1 + polygon.vertices.Count) % polygon.vertices.Count));
+                }
+            }
+            PGpoints.Add(new_point);
+        }
+        // Chaos start debug draw
+        for (int i = 0; i < PGpoints.Count; i++) Debug.Log(PGpoints[i]);
+        if (draw_connection >= 0 & draw_connection < PGpoints.Count) DrawChaosStar(PGpoints[draw_connection], A, B);
+        // ХЗ что делать. С одной стороны надо скомпилировать грани графа, тоесть совершить проход по всем полигонам.
+        // С другой стороны надо скомпилировать точки. 
+        // Компиляция граней. Надо перерабо
+        return null;
+    }
+    private static void DrawChaosStar(PGPoint point, CH2D_Chunk A, CH2D_Chunk B)
+    {
+        Vector2 center_point = A.vertices[point.Aindex];
+        DebugUtilities.DebugDrawSquare(center_point, Color.yellow, 0.2f, 4f);
+        DebugUtilities.DebugDrawSquare(center_point, Color.yellow, 0.4f, 4f);
+        for (int i = 0; i < point.connections.Count; i++)
+        {
+            PGCon con = point.connections[i];
+            Color color = Color.black;
+            switch (con.dir)
+            {
+                case PGDirection.Ingoing: color = Color.cyan; break;
+                case PGDirection.Outgoing: color = Color.pink; break;
+                case PGDirection.Bidirectional: color = Color.yellow; break;
+                default: break;
+            }
+            Vector2 p1; Vector2 p2; // заполнение этих значений позициями из корректного чанка
+            {
+                CH2D_Chunk target_chunk = (con.belong == PGBelong.A) ? A : B;
+                CH2D_Polygon poly = target_chunk.polygons[con.poly_index];
+                p1 = target_chunk.vertices[poly.vertices[con.edge_index]];
+                p2 = target_chunk.vertices[poly.vertices[(con.edge_index + 1) % poly.vertices.Count]];
+            }
+            Vector2 target_order_point = p1 == center_point ? p2 : p1;
+
+            DebugUtilities.DebugDrawLine(p1, p2, color, 4f);
+            DebugUtilities.DebugDrawSquare(target_order_point, DebugUtilities.RainbowGradient_Red2Violet(i, point.connections.Count - 1), 0.1f, 4f);
+            DebugUtilities.DebugDrawSquare(target_order_point, DebugUtilities.RainbowGradient_Red2Violet(i, point.connections.Count - 1), 0.2f, 4f);
+        }
+    }
+
+    public static GraphDynamicList GetGraphNoIntersection(CH2D_Chunk A, CH2D_Chunk B, List<Pair> intersections)
+    {   // Есть пары точек, общих для обоих чанков в intersections
+        // Проблема - я не знаю какая точка следует за каждой из точек потому что я храню только точки, а не полигоны
+        // А надо index полигона + index точки в полигоне
+        return null;
+    }
+    /// <summary>
+    /// Iteratively updates every polygon to include shared points and find intersections
+    /// </summary>
+    /// <returns></returns>
+    public static List<Level2IntersectionChunkPoint> GetPairIntersections(CH2D_Chunk A, CH2D_Chunk B)
+    {
+        // Part responsible for finding intersections and adding them
+        for (int a = 0; a < A.polygons.Count; a++)
+        { // there is no need to perfor intersection and vertice insertion on both boxes. Intersection points are inserted only into A, as they will then be picked up by collinearity operation
+            CH2D_Polygon ap = A.polygons[a];
+            for (int b = 0; b < B.polygons.Count; b++)
+            {
+                CH2D_Polygon bp = B.polygons[b];
+                if (!ap.BBox.Intersects(bp.BBox)) continue;
+                CH2D_Chunk.PolyPolyOnlineIntersectionOnesided(A, B, a, b);
+            }
+        }
+
+        // Part responsible for handling shared and collinear points that already exist, and incorporating them into both chunks
+        List<Level2IntersectionChunkPoint> pairs = new();
+        for (int a = 0; a < A.polygons.Count; a++)
+        {
+            CH2D_Polygon ap = A.polygons[a];
+            for (int b = 0; b < B.polygons.Count; b++)
+            {
+                CH2D_Polygon bp = B.polygons[b];
+                if (!ap.BBox.Intersects(bp.BBox)) continue;
+                Debug.Log("vertice count before operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
+                List<Pair> point_pairsAB = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(A, B, a, b);
+                List<Pair> point_pairsBA = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(B, A, b, a);
+                Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
+                Debug.Log(a + DebugUtilities.DebugListString(point_pairsAB.ToArray()) + " " + b + " " + DebugUtilities.DebugListString(point_pairsBA.ToArray()));
+                //pairs.AddRange(point_pairsAB);
+                for (int i = 0; i < point_pairsAB.Count; i++)
+                    pairs.Add(new Level2IntersectionChunkPoint(a, b, point_pairsAB[i].A, point_pairsAB[i].B, ap.vertices[point_pairsAB[i].A], bp.vertices[point_pairsAB[i].B]));
+                for (int i = 0; i < point_pairsBA.Count; i++)
+                    pairs.Add(new Level2IntersectionChunkPoint(a, b, point_pairsBA[i].B, point_pairsBA[i].A, ap.vertices[point_pairsBA[i].B], bp.vertices[point_pairsBA[i].A]));
+            }
+        }
+        //pairs = pairs.Distinct().ToList();
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            DebugUtilities.DebugDrawCross(A.vertices[pairs[i].ca], Color.yellow, 1.0f);
+            Debug.Log(pairs[i]);
+        }
+
+        return pairs;
     }
 
     /// <summary>
