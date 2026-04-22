@@ -174,8 +174,6 @@ public class PolygonManager : MonoBehaviour
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
 
         this.my_chunk.HandlesDrawSelf(DisplayHierarchy);
-        HandlesDrawSelectionSecondary();
-        HandlesDrawSelection();
 
         world_map.DrawWorld();
 
@@ -184,7 +182,9 @@ public class PolygonManager : MonoBehaviour
             this.leveled_one.HandlesDrawSelf(DisplayHierarchy);
             this.leveled_two.HandlesDrawSelf(DisplayHierarchy);
         }
-        
+
+        HandlesDrawSelectionSecondary();
+        HandlesDrawSelection();
     }
 
     public void AddPoint(Vector2 p)
@@ -337,17 +337,29 @@ public class PolygonManager : MonoBehaviour
     }
     public void HandlesDrawSelection()
     {
-        if (selected1 == -1 | selected1 >= my_chunk.polygons.Count) return;
-        my_chunk.HandlesDrawPolyBBox(selected1, Color.yellow);
-        if (selectionColorScheme == SelectionColorScheme.GreenRedDirected) my_chunk.HandlesDrawPolyOutlineDirected(selected1, Color.green, Color.red);
+        CH2D_Chunk local_chunk = my_chunk;
+        switch (target_chunk)
+        {
+            case TargetDebugTestChunk.first_leveled:
+                local_chunk = leveled_one;
+                break;
+            case TargetDebugTestChunk.second_leveled:
+                local_chunk = leveled_two;
+                break;
+            default:
+                break;
+        }
+        if (selected1 == -1 | selected1 >= local_chunk.polygons.Count) return;
+        local_chunk.HandlesDrawPolyBBox(selected1, Color.yellow);
+        if (selectionColorScheme == SelectionColorScheme.GreenRedDirected) local_chunk.HandlesDrawPolyOutlineDirected(selected1, Color.green, Color.red);
         else
         {
-            List<Vector2> points = my_chunk.GetPolyVertices(selected1);
+            List<Vector2> points = local_chunk.GetPolyVertices(selected1);
             for (int i = 0; i < points.Count - 1; i++)
                 DebugUtilities.HandlesDrawLine(points[i], points[i + 1], DebugUtilities.RainbowGradient_Red2Violet(i, points.Count - 1));
             DebugUtilities.HandlesDrawLine(points[points.Count - 1], points[0], DebugUtilities.RainbowGradient_Red2Violet(points.Count - 1, points.Count - 1));
         }
-        my_chunk.HandlesDrawPolyPoints(selected1, Color.cyan);
+        local_chunk.HandlesDrawPolyPoints(selected1, Color.cyan);
     }
     public void HandlesDrawSelectionSecondary()
     {

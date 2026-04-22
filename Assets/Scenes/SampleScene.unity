@@ -2180,7 +2180,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PolygonManager
   DisplayHierarchy: 1
   DebugDisplayLeveledPolygons: 1
-  HierarchyLevel: 4
+  HierarchyLevel: 0
   PointHighlighter: -1
   option: 4
   orientation: 2
@@ -2225,200 +2225,201 @@ MonoBehaviour:
     polygons:
     - vertices:
       - i: 0
-      - i: 30
-      - i: 24
       - i: 1
-      - i: 29
-      - i: 28
       - i: 2
-      - i: 23
-      - i: 31
-      - i: 3
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
-        min: {x: -5, y: -2}
-        max: {x: -1, y: 2}
+        min: {x: 0, y: 0}
+        max: {x: 2, y: 0.8134733}
+    - vertices:
+      - i: 1
+      - i: 3
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: 0}
+        max: {x: 1.8270909, y: 1.4862897}
+    - vertices:
+      - i: 3
+      - i: 4
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: 0}
+        max: {x: 1.3382611, y: 1.9021131}
     - vertices:
       - i: 4
-      - i: 26
-      - i: 12
+      - i: 16
       - i: 5
-      - i: 6
-      - i: 13
-      - i: 25
-      - i: 7
-      - i: 19
-      - i: 20
+      - i: 2
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
-        min: {x: 1, y: -2}
-        max: {x: 5, y: 2}
+        min: {x: -0.20905702, y: 0}
+        max: {x: 0.61803395, y: 1.9890438}
+    - vertices:
+      - i: 5
+      - i: 6
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -1.0000001, y: 0}
+        max: {x: 0, y: 1.9890438}
+    - vertices:
+      - i: 7
+      - i: 8
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -1.9562953, y: 0}
+        max: {x: 0, y: 1.1755704}
+    - vertices:
+      - i: 9
+      - i: 10
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -1.9562951, y: -1.1755707}
+        max: {x: 0, y: 0}
+    - vertices:
+      - i: 11
+      - i: 12
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -0.9999998, y: -1.9890438}
+        max: {x: 0, y: 0}
+    - vertices:
+      - i: 6
+      - i: 7
+      - i: 2
+      isHole: 0
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -1.6180341, y: 0}
+        max: {x: 0, y: 1.7320508}
     - vertices:
       - i: 8
       - i: 9
-      - i: 5
-      - i: 12
-      - i: 26
-      - i: 4
-      - i: 22
-      - i: 27
+      - i: 2
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
-        min: {x: 1, y: -6}
-        max: {x: 5, y: -2}
+        min: {x: -1.9562953, y: -0.41582358}
+        max: {x: 0, y: 0.41582322}
     - vertices:
-      - i: 18
-      - i: 19
-      - i: 7
-      - i: 25
-      - i: 13
-      - i: 14
-      - i: 15
-      - i: 16
-      - i: 17
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: 0, y: 1}
-        max: {x: 4, y: 4}
-    - vertices:
-      - i: 20
-      - i: 21
       - i: 10
-      - i: 22
-      - i: 4
+      - i: 11
+      - i: 2
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
-        min: {x: 0, y: -4}
-        max: {x: 1, y: -1}
+        min: {x: -1.6180339, y: -1.7320509}
+        max: {x: 0, y: 0}
+    - vertices:
+      - i: 2
+      - i: 13
+      - i: 17
+      - i: 12
+      isHole: 1
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: -0.20905668, y: -1.9890438}
+        max: {x: 0.61803424, y: 0}
+    - vertices:
+      - i: 2
+      - i: 14
+      - i: 13
+      isHole: 1
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: -1.902113}
+        max: {x: 1.3382615, y: 0}
+    - vertices:
+      - i: 2
+      - i: 15
+      - i: 14
+      isHole: 1
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: -1.4862895}
+        max: {x: 1.8270911, y: 0}
+    - vertices:
+      - i: 2
+      - i: 0
+      - i: 15
+      isHole: 1
+      convex: 0
+      initialized: 1
+      BBox:
+        min: {x: 0, y: -0.813473}
+        max: {x: 2, y: 0}
     vertices:
-    - {x: -5, y: -2}
-    - {x: -1, y: -2}
-    - {x: -1, y: 2}
-    - {x: -5, y: 2}
-    - {x: 1, y: -2}
-    - {x: 5, y: -2}
-    - {x: 5, y: 2}
-    - {x: 1, y: 2}
-    - {x: 1, y: -6}
-    - {x: 5, y: -6}
-    - {x: 0, y: -4}
-    - {x: 2, y: -4}
-    - {x: 4, y: -2}
-    - {x: 4, y: 2}
-    - {x: 2, y: 4}
-    - {x: 0, y: 4}
-    - {x: 0, y: 3}
-    - {x: 0, y: 2}
-    - {x: 0, y: 1}
-    - {x: 1, y: 1}
-    - {x: 1, y: -1}
-    - {x: 0, y: -1}
-    - {x: 1, y: -4}
-    - {x: -2, y: 2}
-    - {x: -2, y: -2}
-    - {x: 2, y: 2}
-    - {x: 2, y: -2}
-    - {x: 1, y: -5}
-    - {x: -1, y: 1}
-    - {x: -1, y: -1}
-    - {x: -4, y: -2}
-    - {x: -4, y: 2}
+    - {x: 2, y: 0}
+    - {x: 1.8270909, y: 0.8134733}
+    - {x: 0, y: 0}
+    - {x: 1.3382611, y: 1.4862897}
+    - {x: 0.61803395, y: 1.9021131}
+    - {x: -0.20905702, y: 1.9890438}
+    - {x: -1.0000001, y: 1.7320508}
+    - {x: -1.6180341, y: 1.1755704}
+    - {x: -1.9562953, y: 0.41582322}
+    - {x: -1.9562951, y: -0.41582358}
+    - {x: -1.6180339, y: -1.1755707}
+    - {x: -0.9999998, y: -1.7320509}
+    - {x: -0.20905668, y: -1.9890438}
+    - {x: 0.61803424, y: -1.902113}
+    - {x: 1.3382615, y: -1.4862895}
+    - {x: 1.8270911, y: -0.813473}
+    - {x: -0, y: 1.967071}
+    - {x: 0, y: -1.967071}
     ConvexHull: []
     global_position: {x: 0, y: 0}
   leveled_two:
     polygons:
     - vertices:
       - i: 0
-      - i: 13
-      - i: 14
-      - i: 22
+      - i: 5
       - i: 1
-      - i: 23
-      - i: 27
       - i: 2
       - i: 3
-      - i: 16
-      - i: 20
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -2, y: 1}
-        max: {x: 2, y: 5}
-    - vertices:
       - i: 4
-      - i: 26
-      - i: 5
-      - i: 24
       - i: 6
-      - i: 25
-      - i: 11
-      - i: 12
-      - i: 7
-      - i: 21
-      - i: 19
       isHole: 0
       convex: 0
       initialized: 1
       BBox:
-        min: {x: -2, y: -5}
-        max: {x: 2, y: -1}
-    - vertices:
-      - i: 18
-      - i: 19
-      - i: 21
-      - i: 7
-      - i: 12
-      - i: 13
-      - i: 0
-      - i: 20
-      - i: 16
-      - i: 17
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -4, y: -4}
-        max: {x: -1, y: 4}
+        min: {x: -5, y: -5}
+        max: {x: 0, y: 5}
     vertices:
-    - {x: -2, y: 1}
-    - {x: 2, y: 1}
-    - {x: 2, y: 5}
-    - {x: -2, y: 5}
-    - {x: -2, y: -5}
-    - {x: 2, y: -5}
-    - {x: 2, y: -1}
-    - {x: -2, y: -1}
-    - {x: 0, y: -4}
-    - {x: 0, y: -3}
-    - {x: 0, y: -2}
-    - {x: 0, y: -1}
-    - {x: -1, y: -1}
-    - {x: -1, y: 1}
-    - {x: 0, y: 1}
-    - {x: 0, y: 4}
-    - {x: -2, y: 4}
-    - {x: -4, y: 2}
-    - {x: -4, y: -2}
-    - {x: -2, y: -4}
-    - {x: -2, y: 2}
-    - {x: -2, y: -2}
-    - {x: 1, y: 1}
-    - {x: 2, y: 2}
-    - {x: 2, y: -2}
-    - {x: 1, y: -1}
-    - {x: 1, y: -5}
-    - {x: 2, y: 4}
+    - {x: 0, y: 0}
+    - {x: 0, y: 5}
+    - {x: -5, y: 5}
+    - {x: -5, y: -5}
+    - {x: 0, y: -5}
+    - {x: -0, y: 1.967071}
+    - {x: 0, y: -1.967071}
     ConvexHull: []
     global_position: {x: 0, y: 0}
   level1_offset: {x: 0, y: 0}

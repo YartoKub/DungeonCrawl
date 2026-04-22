@@ -61,31 +61,78 @@ public static class LipomaPolygonClipping
             Vector2 inn_v = chunk.vertices[inn_ch2d_edge.A] - chunk.vertices[inn_ch2d_edge.B];
             float out_angle = Mathf.Atan2(out_v.x, out_v.y);
             float inn_angle = Mathf.Atan2(inn_v.x, inn_v.y);
-            PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
-            PGPoints[edges[i].end].con_list.Add(new PGConnection(edges[i], PGDirection.Ingoing, inn_angle));
+            if (p.isHole)
+            {
+                PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
+                PGPoints[edges[i].end].con_list.Add(new PGConnection(edges[i], PGDirection.Ingoing, inn_angle));
+            }
+            else
+            {
+                PGPoints[edges[i].end].con_list.Add(new PGConnection(edges[i], PGDirection.Ingoing, inn_angle));
+                PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
+            }
+            
             Debug.Log(edges[i].ToString() + " " + (Mathf.Rad2Deg * out_angle).ToString("0.0000") + " " + (Mathf.Rad2Deg * inn_angle).ToString("0.0000"));
         }
+        // Связанные грани должны быть расположены согласно правилу. 
         // Затем в каждой точке отсортировать эджи по глобальному углу
-        for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
-
-        // Есть излишние эджи-дубликаты. Надо все эджи с одним исходящим углом объеденить в одну супер-эджу.
-        // Пришлось переписать PGEdge из структуры в класс. Так меньше ебли с перезаписью индексов. 
-
-        Debug.Log("<color=orange> ДО ОБЪЕДИНЕНИЯ <color/>");
+        //for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
+        Debug.Log("<color=orange> НАЧАЛАСЬ СОРТИРОВКА <color/>");
+        for (int i = 0; i < PGPoints.Count; i++)
+        {
+            SafeSort(PGPoints[i]);
+        }
+        Debug.Log("<color=orange> КОНЧИЛАСЬ СОРТИРОВКА <color/>");
+        // Объединение было ошибкой. Я теряю информацию для определения принадлежности грани к внутреннему или наружнему списку.
+        /*Debug.Log("<color=orange> ДО ОБЪЕДИНЕНИЯ <color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
-
-        for (int i = 0; i < PGPoints.Count; i++) TryUnifyEdgesInPoint(i, PGPoints, edges);
-
-        Debug.Log("<color=orange> ПОСЛЕ ОБЪЕДИНЕНИЯ <color/>");
+        for (int i = 0; i < PGPoints.Count; i++) TryUnifyEdgesInPoint(i, PGPoints, edges);*/
+        Debug.Log("<color=orange> ТОЧКИ И ГРАНИ <color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
-
+        Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
         if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
 
         return null;
-        
-        
     }
+    // К моему удивлению, все сегменты идут парочками из входящего и исходящего. Этого стоило ожидать, они созданы последовательно и потому тоже будут расположены последовательно.
+    // Но сегменты разных полигонов все еще разрозненны, и порядок зависит от порядка полигонов внутри чанка. 
+    private static void SafeSort(PGPointIntwise PGPoints)
+    {
+        // Как вариант можно разбить задачу сортировки списка на две отдельных задачи сортировки списка для чанка А и для чанка Б.
+        // Сейчас не поддерживается иерархическая сортировка.
+        if (PGPoints.con_list.Count % 2 != 0) throw new System.Exception(" Количество элементов в списоке входящих и выходящих точек должено быть кратено двум. ");
+        List<(float angle1, float angle2, int original_i)> pairs_A = new(PGPoints.con_list.Count / 2);
+        List<(float angle1, float angle2, int original_i)> pairs_B = new(PGPoints.con_list.Count / 2);
+        for (int i = 0; i < PGPoints.con_list.Count / 2; i++)
+        {
+            int pair_i_a = i * 2;
+            int pair_i_b = i * 2 + 1;
+            if (PGPoints.con_list[pair_i_a].edge.belong == PGBelong.A) // Belong для pair_i_a и pair_i_b одинаков.
+                pairs_A.Add(new (PGPoints.con_list[pair_i_a].angle, PGPoints.con_list[pair_i_b].angle, i) );
+            else
+                pairs_B.Add(new (PGPoints.con_list[pair_i_a].angle, PGPoints.con_list[pair_i_b].angle, i));
+        }
+
+        //pairs_A.Sort((a, b) => a.angle1.CompareTo(b.angle2));
+        //pairs_B.Sort((a, b) => a.angle1.CompareTo(b.angle2));
+        List<int> linker = ArrayAndListToolbox.NonOverlappingIntervalLinker(pairs_A);
+        string int_linker = "Intlinker: ";
+        for (int i = 0; i < linker.Count; i++)
+            int_linker += linker[i] + " ";
+        Debug.Log(int_linker);
+        //pairs_A.Reverse();
+        //pairs_B.Reverse();
+        string n = "Result: " + " \n";
+        for (int i = 0; i < pairs_A.Count; i++)
+        {
+            n += PGPoints.con_list[pairs_A[i].original_i * 2].edge.ToString() + " " + PGPoints.con_list[pairs_A[i].original_i * 2].ToString() + "\n";
+            n += PGPoints.con_list[pairs_A[i].original_i*2+1].edge.ToString() + " " + PGPoints.con_list[pairs_A[i].original_i*2+1].ToString() + "\n";
+        }
+        Debug.Log(n);
+
+    }
+
     private static List<PGEdge> GetEdges(CH2D_Chunk A, CH2D_Chunk B, List<ReturnPoint> shared_segments, List<PGPointIntwise> PGPoints )
     {
         List<int[]> chunkA_marks = new(A.polygons.Count);
@@ -161,15 +208,15 @@ public static class LipomaPolygonClipping
             if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
 
             {
-                PGEdge e1 = tp.con_list[edge1].edge_id; PGEdge e2 = tp.con_list[edge2].edge_id;
+                PGEdge e1 = tp.con_list[edge1].edge; PGEdge e2 = tp.con_list[edge2].edge;
                 //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
                 if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
             }
 
-            int other_point = tp.con_list[i].edge_id.start == target_p ? tp.con_list[i].edge_id.end : tp.con_list[i].edge_id.start;
+            int other_point = tp.con_list[i].edge.start == target_p ? tp.con_list[i].edge.end : tp.con_list[i].edge.start;
 
-            int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge1].edge_id);
-            int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge_id == tp.con_list[edge2].edge_id);
+            int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge1].edge);
+            int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge2].edge);
 
             // Обновление оригинального и удаление дубликата в соседней вершиен
             if (index_to_remove != -1)
@@ -193,7 +240,7 @@ public static class LipomaPolygonClipping
         DebugUtilities.DebugDrawSquare(center_point, Color.yellow, 0.4f, 4f);
 
         List<PGEdge> valid_edges = new(point.con_list.Count);
-        for (int i = 0; i < point.con_list.Count; i++) valid_edges.Add(point.con_list[i].edge_id);
+        for (int i = 0; i < point.con_list.Count; i++) valid_edges.Add(point.con_list[i].edge);
         Debug.Log(point);
         for (int i = 0; i < valid_edges.Count; i++)
         {
@@ -256,8 +303,8 @@ public static class LipomaPolygonClipping
 
             for (int i = 0; i < con_list.Count; i++)
             {
-                n += "\n" + con_list[i].edge_id + " " + con_list[i].dir;
-                n += " angle " + con_list[i].angle.ToString("0.0000");
+                n += "\n" + con_list[i].edge;
+                n += " " + con_list[i].ToString();
             }
             return n;
         }
@@ -265,11 +312,15 @@ public static class LipomaPolygonClipping
 
     protected struct PGConnection
     {
-        public PGEdge edge_id; // грань графа может начаться  изакончиться в одной и той же точке. ПОэтому индекс живет в связи.
+        public PGEdge edge; // грань графа может начаться  изакончиться в одной и той же точке. ПОэтому индекс живет в связи.
         public PGDirection dir; // каждая грань одномвременно входная и выходная, поэтому направление живет в связи. 
         public float angle;// каждая грань одномвременно входная и выходная, и имеет два угла на вход и на выход, поэтому угол живет в связи. 
-        public PGConnection(PGEdge edge_id, PGDirection dir, float angle) { this.edge_id = edge_id; this.dir = dir; this.angle = angle; }
+        public PGConnection(PGEdge edge, PGDirection dir, float angle) { this.edge = edge; this.dir = dir; this.angle = angle; }
         public PGConnection UpdateDirection(PGDirection o_dir) { this.dir = this.dir | o_dir; return this; }
+        public override string ToString()
+        {
+            return dir + " angle " + (angle * Mathf.Rad2Deg).ToString("0000.0000");
+        }
     }
     protected class PGEdge
     {   // Надо жестче разделить вершины и грани. 

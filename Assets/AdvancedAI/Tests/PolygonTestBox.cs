@@ -16,6 +16,7 @@ public class PolygonTestBox : MonoBehaviour
         four_boxes_touching_corners_00_10_11,
         two_croissants_sharing_point,
         ingyang_multiedge,
+        collinear_sectors,
     }
 
     public static List<Poly2D> GetPolyList(PolygonTestCase testcase)
@@ -30,6 +31,7 @@ public class PolygonTestBox : MonoBehaviour
             case PolygonTestCase.four_boxes_touching_corners_00_10_11: return TwoBoxesCornersTouching00_10_11();
             case PolygonTestCase.two_croissants_sharing_point: return TwoCroissantsSharingSinglePoint();
             case PolygonTestCase.ingyang_multiedge: return SolidIngYangTouchingMultiedges();
+            case PolygonTestCase.collinear_sectors: return CollinearSectors120and240();
             default: return null;
         }
 
@@ -105,6 +107,52 @@ public class PolygonTestBox : MonoBehaviour
         List<Poly2D> polygons = new();
         polygons.Add(new Poly2D(new Vector2(0, -4), new Vector2(2, -4), new Vector2(4, -2), new Vector2(4, 2), new Vector2(2, 4), new Vector2(0, 4), new Vector2(0, 3), new Vector2(0, 2), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, -1), new Vector2(0, -1)));
         polygons.Add(new Poly2D(new Vector2(0, -4), new Vector2(0, -3), new Vector2(0, -2), new Vector2(0, -1), new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(0, 1), new Vector2(0, 4), new Vector2(-2, 4), new Vector2(-4, 2), new Vector2(-4, -2), new Vector2(-2, -4)));
+        return polygons;
+    }
+
+    private static List<Poly2D> CollinearSectors120and240()
+    {   // Центральная точка коллинеарн
+        // тестирование возможности установления корректной ориентации и порядка исходящих граней относительно центральной точки.
+        // Это чисто тестовый полигон, сам по себе он имеет некорректную иерархию и может привести к неточной классиифкации наружных граней.
+        // Для проверки порядка граней на пересечении
+        // size = x4, y3
+        List<Vector2> SmallSector = new List<Vector2>() { new Vector2(0, 0), new Vector2(0, 2), new Vector2(-2, -1), };
+        List<Vector2> BigSector = new List<Vector2>() { new Vector2(0, 0), new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 2), };
+        List<Vector2> Rectangle = new List<Vector2>() { new Vector2(-3, 3), new Vector2(-3, -3), new Vector2(3, -3), new Vector2(3, 3), };
+        List<Poly2D> polygons = new();
+        
+        polygons.Add(new Poly2D(ListPlusOffset(SmallSector, Rectangle[0])));
+        polygons.Add(new Poly2D(ListPlusOffset(SmallSector, Rectangle[1])));
+        SmallSector.Reverse();
+        polygons.Add(new Poly2D(ListPlusOffset(SmallSector, Rectangle[2])));
+        polygons.Add(new Poly2D(ListPlusOffset(SmallSector, Rectangle[3])));
+
+        polygons.Add(new Poly2D(ListPlusOffset(BigSector, Rectangle[0])));
+        polygons.Add(new Poly2D(ListPlusOffset(BigSector, Rectangle[3])));
+        BigSector.Reverse();
+        polygons.Add(new Poly2D(ListPlusOffset(BigSector, Rectangle[1])));
+        polygons.Add(new Poly2D(ListPlusOffset(BigSector, Rectangle[2])));
+        polygons.Add(new Poly2D(Rectangle));
+        return polygons;
+        List<Vector2> ListPlusOffset(List<Vector2> list, Vector2 offset)
+        {
+            List<Vector2> new_list = new List<Vector2>(list.Count);
+            for (int i = 0; i < list.Count; i++) new_list.Add(list[i] + offset);
+            return new_list;
+        }
+    }
+    public static List<Poly2D> PizzaProcedural(int slices, float radius)
+    {   // Питса. 
+        List<Vector2> points = new List<Vector2>(slices);
+        for (int i = 0; i < slices; i++)
+        {
+            float angle = 2 * Mathf.PI * i / slices;
+            points.Add(new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius));
+        }
+        List<Poly2D> polygons = new(slices);
+        for (int i = 0; i < slices; i++)
+            polygons.Add(new Poly2D(points[i], points[(i + 1) % slices], Vector2.zero));
+        
         return polygons;
     }
 
@@ -420,7 +468,32 @@ public class DegeneratePolygonTestEditor : Editor
             PolygonTestBox.AddPolygon(l[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
             PolygonTestBox.AddPolygon(l[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
         }
-        
+        if (GUILayout.Button("Collinear Sectors"))
+        {
+            var l = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.collinear_sectors);
+            for (int i = 0; i < 8; i++) PolygonTestBox.AddPolygon(l[i], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            PolygonTestBox.AddPolygon(l[8], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+        }
+        if (GUILayout.Button("Pizza Sectors"))
+        {
+            List<Poly2D> polygons = PolygonTestBox.PizzaProcedural(15, 2.0f);
+            // Первые четыре просто добавлены
+            for (int i = 0; i < 4; i++)
+                PolygonTestBox.AddPolygon(polygons[i], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            // Тут они идут через раз.
+            for (int i = 0; i < 4; i++)
+                PolygonTestBox.AddPolygon(polygons[4 + i * 2], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            for (int i = 0; i < 3; i++)
+                PolygonTestBox.AddPolygon(polygons[4 + 1 + i * 2], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            // Последние четыре переверныты, они - дырки
+            for (int i = 0; i < 4; i++)
+            {
+                polygons[11 + i].Orient(true);
+                PolygonTestBox.AddPolygon(polygons[11 + i], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            }
+            PolygonTestBox.AddPolygon(new Poly2D(new Vector2(0,0), new Vector2(0, 5), new Vector2(-5, 5), new Vector2(-5, -5), new Vector2(0, -5)), PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+        }
+            
 
         base.OnInspectorGUI();
     }
