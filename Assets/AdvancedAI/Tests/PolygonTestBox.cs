@@ -493,7 +493,15 @@ public class DegeneratePolygonTestEditor : Editor
             }
             PolygonTestBox.AddPolygon(new Poly2D(new Vector2(0,0), new Vector2(0, 5), new Vector2(-5, 5), new Vector2(-5, -5), new Vector2(0, -5)), PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
         }
-            
+        if (GUILayout.Button("Pizza Sectors"))
+        {
+            List<Poly2D> polygons = PolygonTestBox.PizzaProcedural(15, 2.0f);
+            // Первые четыре просто добавлены
+            for (int i = 0; i < 15; i++)
+                if (i % 2 == 0) PolygonTestBox.AddPolygon(polygons[i], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            PolygonTestBox.AddPolygon(new Poly2D(new Vector2(0, 0), new Vector2(0, 5), new Vector2(-5, 5), new Vector2(-5, -5), new Vector2(0, -5)), PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+        }
+
 
         base.OnInspectorGUI();
     }

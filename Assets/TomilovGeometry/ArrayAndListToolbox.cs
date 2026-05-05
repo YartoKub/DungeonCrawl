@@ -34,10 +34,11 @@ public static class ArrayAndListToolbox
     /// Tries to link elements that have matching A.end and B.start or B.end and A.start. <br/>
     /// If there is no match, a comparison of A.end and B.start is made, and they are placed in a way so bigger value is next, and small value is before. <br/>
     /// If your intervals are looping, expect that first or last element will have both positive and negative numbers. <br/>
-    /// Under the hood, it uses Bubble Sort, because i do not have time to use smart algorythms.
+    /// Under the hood, it uses Bubble Sort, because i do not have time to use smart algorythms. <br/>
+    /// (!) Construct intervals from values in your original list, A and B are angles, origin is the index of the original value in the original list.
     /// </summary>
-    /// <param name="intervals"></param>
-    /// <returns></returns>
+    /// <param name="intervals"> a and b are angles. origin is the index of the original value in the original list.  </param>
+    /// <returns>Returns a list of indices, use them to pick values from your original list. </returns>
     public static List<int> NonOverlappingIntervalLinker(List<(float a, float b, int origin)> intervals)
     {
         int min_break_point = 0;
@@ -68,30 +69,38 @@ public static class ArrayAndListToolbox
         for (int i = 0; i < intervals.Count; i++) order.Add(intervals[i].origin);
         return order;
     }
-    public static List<int> NonOverlappingIntervalLinker(List<(float, float, int)> intervals, bool boool)
+    /// <summary>
+    /// Function to mix two sorted lists of calues into a single list while preserving relative order of values of both A and B elements. <br/>
+    /// Quick Sort could be stable, but i am not sure C# implementation is stable. <br/>
+    /// This implimentation expects that original list values are marked as A and B, because the order of A and B values with similar angle value is arbitrary. <br/>
+    /// But relative order of all A elements is preserved, as well as B elements. 
+    /// </summary>
+    /// <returns></returns>
+    public static List<(bool AorB, int index)> SortedListToListMixin(List<(float angle, int ai)> A, List<(float angle, int bi)> B)
     {
-        List<(float a, float b, int origin)> sorted = new(intervals.Count);
-        sorted.Add(intervals[0]);
-        for (int i = 1; i < intervals.Count; i++) 
-            Position(sorted, intervals[i]);
-        
-        List<int> order = new List<int>(sorted.Count);
-        for (int i = 0; i < sorted.Count; i++) order.Add(sorted[i].origin);
-        return order;
-
-        void Position(List<(float a, float b, int origin)>  sorted, (float a, float b, int origin) new_value)
+        int total_count = A.Count + B.Count;
+        List<(bool AorB, int index)> ordering = new(total_count);
+        int ai = 0;
+        int bi = 0;
+        for (int i = 0; i < total_count; i++)
         {
-            int insert = 0;
-            for (int i = 0; i < sorted.Count; i++)
-            {
-                Debug.Log(new_value.b + " " + sorted[i].a);
-                if (new_value.b <= sorted[i].a) break;
-                if (new_value.a >= sorted[i].b) { insert = i + 1; }
-
-            }
-
-            sorted.Insert(insert, new_value);
+            //Debug.Log(i + " " + ai + " " + bi + " " + A.Count + " " + B.Count);
+            if (bi > B.Count - 1)           { ordering.Add(new (true , ai)); ai += 1; continue; }
+            if (ai > A.Count - 1)           { ordering.Add(new (false, bi)); bi += 1; continue; }
+            //Debug.Log(A[ai].angle + " " + B[bi].angle);
+            if (A[ai].angle <= B[bi].angle) { ordering.Add(new (true , ai)); ai += 1; continue; }
+            else {                            ordering.Add(new (false, bi)); bi += 1; continue; }
         }
+        return ordering;
     }
-
+    public static List<T> ConstructListFrom_ABindices<T>(List<T> A, List<T> B, List<(bool AorB, int index)> indices)
+    {
+        List<T> to_return = new(indices.Count);
+        for (int i = 0; i < indices.Count; i++)
+        {
+            if (indices[i].AorB) to_return.Add(A[indices[i].index]);
+            else                 to_return.Add(B[indices[i].index]);
+        }
+        return to_return;
+    }
 }

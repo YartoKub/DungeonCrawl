@@ -32,7 +32,7 @@ public static class DebugUtilities
     {
         Color tmp = Handles.color;
         Handles.color = color;
-        Handles.DrawLine(point1, point2);
+        Handles.DrawLine(point1, point2, 2.0f);
         Vector2 dir = (point2 - point1).normalized * coneLength;
         Vector2 leftHand = rotate(dir, 2.6f);
         Vector2 rightHand = rotate(dir, -2.6f);
@@ -147,15 +147,15 @@ public static class DebugUtilities
             HandlesDrawLine(points[points.Count - 1], points[0], color);
         }
     }
-    public static void HandlesDrawPolygon(List<Vector2> points, Color color, bool directed)
+    public static void HandlesDrawPolygon(List<Vector2> points, Color color, bool directed, float thickness = 1.0f)
     {
         if (points.Count < 2) return;
         if (!directed)
         {
             Color tmp_color = Handles.color;
             Handles.color = color;
-            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1]);
-            Handles.DrawLine(points[points.Count - 1], points[0]);
+            for (int i = 0; i < points.Count - 1; i++) Handles.DrawLine(points[i], points[i + 1], thickness);
+            Handles.DrawLine(points[points.Count - 1], points[0], thickness);
             Handles.color = tmp_color;
         }
         else

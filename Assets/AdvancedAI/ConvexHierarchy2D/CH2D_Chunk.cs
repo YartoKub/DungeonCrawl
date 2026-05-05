@@ -70,6 +70,7 @@ public class CH2D_Chunk
         for (int hm = 0; hm < new_markers.Count; hm++)
         {
             List<CH2D_Polygon> holes = FillTheHoles(new_markers[hm]);
+            if (holes == null) continue;
             Debug.Log(holes.Count);
             for (int i = 0; i < holes.Count; i++)
             {
@@ -374,6 +375,7 @@ public class CH2D_Chunk
         if (this.connections == null) { Debug.Log("Нетоу графа связей, невозможно провести операцию"); return null; }
         int[] neighbours = this.GetNeighboursSortedClockwise(polygon); // Блин, тут может быть дырка образованная не гранью а вершиной.
         bool has_holes = false;
+        if (neighbours == null) return null;
         for (int i = 0; i < neighbours.Length; i++) if (neighbours[i] == -1) { has_holes = true; break; }
         if (!has_holes) { Debug.Log("Found no holes, early leaving"); return holes_to_add; } // No holes, no actions
      
@@ -866,19 +868,19 @@ public class CH2D_Chunk
         }
     }
 
-    public void HandlesDrawSelf(bool draw_hierarchy)
+    public void HandlesDrawSelf(bool draw_hierarchy, float thickness = 1.0f)
     {
         Color tmp = Handles.color;
         Handles.color = Color.blue;
 
         //Debug.Log(polygons.Count);
         for (int i = 0; i < this.polygons.Count; i++)
-            HandlesDrawPolyOutline(i, Color.blue);
+            HandlesDrawPolyOutline(i, Color.blue, thickness);
         if (draw_hierarchy) HandlesDrawConnections();
         
         Handles.color = tmp;
     }
-    public void HandlesDrawPolyOutline(int p, Color color) { DebugUtilities.HandlesDrawPolygon(GetPolyVertices(p), color, false); }
+    public void HandlesDrawPolyOutline(int p, Color color, float thickness = 1.0f) { DebugUtilities.HandlesDrawPolygon(GetPolyVertices(p), color, false, thickness); }
     public void HandlesDrawPolyOutlineDirected(int p, Color filled_color, Color hole_color) { DebugUtilities.HandlesDrawPolygon(GetPolyVertices(p), this.polygons[p].isHole ? hole_color : filled_color, true); }
     public void HandlesDrawConnections()
     {

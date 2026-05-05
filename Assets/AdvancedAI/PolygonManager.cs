@@ -173,7 +173,7 @@ public class PolygonManager : MonoBehaviour
         HandlesDrawHierarchy(HierarchyLevel);
         if (PointHighlighter != -1 & PointHighlighter < points.Count) DebugUtilities.HandlesDrawCross(points[PointHighlighter], Color.red);
 
-        this.my_chunk.HandlesDrawSelf(DisplayHierarchy);
+        this.my_chunk.HandlesDrawSelf(DisplayHierarchy, 2.0f);
 
         world_map.DrawWorld();
 

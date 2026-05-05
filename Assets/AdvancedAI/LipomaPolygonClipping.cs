@@ -13,8 +13,8 @@ public static class LipomaPolygonClipping
     // Либо я обновляю полигоны, произвожу много простых операций и может быть имею нужду расширить массиф
     // Либо я не обновляю полигоны, и проверяю вообще все пересечения с каждой из граней. Из плюсов получается то что два изначальных полигона остаются неизменны и операцию можно в любой момент отменить.
     // Внутри каждой из групп не должно быть переесчений граней. Может быть допустимы касания вершин, вообще штука должна с ними справиться, но тут хз.
-    
 
+    // Объединение было ошибкой. Я теряю информацию для определения принадлежности грани к внутреннему или наружнему списку.
     public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, int draw_connection = -1)
     {
         (List<(CH2D_P_Index A, CH2D_P_Index B)> shared_points, List<ReturnPoint> shared_segments) = GetPairIntersectionsSimpler(A, B);
@@ -29,13 +29,15 @@ public static class LipomaPolygonClipping
         // (галочка) Из Chunk+Poly+index сделать отметки на всех полигонах.
         // (галочка) Тут абсолютно не важно какая грань с чем пересекается, важен лишь факт общей точки, поэтому hashset можно составлять во время поиска пересечений
 
-        // Провести проход по вем полигонам, создавая эджи. Эджи отсортировать по порядку индекса начальной точки А чтобы не ебаться лишний раз
-        // Или можно просто добавлять эджи, находя конечную и начальную точки, и пихать эти эдэи в обе вершины. Потом внутри вершин их отсортировать и оценить
-        // Этот шаг в целом схож с уже реализованным разметчиком
+        // (галочка) Провести проход по вем полигонам, создавая эджи. Эджи отсортировать по порядку индекса начальной точки А чтобы не ебаться лишний раз
+        // (галочка) Или можно просто добавлять эджи, находя конечную и начальную точки, и пихать эти эдэи в обе вершины.
+        // (галочка) Потом внутри вершин их отсортировать и оценить
+        // Этот шаг отличается от разметчика, но теперь надо просто сделать двустороннюю бродилку ищущую грани другого полигона и проводящую анализ их классификации
+        // Сложность этого шага зависит от доверия к входным данным. Если они корректны, то можно за O(N) проверить входную точку каждого эджа.
+        // Если доверия к ним нет, то O(N*2) с проверкой начальной и конечной точек. Если есть несогласие то возврат нулля.  
+        // Но лучше сделать проверку внутри вершин. Это ускорит проверку на множественных пересечениях. 
 
-        // Вот теперь самое время склеить все в месте. Эджи есть .
-
-        // Сам граф можно распутать отрезанием ушек, поиск точки с 
+        // Сам граф можно распутать отрезанием ушек, но тут уже ХЗ. Че-то придумать надо будет.
         List<PGPointIntwise> PGPoints = new();
         for (int i = 0; i < shared_points.Count; i++)
             PGPoints.Add(new PGPointIntwise(shared_points[i].A, shared_points[i].B));
@@ -45,12 +47,41 @@ public static class LipomaPolygonClipping
         for (int i = 0; i < PGPoints.Count; i++) n += "\n" + PGPoints[i].ToString() + " " + A.vertices[PGPoints[i].Aindex];
         Debug.Log(n);
         // Маркировка
-
+        // Лучше сегментами сделать.
         List<PGEdge> edges = GetEdges(A, B, shared_segments, PGPoints);
 
         Debug.Log("SEGMENTS: ");
         for (int i = 0; i < edges.Count; i++) Debug.Log(edges[i]);
         // Добавление сегментов в граф связей:
+        // (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!) Дальнейший прогресс невозможен, тут есть ошибка и надо разобраться с порядком входа/выхода в случае если градус равен +-180
+        EstablishConnections(edges, PGPoints, A, B);
+        // Связанные грани должны быть расположены согласно правилу. 
+        // Затем в каждой точке отсортировать эджи по глобальному углу
+        Debug.Log("<color=orange> Несортированные точки<color/>");
+        for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
+        //for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
+        Debug.Log("<color=orange> НАЧАЛАСЬ СОРТИРОВКА <color/>");
+        for (int i = 0; i < PGPoints.Count; i++) { SafeSort(PGPoints[i]); }
+        Debug.Log("<color=orange> КОНЧИЛАСЬ СОРТИРОВКА <color/>");
+
+        Debug.Log("<color=orange> ТОЧКИ И ГРАНИ <color/>");
+        for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
+        Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
+        if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B, true);
+        // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
+
+        //ClassifyEdges(PGPoints[0], PGBelong.A);
+        //ClassifyEdges(PGPoints[0], PGBelong.B);
+        return null;
+    }
+    //private static void DooDoo
+
+
+    // Эта функция не рабочая, так как порядок входящей и исходящей грани каждого сегмента круга случаен.  
+    // Точнее не случаен, а цикличен. В полигоне у последнего сегмета будет перепутанный порядок вершин. В остальных случаях нормальный. 
+    // Тут уж лучше в момент полного анализа полигонов сразу создать набор из граней, а затем попарно соединить их в каждой точке.
+    private static void EstablishConnections(List<PGEdge> edges, List<PGPointIntwise> PGPoints, CH2D_Chunk A, CH2D_Chunk B)
+    {
         for (int i = 0; i < edges.Count; i++)
         {
             CH2D_Chunk chunk = edges[i].belong == PGBelong.A ? A : B;
@@ -61,76 +92,109 @@ public static class LipomaPolygonClipping
             Vector2 inn_v = chunk.vertices[inn_ch2d_edge.A] - chunk.vertices[inn_ch2d_edge.B];
             float out_angle = Mathf.Atan2(out_v.x, out_v.y);
             float inn_angle = Mathf.Atan2(inn_v.x, inn_v.y);
+            inn_angle = Mathf.Approximately(inn_angle, Mathf.PI) ? -inn_angle : inn_angle;
+            Debug.Log(out_angle + " " + inn_angle + " " + p.isHole + " " + Mathf.Approximately(out_angle, Mathf.PI) + " " + Mathf.Approximately(inn_angle, Mathf.PI));
+
+            PGPoints[edges[i].end  ].con_list.Add(new PGConnection(edges[i], PGDirection. Ingoing, inn_angle));
+            PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
+            /* Это давало ложное исправление ошибки в редких случаях.
             if (p.isHole)
             {
                 PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
-                PGPoints[edges[i].end].con_list.Add(new PGConnection(edges[i], PGDirection.Ingoing, inn_angle));
-            }
-            else
-            {
+                PGPoints[edges[i].end  ].con_list.Add(new PGConnection(edges[i], PGDirection. Ingoing, inn_angle));
+            } else {
                 PGPoints[edges[i].end].con_list.Add(new PGConnection(edges[i], PGDirection.Ingoing, inn_angle));
                 PGPoints[edges[i].start].con_list.Add(new PGConnection(edges[i], PGDirection.Outgoing, out_angle));
-            }
-            
+            }*/
+
             Debug.Log(edges[i].ToString() + " " + (Mathf.Rad2Deg * out_angle).ToString("0.0000") + " " + (Mathf.Rad2Deg * inn_angle).ToString("0.0000"));
         }
-        // Связанные грани должны быть расположены согласно правилу. 
-        // Затем в каждой точке отсортировать эджи по глобальному углу
-        //for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
-        Debug.Log("<color=orange> НАЧАЛАСЬ СОРТИРОВКА <color/>");
-        for (int i = 0; i < PGPoints.Count; i++)
-        {
-            SafeSort(PGPoints[i]);
-        }
-        Debug.Log("<color=orange> КОНЧИЛАСЬ СОРТИРОВКА <color/>");
-        // Объединение было ошибкой. Я теряю информацию для определения принадлежности грани к внутреннему или наружнему списку.
-        /*Debug.Log("<color=orange> ДО ОБЪЕДИНЕНИЯ <color/>");
-        for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
-        for (int i = 0; i < PGPoints.Count; i++) TryUnifyEdgesInPoint(i, PGPoints, edges);*/
-        Debug.Log("<color=orange> ТОЧКИ И ГРАНИ <color/>");
-        for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
-        Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
-        if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B);
-        // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
-
-        return null;
     }
+
+    // Классифицирует грани принадлежащие А относительно Б, или Б относительно А. Надо настройку правильную выбрать.
+    // Вообще интересно, так как я доверяю входным данным, я могу гарантировать что каждый сектор имеет различное начало и конец. Поэтому проверять мне надо только предыдущую грань.
+    // Но проверка предыдущей грани не даст мне получить информацию о коллинеарности граней, т.к. порядок коллинеарных граней случаен.
+    // Эта реализация очень простая и влобешная, уверен что поиск предыдущего и последующего элемента B относительно точки A можно реализовать за O(N) а не O(N*2)
+    private static void ClassifyEdges(PGPointIntwise PGPoint, PGBelong belong)
+    {
+        if (!(belong == PGBelong.A | belong == PGBelong.B)) throw new System.Exception("Input PGBelong need to be either A or B");
+        PGBelong target = belong;
+        PGBelong lookup = belong == PGBelong.A ? PGBelong.B : PGBelong.A;
+
+        List<PGConnection> cons = PGPoint.con_list;
+
+        for (int a = 0; a < cons.Count; a++)
+        {
+            if (PGPoint.con_list[a].edge.belong == lookup) { Debug.Log("Skip " + a + " " + PGPoint.con_list[a].edge.belong); continue; }
+            // тут ищутся предыдущая и последующая B грани. Алгоритм такойЖ 
+            int prev_b = -1; PGDirection prev_direction = PGDirection.None;
+            int next_b = -1; PGDirection next_direction = PGDirection.None;
+            for (int b = 0; b < cons.Count; b++)
+            {
+                int b_index = (a + b) % cons.Count;
+                if (PGPoint.con_list[b_index].edge.belong == lookup)
+                {
+                    if (next_b == -1) { next_b = b_index; next_direction = cons[next_b].dir; }
+                    else
+                    {
+                        if (cons[next_b].angle == cons[b_index].angle) { next_direction |= cons[b_index].dir; }
+                        if (prev_b != -1)
+                            if ( cons[prev_b].angle == cons[b_index].angle) prev_direction |= cons[prev_b].dir;
+                            else                                            prev_direction  = cons[prev_b].dir; // Если разнятся то сброс, чтобы перетечки не было
+                        prev_b = b_index; 
+                    }
+                }
+            }
+            // Конец штуки
+            Debug.Log(prev_b + " " + a + " " + next_b);
+
+            Debug.Log(cons[prev_b].angle + " " + cons[prev_b].dir + " comb:  " + prev_direction + " || " + cons[a].angle + " || " + cons[a].dir + " " + cons[next_b].angle + " " + cons[next_b].dir + " comb: " + next_direction);
+            //if (cons[prev_b].angle == )
+        }
+    }
+
     // К моему удивлению, все сегменты идут парочками из входящего и исходящего. Этого стоило ожидать, они созданы последовательно и потому тоже будут расположены последовательно.
     // Но сегменты разных полигонов все еще разрозненны, и порядок зависит от порядка полигонов внутри чанка. 
-    private static void SafeSort(PGPointIntwise PGPoints)
+    private static void SafeSort(PGPointIntwise PGPoint)
     {
         // Как вариант можно разбить задачу сортировки списка на две отдельных задачи сортировки списка для чанка А и для чанка Б.
         // Сейчас не поддерживается иерархическая сортировка.
-        if (PGPoints.con_list.Count % 2 != 0) throw new System.Exception(" Количество элементов в списоке входящих и выходящих точек должено быть кратено двум. ");
-        List<(float angle1, float angle2, int original_i)> pairs_A = new(PGPoints.con_list.Count / 2);
-        List<(float angle1, float angle2, int original_i)> pairs_B = new(PGPoints.con_list.Count / 2);
-        for (int i = 0; i < PGPoints.con_list.Count / 2; i++)
+        // Компилятор, я верю в тебя, ты смжешь оптимизировать всю эту хрень
+        // Но штука работает. Грани сортируются, и вроде бы даже корректно.
+        if (PGPoint.con_list.Count % 2 != 0) throw new System.Exception(" Количество элементов в списоке входящих и выходящих точек должено быть кратено двум. ");
+        List<(float angle1, float angle2, int original_i)> pairs_A = new();
+        List<(float angle1, float angle2, int original_i)> pairs_B = new();
+        for (int i = 0; i < PGPoint.con_list.Count / 2; i++)
         {
             int pair_i_a = i * 2;
             int pair_i_b = i * 2 + 1;
-            if (PGPoints.con_list[pair_i_a].edge.belong == PGBelong.A) // Belong для pair_i_a и pair_i_b одинаков.
-                pairs_A.Add(new (PGPoints.con_list[pair_i_a].angle, PGPoints.con_list[pair_i_b].angle, i) );
+            if (PGPoint.con_list[pair_i_a].edge.belong == PGBelong.A) // Belong для pair_i_a и pair_i_b одинаков.
+                pairs_A.Add(new (PGPoint.con_list[pair_i_a].angle, PGPoint.con_list[pair_i_b].angle, i));
             else
-                pairs_B.Add(new (PGPoints.con_list[pair_i_a].angle, PGPoints.con_list[pair_i_b].angle, i));
+                pairs_B.Add(new (PGPoint.con_list[pair_i_a].angle, PGPoint.con_list[pair_i_b].angle, i));
         }
+        string n = "Unsorted pairs: "; for (int i = 0; i < PGPoint.con_list.Count; i++) n += "\n" + PGPoint.con_list[i]; Debug.Log(n);
 
-        //pairs_A.Sort((a, b) => a.angle1.CompareTo(b.angle2));
-        //pairs_B.Sort((a, b) => a.angle1.CompareTo(b.angle2));
-        List<int> linker = ArrayAndListToolbox.NonOverlappingIntervalLinker(pairs_A);
-        string int_linker = "Intlinker: ";
-        for (int i = 0; i < linker.Count; i++)
-            int_linker += linker[i] + " ";
-        Debug.Log(int_linker);
-        //pairs_A.Reverse();
-        //pairs_B.Reverse();
-        string n = "Result: " + " \n";
-        for (int i = 0; i < pairs_A.Count; i++)
-        {
-            n += PGPoints.con_list[pairs_A[i].original_i * 2].edge.ToString() + " " + PGPoints.con_list[pairs_A[i].original_i * 2].ToString() + "\n";
-            n += PGPoints.con_list[pairs_A[i].original_i*2+1].edge.ToString() + " " + PGPoints.con_list[pairs_A[i].original_i*2+1].ToString() + "\n";
-        }
-        Debug.Log(n);
+        List<int> linker_A = ArrayAndListToolbox.NonOverlappingIntervalLinker(pairs_A);
+        List<int> linker_B = ArrayAndListToolbox.NonOverlappingIntervalLinker(pairs_B);
 
+        List<(float angle, int ai)> a_items = new(linker_A.Count * 2);
+        List<(float angle, int bi)> b_items = new(linker_B.Count * 2);
+
+        for (int i = 0; i < linker_A.Count; i++) {
+            a_items.Add(new(PGPoint.con_list[pairs_A[i].original_i * 2].angle, pairs_A[i].original_i * 2));
+            a_items.Add(new(PGPoint.con_list[pairs_A[i].original_i*2+1].angle, pairs_A[i].original_i*2+1)); }
+        for (int i = 0; i < linker_B.Count; i++) {
+            b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i * 2].angle, pairs_B[i].original_i * 2));
+            b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i*2+1].angle, pairs_B[i].original_i*2+1)); }
+        n = "A Sorted intervals: "; for (int i = 0; i < a_items.Count; i++) n += "\n" + a_items[i].ai + " " + (a_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        n = "B Sorted intervals: "; for (int i = 0; i < b_items.Count; i++) n += "\n" + b_items[i].bi + " " + (b_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        List<(bool, int)> final_ordering = ArrayAndListToolbox.SortedListToListMixin(a_items, b_items);
+        //for (int i = 0; i < final_ordering.Count; i++) Debug.Log(final_ordering[i].Item1 + " " + final_ordering[i].Item2);
+        List<(float, int)> vals = ArrayAndListToolbox.ConstructListFrom_ABindices(a_items, b_items, final_ordering);
+        n = "Global Sorted intervals: "; for (int i = 0; i < vals.Count; i++) n += "\n" + PGPoint.con_list[vals[i].Item2]; Debug.Log(n);
+        PGPoint.con_list = vals.Select(v => PGPoint.con_list[v.Item2]).ToList();
+        //n = "Unsorted pairs: "; for (int i = 0; i < PGPoint.con_list.Count; i++) n += "\n" + PGPoint.con_list[i]; Debug.Log(n);
     }
 
     private static List<PGEdge> GetEdges(CH2D_Chunk A, CH2D_Chunk B, List<ReturnPoint> shared_segments, List<PGPointIntwise> PGPoints )
@@ -151,11 +215,9 @@ public static class LipomaPolygonClipping
         }
 
         Debug.Log("A marks");
-        for (int i = 0; i < chunkA_marks.Count; i++)
-            Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
+        for (int i = 0; i < chunkA_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
         Debug.Log("B marks");
-        for (int i = 0; i < chunkB_marks.Count; i++)
-            Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
+        for (int i = 0; i < chunkB_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
         // Построение еджей
         // Сначала создать пустые эджи, с данными об интервале, начале и конце, но без классификации внутренной принадлежности 
         List<PGEdge> edges = new();
@@ -174,65 +236,9 @@ public static class LipomaPolygonClipping
             return edges;
         }
     }
-    private static void TryUnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
-    {   // Сравнение соседних углов, объединение одинаковых в один.
-        // Граф разнится если граф пересечений построен на пересечениях чанков, или же на пересечении всех полигонов вовсе. 
-        // В пересечении чанков могут появляться грани, начинающиеся коллинеарно, а заканчивающиеся разрозненно.
-        // Это происходит когда чанк состоит из отдельных, но касающихся полигонов. В этом случае есть выбор отрезать начальную коллинеарную часть, или же оставить дегенеративную грань
-
-        // Я слишком сильно абстрагировал задачу от входных данных. Объединяя грани я теряю информацию о принадлежности к полигону. 
-        // Я понял что мой подход имеет проблемы в случае когда соседние грани внутри точки оба bidirectional. Я теряю информацию о том как определить грань внутри или снаружи полигона.
-
-        // Тут я хрень сделал. Надо хранить не грани связанные с пересечением, а полигоны. Я верю иерархическим чанкам, обоим из них, поэтому вся эта абстракция никому не сдалась.
-        // Нужно сохранить информацию о пересечении, и все-таки надо сохранять структуру на чанк+полигон+индекс. Я так смогу определять в какую сторону направлена исходящая грань.
-        // Структура содержит ссылку на чанк, и проэтому надо будет провести проверку всеА * всеБ для определения принадлежности грани. 
-        // Подход со звездой векторов работает, но требуется определять иерархию полигонов.
-        // Тоесть грани грани одного полигона одного чанка должны идти соседствующими парочками. 
-        // Вопрос только в том как определить правильный порядок граней когда обе грани biderectional. 
-        // На бумажке видно что для этого нужна информация об порядке обоих полигонов одного чанка. Это можно выдавить из иерархии или из объединение Chunk+Poly+Index структур в список.
-
-        // Самая вонючая проблема в этом случае - полностью двунаправленный треугольник.
-        // Без информации об иерархии не понятно, это CCW внутри которого CW (дырка в пустоте), или CW у которого внутри CCW (трава в траве)
-
-        // Есть решение: отдельнная сортировка для каждого из полигонов касающихся точки. Полигоны А сортируются отдельно, согласно правилу и иерархии:
-        // Входящая и исходящая грани полигона соседствуют друг с другом. Внутренние полигона, ниже по иерархии, содержатся между жвух соседних граней. Щас я работаю с плоскими полигонами, поэтому это не важно.
-        // В целом, если соседние грани однонаправлены и идентичны, то их действительно можно объединить без потери информации.
-        // Уменьшить количество граней возможно после классификаци граней на внутренние/наружнгые
-
-        // Тоесть вся это что я сделал хуйня полная.
-        PGPointIntwise tp = PGPoints[target_p];
-        for (int i = 0; i < tp.con_list.Count; i++)
-        {
-            int edge1 = i;
-            int edge2 = (i + 1) % tp.con_list.Count;
-            if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
-
-            {
-                PGEdge e1 = tp.con_list[edge1].edge; PGEdge e2 = tp.con_list[edge2].edge;
-                //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
-                if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
-            }
-
-            int other_point = tp.con_list[i].edge.start == target_p ? tp.con_list[i].edge.end : tp.con_list[i].edge.start;
-
-            int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge1].edge);
-            int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge2].edge);
-
-            // Обновление оригинального и удаление дубликата в соседней вершиен
-            if (index_to_remove != -1)
-            {
-                PGPoints[other_point].con_list[index_to_edit] = PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
-                PGPoints[other_point].con_list.RemoveAt(index_to_remove);
-            }
-            // Обновление оригинального и удаление дубликата у себя дома
-
-            tp.con_list[edge1] = tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir); // Тут копируется сущность из массива, оперируется, и вставляется обратно. Фигня полная но пох.
-            tp.con_list.RemoveAt(edge2);
-            edges.RemoveAt(edge2);
-        }
-    }
+    
     // TODO: преобразовать все ссылки на edge-ы из интежеров в классовую просто-ссылку.
-    private static void DrawChaosStar(int point_i, List<PGPointIntwise> points, List<PGEdge> edges, CH2D_Chunk A, CH2D_Chunk B)
+    private static void DrawChaosStar(int point_i, List<PGPointIntwise> points, List<PGEdge> edges, CH2D_Chunk A, CH2D_Chunk B, bool EdgeDirectionMode = false)
     {
         PGPointIntwise point = points[point_i];
         Vector2 center_point = A.vertices[point.Aindex];
@@ -246,13 +252,23 @@ public static class LipomaPolygonClipping
         {
             PGConnection con = point.con_list[i];
             Color color = Color.black;
-            switch (con.dir)
-            {
-                case PGDirection.Ingoing: color = Color.cyan; break;
-                case PGDirection.Outgoing: color = Color.pink; break;
-                case PGDirection.Bidirectional: color = Color.yellow; break;
-                default: break;
-            }
+            if (EdgeDirectionMode == true)
+                switch (con.dir)
+                {
+                    case PGDirection.Ingoing: color = Color.cyan; break;
+                    case PGDirection.Outgoing: color = Color.pink; break;
+                    case PGDirection.Bidirectional: color = Color.yellow; break;
+                    default: break;
+                }
+            else
+                switch (con.edge.side)
+                {
+                    case GHPolygonMerge.EdgeSide.Inside : color = Color.pink; break;
+                    case GHPolygonMerge.EdgeSide.Outside: color = Color.cyan; break;
+                    case GHPolygonMerge.EdgeSide.Inn_Colin: color = Color.yellow; break;
+                    case GHPolygonMerge.EdgeSide.Out_Colin: color = Color.limeGreen; break;
+                    default: break;
+                }
             CH2D_Chunk chunk = valid_edges[i].belong == PGBelong.A ? A : B;
             CH2D_Edge edge_start = chunk.polygons[valid_edges[i].poly_id].GetEdge(valid_edges[i].segment_start);
             CH2D_Edge edge_end = chunk.polygons[valid_edges[i].poly_id].GetEdge(valid_edges[i].segment_start + valid_edges[i].segment_length);
@@ -384,7 +400,7 @@ public static class LipomaPolygonClipping
         public void SetPrevPGPoint(int prev) { this.prev_PGPoint_index = prev; }
         public void SetPGDirection(PGDirection dir) { this.dir = dir; }
     }
-    protected enum PGDirection : sbyte { Ingoing = 1, Outgoing = 2, Bidirectional = 3, None = -1 }
+    protected enum PGDirection : sbyte { Ingoing = 1, Outgoing = 2, Bidirectional = 3, None = 0 }
     protected enum PGBelong : byte { None = 0, A, B, Both }
     protected struct ReturnPoint
     {
@@ -517,6 +533,65 @@ public static class LipomaPolygonClipping
         // Компиляция граней. Надо перерабо
         return null;
     }
+    // This thing is somewhat useful and can be used to lessen the amount of edges in a graph.
+    private static void TryUnifyEdgesInPoint(int target_p, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
+    {   // Сравнение соседних углов, объединение одинаковых в один.
+        // Граф разнится если граф пересечений построен на пересечениях чанков, или же на пересечении всех полигонов вовсе. 
+        // В пересечении чанков могут появляться грани, начинающиеся коллинеарно, а заканчивающиеся разрозненно.
+        // Это происходит когда чанк состоит из отдельных, но касающихся полигонов. В этом случае есть выбор отрезать начальную коллинеарную часть, или же оставить дегенеративную грань
+
+        // Я слишком сильно абстрагировал задачу от входных данных. Объединяя грани я теряю информацию о принадлежности к полигону. 
+        // Я понял что мой подход имеет проблемы в случае когда соседние грани внутри точки оба bidirectional. Я теряю информацию о том как определить грань внутри или снаружи полигона.
+
+        // Тут я хрень сделал. Надо хранить не грани связанные с пересечением, а полигоны. Я верю иерархическим чанкам, обоим из них, поэтому вся эта абстракция никому не сдалась.
+        // Нужно сохранить информацию о пересечении, и все-таки надо сохранять структуру на чанк+полигон+индекс. Я так смогу определять в какую сторону направлена исходящая грань.
+        // Структура содержит ссылку на чанк, и проэтому надо будет провести проверку всеА * всеБ для определения принадлежности грани. 
+        // Подход со звездой векторов работает, но требуется определять иерархию полигонов.
+        // Тоесть грани грани одного полигона одного чанка должны идти соседствующими парочками. 
+        // Вопрос только в том как определить правильный порядок граней когда обе грани biderectional. 
+        // На бумажке видно что для этого нужна информация об порядке обоих полигонов одного чанка. Это можно выдавить из иерархии или из объединение Chunk+Poly+Index структур в список.
+
+        // Самая вонючая проблема в этом случае - полностью двунаправленный треугольник.
+        // Без информации об иерархии не понятно, это CCW внутри которого CW (дырка в пустоте), или CW у которого внутри CCW (трава в траве)
+
+        // Есть решение: отдельнная сортировка для каждого из полигонов касающихся точки. Полигоны А сортируются отдельно, согласно правилу и иерархии:
+        // Входящая и исходящая грани полигона соседствуют друг с другом. Внутренние полигона, ниже по иерархии, содержатся между жвух соседних граней. Щас я работаю с плоскими полигонами, поэтому это не важно.
+        // В целом, если соседние грани однонаправлены и идентичны, то их действительно можно объединить без потери информации.
+        // Уменьшить количество граней возможно после классификаци граней на внутренние/наружнгые
+
+        // Тоесть вся это что я сделал хуйня полная.
+        PGPointIntwise tp = PGPoints[target_p];
+        for (int i = 0; i < tp.con_list.Count; i++)
+        {
+            int edge1 = i;
+            int edge2 = (i + 1) % tp.con_list.Count;
+            if (tp.con_list[edge1].angle != tp.con_list[edge2].angle) continue;
+
+            {
+                PGEdge e1 = tp.con_list[edge1].edge; PGEdge e2 = tp.con_list[edge2].edge;
+                //Debug.Log(e1.start + " " + e2.start + " " + e1.end + " " +e2.end + " SAME: " + (e1.start == e2.start & e1.end == e2.end) + " same swap: " + (e1.start == e2.end & e1.end == e2.start));
+                if (!((e1.start == e2.start & e1.end == e2.end) | (e1.start == e2.end & e1.end == e2.start))) continue;
+            }
+
+            int other_point = tp.con_list[i].edge.start == target_p ? tp.con_list[i].edge.end : tp.con_list[i].edge.start;
+
+            int index_to_edit = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge1].edge);
+            int index_to_remove = PGPoints[other_point].con_list.FindIndex(v => v.edge == tp.con_list[edge2].edge);
+
+            // Обновление оригинального и удаление дубликата в соседней вершиен
+            if (index_to_remove != -1)
+            {
+                PGPoints[other_point].con_list[index_to_edit] = PGPoints[other_point].con_list[index_to_edit].UpdateDirection(PGPoints[other_point].con_list[index_to_remove].dir);
+                PGPoints[other_point].con_list.RemoveAt(index_to_remove);
+            }
+            // Обновление оригинального и удаление дубликата у себя дома
+
+            tp.con_list[edge1] = tp.con_list[edge1].UpdateDirection(tp.con_list[edge2].dir); // Тут копируется сущность из массива, оперируется, и вставляется обратно. Фигня полная но пох.
+            tp.con_list.RemoveAt(edge2);
+            edges.RemoveAt(edge2);
+        }
+    }
+
     private static void DrawChaosStar(PGPoint point, CH2D_Chunk A, CH2D_Chunk B)
     {
         Vector2 center_point = A.vertices[point.Aindex];

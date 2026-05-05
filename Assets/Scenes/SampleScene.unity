@@ -2426,11 +2426,11 @@ MonoBehaviour:
   level2_offset: {x: 0, y: 0}
   selected1: -1
   selected2: -1
-  selectionColorScheme: 0
+  selectionColorScheme: 1
   SelectedChunkAction: 0
   Union: 0
   Inter: 0
-  Aonly: 1
+  Aonly: 0
   Bonly: 0
 --- !u!4 &1266008487
 Transform:
