@@ -410,13 +410,27 @@ public class PolygonManager : MonoBehaviour
     }
     public void SelectPolygon(Vector2 point)
     {
-        List<int> new_selection = my_chunk.PolygonPointIntersection(point);
+        CH2D_Chunk local_chunk = my_chunk;
+        switch (target_chunk)
+        {
+            case TargetDebugTestChunk.first_leveled:
+                local_chunk = leveled_one;
+                break;
+            case TargetDebugTestChunk.second_leveled:
+                local_chunk = leveled_two;
+                break;
+            default:
+                break;
+        }
+
+        List<int> new_selection = local_chunk.PolygonPointIntersection(point);
         if (new_selection == null) { SelectionPurge(); return; }
         if (new_selection.Count == 0) { SelectionPurge(); return; }
         //string n = "old selection "; for (int i = 0; i < selection.Count; i++) n += selection[i] + " "; Debug.Log(n);
         //n = "new selection "; for (int i = 0; i < new_selection.Count; i++) n += new_selection[i] + " "; Debug.Log(n);
         if (SelectionSimilar(new_selection))
         {   // Выборка идентична предыдущей, значит чювак спускается вниз по списку полигонов. Надо найти текущий полигон в выборке, и выбрать следующий.
+            if (selected1 == -1) { SetSelection(new_selection[0], new_selection); return; }
             if (selected1 == -1) { SetSelection(new_selection[0], new_selection); return; }
             int old_index = -1;
             for (int i = 0; i < new_selection.Count; i++)
@@ -441,7 +455,14 @@ public class PolygonManager : MonoBehaviour
     }
     public string GetPolygonDataDelegate()
     {
-        return my_chunk.GetDebugData(selected1);
+        CH2D_Chunk local_chunk = my_chunk;
+        switch (target_chunk)
+        {
+            case TargetDebugTestChunk.first_leveled : local_chunk = leveled_one; break;
+            case TargetDebugTestChunk.second_leveled: local_chunk = leveled_two;  break;
+            default: break;
+        }
+        return local_chunk.GetDebugData(selected1);
     }
     private void SetSelection(int new_selected, List<int> new_selection)
     {

@@ -41,10 +41,14 @@ public static class ArrayAndListToolbox
     /// <returns>Returns a list of indices, use them to pick values from your original list. </returns>
     public static List<int> NonOverlappingIntervalLinker(List<(float a, float b, int origin)> intervals)
     {
+        if (intervals == null | intervals.Count == 0) return new();
+        if (intervals.Count == 1) return new() { 0};
+        if (intervals.Count == 2) return new() { 0, 1}; // Два непересекающихся интервала всегда идут по порядку. Э
         int min_break_point = 0;
         int max_break_point = 0;
         float min_value = intervals[0].b;
         float max_value = intervals[0].a;
+        
         for (int i = 1; i < intervals.Count; i++)
         {
             if (intervals[i].a >= max_value) { max_value = intervals[i].a; max_break_point = i; }
@@ -69,6 +73,39 @@ public static class ArrayAndListToolbox
         for (int i = 0; i < intervals.Count; i++) order.Add(intervals[i].origin);
         return order;
     }
+    /// Sector unifier. SortedListToListMixin did not work in cases when a sector crosses the +-180 point 
+    /// 
+    public static List<(bool AorB, int index)> SortedSectorUnifier(List<(float angle, int ai)> A, List<(float angle, int bi)> B)
+    {   // Доверяю входным данным, все отсортировано.
+        // План: в каждый сектор из i, i+1 запихнуть все значения по порядку если умещаютсмя
+        List<(bool, int)> ordering = new(A.Count + B.Count);
+        //int offset = 0;
+        //Debug.Log("BEGUN");
+        for (int a = 0; a < A.Count; a++)
+        {
+            ordering.Add((true, a));
+            int a2 = (a + 1) % A.Count;
+            bool prev = false; // если после B снова пошли false значит я вышел из сектора.
+            for (int b = 0; b < B.Count; b++)
+            {
+                bool succc = AngleBelongToSector(B[b].angle, A[a].angle, A[a2].angle);
+                //Debug.Log(succc + " " + (B[b].angle * Mathf.Rad2Deg) + " " + A[a].angle * Mathf.Rad2Deg + " " + A[a2].angle * Mathf.Rad2Deg);
+                if (succc) { ordering.Add((false, b)); prev = true; }
+                else { if (prev) break; }
+            }
+        }
+        //Debug.Log(ordering.Count);
+        //Debug.Log("END");
+        return ordering;
+    }
+    public static bool AngleBelongToSector(float angle, float start, float end)
+    {
+        if (end == start) return angle == start;
+        if (end < start)  return (angle >= start | angle < end);
+        else              return (angle >= start & angle < end); // equivalent to (end < start) ? (angle >= start & angle <= end) : !(angle >= start & angle <= end)
+    }
+
+
     /// <summary>
     /// Function to mix two sorted lists of calues into a single list while preserving relative order of values of both A and B elements. <br/>
     /// Quick Sort could be stable, but i am not sure C# implementation is stable. <br/>

@@ -38,9 +38,13 @@ public static class LipomaPolygonClipping
         // Но лучше сделать проверку внутри вершин. Это ускорит проверку на множественных пересечениях. 
 
         // Сам граф можно распутать отрезанием ушек, но тут уже ХЗ. Че-то придумать надо будет.
+
+        // Ошибки:
+        // (!) Есть баг из-за которого создаютс ядубликаты. Он исправляется проверкой if (A.vertices[shared_points[i].A] == B.vertices[shared_points[i].B]) что обе точки одинаковые.
+        // Устраняется при повторном использовании функции, когда полигоны не содержат незарегистрированных пересечений. 
         List<PGPointIntwise> PGPoints = new();
         for (int i = 0; i < shared_points.Count; i++)
-            PGPoints.Add(new PGPointIntwise(shared_points[i].A, shared_points[i].B));
+            if (A.vertices[shared_points[i].A] == B.vertices[shared_points[i].B]) PGPoints.Add(new PGPointIntwise(shared_points[i].A, shared_points[i].B));
 
         PGPoints.Sort((a, b) => a.Aindex.CompareTo(b.Aindex));
         string n = "PGPoints " + PGPoints.Count + ": ";
@@ -54,30 +58,33 @@ public static class LipomaPolygonClipping
         for (int i = 0; i < edges.Count; i++) Debug.Log(edges[i]);
         // Добавление сегментов в граф связей:
         // (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!) Дальнейший прогресс невозможен, тут есть ошибка и надо разобраться с порядком входа/выхода в случае если градус равен +-180
-        EstablishConnections(edges, PGPoints, A, B);
+        // EstablishConnections(edges, PGPoints, A, B);
         // Связанные грани должны быть расположены согласно правилу. 
         // Затем в каждой точке отсортировать эджи по глобальному углу
+        
         Debug.Log("<color=orange> Несортированные точки<color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
+        
         //for (int i = 0; i < PGPoints.Count; i++) PGPoints[i].con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); // (-90 -x), (0 +y), (90 +x), (+-180 -y)
         Debug.Log("<color=orange> НАЧАЛАСЬ СОРТИРОВКА <color/>");
         for (int i = 0; i < PGPoints.Count; i++) { SafeSort(PGPoints[i]); }
         Debug.Log("<color=orange> КОНЧИЛАСЬ СОРТИРОВКА <color/>");
-
+        
         Debug.Log("<color=orange> ТОЧКИ И ГРАНИ <color/>");
         for (int i = 0; i < PGPoints.Count; i++) Debug.Log(PGPoints[i]);
+        
         Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
         if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B, true);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
-
-        //ClassifyEdges(PGPoints[0], PGBelong.A);
-        //ClassifyEdges(PGPoints[0], PGBelong.B);
+        
+        ClassifyEdges(PGPoints[0], PGBelong.A);
+        ClassifyEdges(PGPoints[0], PGBelong.B);
         return null;
     }
     //private static void DooDoo
 
 
-    // Эта функция не рабочая, так как порядок входящей и исходящей грани каждого сегмента круга случаен.  
+    // Функционал был перенесен в функцию PopulateGraphVertices. Эта функция не рабочая, так как порядок входящей и исходящей грани каждого сегмента круга случаен.  
     // Точнее не случаен, а цикличен. В полигоне у последнего сегмета будет перепутанный порядок вершин. В остальных случаях нормальный. 
     // Тут уж лучше в момент полного анализа полигонов сразу создать набор из граней, а затем попарно соединить их в каждой точке.
     private static void EstablishConnections(List<PGEdge> edges, List<PGPointIntwise> PGPoints, CH2D_Chunk A, CH2D_Chunk B)
@@ -125,30 +132,28 @@ public static class LipomaPolygonClipping
 
         for (int a = 0; a < cons.Count; a++)
         {
-            if (PGPoint.con_list[a].edge.belong == lookup) { Debug.Log("Skip " + a + " " + PGPoint.con_list[a].edge.belong); continue; }
+            if (PGPoint.con_list[a].edge.belong != belong) { Debug.Log("Skip " + a + " " + PGPoint.con_list[a].edge.belong); continue; }
             // тут ищутся предыдущая и последующая B грани. Алгоритм такойЖ 
             int prev_b = -1; PGDirection prev_direction = PGDirection.None;
             int next_b = -1; PGDirection next_direction = PGDirection.None;
             for (int b = 0; b < cons.Count; b++)
             {
-                int b_index = (a + b) % cons.Count;
-                if (PGPoint.con_list[b_index].edge.belong == lookup)
+            int b_index = (a + b) % cons.Count;
+                if (PGPoint.con_list[b_index].edge.belong != lookup) continue;
+                if (next_b == -1) { next_b = b_index; next_direction = cons[next_b].dir; prev_b = next_b; }
+                else
                 {
-                    if (next_b == -1) { next_b = b_index; next_direction = cons[next_b].dir; }
-                    else
-                    {
-                        if (cons[next_b].angle == cons[b_index].angle) { next_direction |= cons[b_index].dir; }
-                        if (prev_b != -1)
-                            if ( cons[prev_b].angle == cons[b_index].angle) prev_direction |= cons[prev_b].dir;
-                            else                                            prev_direction  = cons[prev_b].dir; // Если разнятся то сброс, чтобы перетечки не было
-                        prev_b = b_index; 
-                    }
+                    if (cons[next_b].angle == cons[b_index].angle) { next_direction |= cons[b_index].dir; }
+                    //if (next_b != -1)
+                    else if ( cons[prev_b].angle == cons[b_index].angle) prev_direction |= cons[b_index].dir;
+                         else /* Разнятся - сброс, перетечки не будет */ prev_direction  = cons[b_index].dir; 
+                    prev_b = b_index; 
                 }
             }
             // Конец штуки
             Debug.Log(prev_b + " " + a + " " + next_b);
 
-            Debug.Log(cons[prev_b].angle + " " + cons[prev_b].dir + " comb:  " + prev_direction + " || " + cons[a].angle + " || " + cons[a].dir + " " + cons[next_b].angle + " " + cons[next_b].dir + " comb: " + next_direction);
+            Debug.Log(cons[prev_b].angle + " " + cons[prev_b].dir + " comb:  " + prev_direction + " || " + cons[a].angle + " " + cons[a].dir + " || " + cons[next_b].angle + " " + cons[next_b].dir + " comb: " + next_direction);
             //if (cons[prev_b].angle == )
         }
     }
@@ -187,12 +192,12 @@ public static class LipomaPolygonClipping
         for (int i = 0; i < linker_B.Count; i++) {
             b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i * 2].angle, pairs_B[i].original_i * 2));
             b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i*2+1].angle, pairs_B[i].original_i*2+1)); }
-        n = "A Sorted intervals: "; for (int i = 0; i < a_items.Count; i++) n += "\n" + a_items[i].ai + " " + (a_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
-        n = "B Sorted intervals: "; for (int i = 0; i < b_items.Count; i++) n += "\n" + b_items[i].bi + " " + (b_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
-        List<(bool, int)> final_ordering = ArrayAndListToolbox.SortedListToListMixin(a_items, b_items);
+        //n = "A Sorted intervals: "; for (int i = 0; i < a_items.Count; i++) n += "\n" + a_items[i].ai + " " + (a_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        //n = "B Sorted intervals: "; for (int i = 0; i < b_items.Count; i++) n += "\n" + b_items[i].bi + " " + (b_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        List<(bool, int)> final_ordering = ArrayAndListToolbox.SortedSectorUnifier(a_items, b_items);
         //for (int i = 0; i < final_ordering.Count; i++) Debug.Log(final_ordering[i].Item1 + " " + final_ordering[i].Item2);
         List<(float, int)> vals = ArrayAndListToolbox.ConstructListFrom_ABindices(a_items, b_items, final_ordering);
-        n = "Global Sorted intervals: "; for (int i = 0; i < vals.Count; i++) n += "\n" + PGPoint.con_list[vals[i].Item2]; Debug.Log(n);
+        //n = "Global Sorted intervals: "; for (int i = 0; i < vals.Count; i++) n += "\n" + PGPoint.con_list[vals[i].Item2]; Debug.Log(n);
         PGPoint.con_list = vals.Select(v => PGPoint.con_list[v.Item2]).ToList();
         //n = "Unsorted pairs: "; for (int i = 0; i < PGPoint.con_list.Count; i++) n += "\n" + PGPoint.con_list[i]; Debug.Log(n);
     }
@@ -213,30 +218,50 @@ public static class LipomaPolygonClipping
             if (p.belong == PGBelong.A) chunkA_marks[p.polygon][p.index] = point_link;
             else chunkB_marks[p.polygon][p.index] = point_link;
         }
+        //Debug.Log("A marks"); for (int i = 0; i < chunkA_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
+        //Debug.Log("B marks"); for (int i = 0; i < chunkB_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
 
-        Debug.Log("A marks");
-        for (int i = 0; i < chunkA_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkA_marks[i].ToArray()));
-        Debug.Log("B marks");
-        for (int i = 0; i < chunkB_marks.Count; i++) Debug.Log(DebugUtilities.DebugListString(chunkB_marks[i].ToArray()));
-        // Построение еджей
-        // Сначала создать пустые эджи, с данными об интервале, начале и конце, но без классификации внутренной принадлежности 
         List<PGEdge> edges = new();
-        for (int i = 0; i < chunkA_marks.Count; i++)
-            edges.AddRange(GetEdgesFromMarks(chunkA_marks[i], PGBelong.A, i));
-        for (int i = 0; i < chunkB_marks.Count; i++)
-            edges.AddRange(GetEdgesFromMarks(chunkB_marks[i], PGBelong.B, i));
+        PopulateGraphVertices(A, chunkA_marks, PGBelong.A, PGPoints, edges);
+        PopulateGraphVertices(B, chunkB_marks, PGBelong.B, PGPoints, edges);
         return edges;
-        List<PGEdge> GetEdgesFromMarks(int[] marked_polygon, PGBelong belong, int poly_id)
-        {   //Разбивает циклический список на сегменты. Интервалы: [p != -1, p != -1) внутри содержатся все значения точек равных -1.
-            List<(int a, int b)> pairs = ArrayAndListToolbox.LoopedListSegmentation(marked_polygon);
-            //if (pairs.Count == 0) return null; // в полигоне нет пересечений. Для этого случая нужно отдельную логику присобачить. Классическое внутри/снаружи c sweep line проверкой
-            List<PGEdge> edges = new(pairs.Count);
-            for (int i = 0; i < pairs.Count; i++)
-                edges.Add(new PGEdge(belong, poly_id, pairs[i].a, pairs[i].b, marked_polygon[pairs[i].a], marked_polygon[(pairs[i].a + pairs[i].b + 1) % marked_polygon.Length]));
-            return edges;
+    }
+
+    private static void PopulateGraphVertices(CH2D_Chunk chunk, List<int[]> chunk_marks, PGBelong belong, List<PGPointIntwise> PGPoints, List<PGEdge> edges)
+    {
+        for (int i = 0; i < chunk_marks.Count; i++)
+        {
+            List<PGEdge> polyBedges = GetEdgesFromMarks(chunk_marks[i], belong, i);
+            for (int pes = 0; pes < polyBedges.Count; pes++)
+            {
+                PGEdge pes1 = polyBedges[pes];
+                PGEdge pes2 = polyBedges[(pes + 1) % polyBedges.Count]; //Debug.Log(pes1.end + " " + pes2.start);
+                CH2D_Edge inn_ch2d_edge = chunk.polygons[i].GetEdge((pes1.segment_start + pes1.segment_length) % chunk.polygons[i].vertices.Count);
+                CH2D_Edge out_ch2d_edge = chunk.polygons[i].GetEdge(pes2.segment_start);
+
+                Vector2 out_v = chunk.vertices[out_ch2d_edge.B] - chunk.vertices[out_ch2d_edge.A];
+                Vector2 inn_v = chunk.vertices[inn_ch2d_edge.A] - chunk.vertices[inn_ch2d_edge.B];
+
+                float inn_angle = Mathf.Atan2(inn_v.x, inn_v.y); PGDirection start = PGDirection. Ingoing;
+                float out_angle = Mathf.Atan2(out_v.x, out_v.y); PGDirection   end = PGDirection.Outgoing;
+                if (chunk.polygons[i].isHole) { (inn_angle, out_angle) = (out_angle, inn_angle); (start, end) = (end, start); } // Swappity-swap
+                PGPoints[pes1.end].con_list.Add(new PGConnection(pes1, start, Mathf.Approximately(inn_angle, Mathf.PI) ? -inn_angle : inn_angle));
+                PGPoints[pes1.end].con_list.Add(new PGConnection(pes2, end, out_angle));
+            }
+            edges.AddRange(polyBedges);
         }
     }
-    
+
+    private static List<PGEdge> GetEdgesFromMarks(int[] marked_polygon, PGBelong belong, int poly_id)
+    {   //Разбивает циклический список на сегменты. Интервалы: [p != -1, p != -1) внутри содержатся все значения точек равных -1.
+        List<(int a, int b)> pairs = ArrayAndListToolbox.LoopedListSegmentation(marked_polygon);
+        //if (pairs.Count == 0) return null; // в полигоне нет пересечений. Для этого случая нужно отдельную логику присобачить. Классическое внутри/снаружи c sweep line проверкой
+        List<PGEdge> edges = new(pairs.Count);
+        for (int i = 0; i < pairs.Count; i++)
+            edges.Add(new PGEdge(belong, poly_id, pairs[i].a, pairs[i].b, marked_polygon[pairs[i].a], marked_polygon[(pairs[i].a + pairs[i].b + 1) % marked_polygon.Length]));
+        return edges;
+    }
+
     // TODO: преобразовать все ссылки на edge-ы из интежеров в классовую просто-ссылку.
     private static void DrawChaosStar(int point_i, List<PGPointIntwise> points, List<PGEdge> edges, CH2D_Chunk A, CH2D_Chunk B, bool EdgeDirectionMode = false)
     {
@@ -463,15 +488,12 @@ public static class LipomaPolygonClipping
             DebugUtilities.DebugDrawCross(A.vertices[unique_points[i].A], Color.yellow, 1.0f);
             Debug.Log(unique_points[i].A + " " + unique_points[i].B);
         }
-        for (int i = 0; i < unique_segments.Count; i++)
-        {
-            Debug.Log(unique_segments[i].belong + " " + unique_segments[i].polygon + " " + unique_segments[i].index);
-        }
+        //for (int i = 0; i < unique_segments.Count; i++) Debug.Log(unique_segments[i].belong + " " + unique_segments[i].polygon + " " + unique_segments[i].index);
 
         return (unique_points, unique_segments);
     }
-    // ТУТ ВСЕ МЕРТВО
 
+    // ТУТ ВСЕ МЕРТВО
     public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, bool dummy, int draw_connection = -1)
     {
         List<Level2IntersectionChunkPoint> intersections = GetPairIntersections(A, B);
