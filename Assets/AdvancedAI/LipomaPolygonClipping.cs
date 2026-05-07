@@ -75,6 +75,7 @@ public static class LipomaPolygonClipping
         Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
         if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B, true);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
+        
         for (int i = 0; i < PGPoints.Count; i++)
         {
             ClassifyEdges(PGPoints[i], PGBelong.A);
@@ -82,7 +83,7 @@ public static class LipomaPolygonClipping
         }
 
         ChaosDraw(A, B, edges);
-
+        // Что по итогу: Граф рабочий, классификация рабочая. 
 
         return null;
     }
@@ -257,6 +258,7 @@ public static class LipomaPolygonClipping
             {
                 PGEdge pes1 = polyBedges[pes];
                 PGEdge pes2 = polyBedges[(pes + 1) % polyBedges.Count]; //Debug.Log(pes1.end + " " + pes2.start);
+                int target_pg_point = pes1.end;
                 CH2D_Edge inn_ch2d_edge = chunk.polygons[i].GetEdge((pes1.segment_start + pes1.segment_length) % chunk.polygons[i].vertices.Count);
                 CH2D_Edge out_ch2d_edge = chunk.polygons[i].GetEdge(pes2.segment_start);
 
@@ -265,9 +267,9 @@ public static class LipomaPolygonClipping
 
                 float inn_angle = Mathf.Atan2(inn_v.x, inn_v.y); PGDirection start = PGDirection. Ingoing;
                 float out_angle = Mathf.Atan2(out_v.x, out_v.y); PGDirection   end = PGDirection.Outgoing;
-                if (chunk.polygons[i].isHole) { (inn_angle, out_angle) = (out_angle, inn_angle); (start, end) = (end, start); } // Swappity-swap
-                PGPoints[pes1.end].con_list.Add(new PGConnection(pes1, start, Mathf.Approximately(inn_angle, Mathf.PI) ? -inn_angle : inn_angle));
-                PGPoints[pes1.end].con_list.Add(new PGConnection(pes2, end, out_angle));
+                if (chunk.polygons[i].isHole) { (inn_angle, out_angle) = (out_angle, inn_angle); (start, end) = (end, start); (pes1, pes2) = (pes2, pes1); } // Swappity-swap. Это важно для секторов, но ломает логику дальше.
+                PGPoints[target_pg_point].con_list.Add(new PGConnection(pes1, start, Mathf.Approximately(inn_angle, Mathf.PI) ? -inn_angle : inn_angle));
+                PGPoints[target_pg_point].con_list.Add(new PGConnection(pes2, end, out_angle));
             }
             edges.AddRange(polyBedges);
         }
@@ -488,9 +490,9 @@ public static class LipomaPolygonClipping
             {
                 CH2D_Polygon bp = B.polygons[b];
                 if (!ap.BBox.Intersects(bp.BBox)) continue;
-                Debug.Log("vertice count before operation " + ap.vertices.Count + " " + bp.vertices.Count);
+                //Debug.Log("vertice count before operation " + ap.vertices.Count + " " + bp.vertices.Count);
                 CH2D_Chunk.PolyPolyOnlineIntersectionOnesided(A, B, a, b);
-                Debug.Log("vertice count after operation " + ap.vertices.Count + " " + bp.vertices.Count);
+                //Debug.Log("vertice count after operation " + ap.vertices.Count + " " + bp.vertices.Count);
             }
         }
 
@@ -504,25 +506,10 @@ public static class LipomaPolygonClipping
             {
                 CH2D_Polygon bp = B.polygons[b];
                 if (!ap.BBox.Intersects(bp.BBox)) continue;
-                Debug.Log("vertice count before operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
+                //Debug.Log("vertice count before operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
                 List<Pair> point_pairsAB = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(A, B, a, b);
                 List<Pair> point_pairsBA = CH2D_Chunk.Incorporate_B_to_A_GetPpolyPointPairs(B, A, b, a);
-                Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
-                Debug.Log(a + DebugUtilities.DebugListString(point_pairsAB.ToArray()) + " " + b + " " + DebugUtilities.DebugListString(point_pairsBA.ToArray()));
-                //pairs.AddRange(point_pairsAB);
-                /*
-                for (int i = 0; i < point_pairsAB.Count; i++)
-                {
-                    shared_point.Add((ap.vertices[point_pairsAB[i].A], bp.vertices[point_pairsAB[i].B]));
-                    shared_segments.Add(new ReturnPoint(PGBelong.A, a, point_pairsAB[i].A, ap.vertices[point_pairsAB[i].A]));
-                    shared_segments.Add(new ReturnPoint(PGBelong.B, b, point_pairsAB[i].B, ap.vertices[point_pairsAB[i].A]));
-                }
-                for (int i = 0; i < point_pairsBA.Count; i++)
-                {
-                    shared_point.Add((ap.vertices[point_pairsBA[i].B], bp.vertices[point_pairsBA[i].A]));
-                    shared_segments.Add(new ReturnPoint(PGBelong.A, a, point_pairsBA[i].B, ap.vertices[point_pairsBA[i].B]));
-                    shared_segments.Add(new ReturnPoint(PGBelong.B, b, point_pairsBA[i].A, ap.vertices[point_pairsBA[i].B]));
-                }*/
+                //Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
             }
         }
 

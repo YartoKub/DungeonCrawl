@@ -79,7 +79,7 @@ public static class ArrayAndListToolbox
     {   // Доверяю входным данным, все отсортировано.
         // План: в каждый сектор из i, i+1 запихнуть все значения по порядку если умещаютсмя
         List<(bool, int)> ordering = new(A.Count + B.Count);
-        //int offset = 0;
+        int offset = 0;
         //Debug.Log("BEGUN");
         for (int a = 0; a < A.Count; a++)
         {
@@ -88,14 +88,15 @@ public static class ArrayAndListToolbox
             bool prev = false; // если после B снова пошли false значит я вышел из сектора.
             for (int b = 0; b < B.Count; b++)
             {
-                bool succc = AngleBelongToSector(B[b].angle, A[a].angle, A[a2].angle);
-                //Debug.Log(succc + " " + (B[b].angle * Mathf.Rad2Deg) + " " + A[a].angle * Mathf.Rad2Deg + " " + A[a2].angle * Mathf.Rad2Deg);
-                if (succc) { ordering.Add((false, b)); prev = true; }
-                else { if (prev) break; }
+                int b_off = (offset + b) % B.Count;
+                bool succc = AngleBelongToSector(B[b_off].angle, A[a].angle, A[a2].angle);
+                Debug.Log(succc + " " + (B[b_off].angle * Mathf.Rad2Deg) + " " + A[a].angle * Mathf.Rad2Deg + " " + A[a2].angle * Mathf.Rad2Deg);
+                if (succc) { ordering.Add((false, b_off)); prev = true; }
+                else { if (prev) { offset = b_off; break; } }
             }
         }
-        //Debug.Log(ordering.Count);
-        //Debug.Log("END");
+        Debug.Log(ordering.Count);
+        Debug.Log("END");
         return ordering;
     }
     public static bool AngleBelongToSector(float angle, float start, float end)

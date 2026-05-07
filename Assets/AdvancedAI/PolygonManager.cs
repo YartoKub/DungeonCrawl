@@ -413,14 +413,9 @@ public class PolygonManager : MonoBehaviour
         CH2D_Chunk local_chunk = my_chunk;
         switch (target_chunk)
         {
-            case TargetDebugTestChunk.first_leveled:
-                local_chunk = leveled_one;
-                break;
-            case TargetDebugTestChunk.second_leveled:
-                local_chunk = leveled_two;
-                break;
-            default:
-                break;
+            case TargetDebugTestChunk. first_leveled: local_chunk = leveled_one; break;
+            case TargetDebugTestChunk.second_leveled: local_chunk = leveled_two; break;
+            default: break;
         }
 
         List<int> new_selection = local_chunk.PolygonPointIntersection(point);

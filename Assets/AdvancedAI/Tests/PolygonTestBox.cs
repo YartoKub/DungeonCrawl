@@ -17,6 +17,7 @@ public class PolygonTestBox : MonoBehaviour
         two_croissants_sharing_point,
         ingyang_multiedge,
         collinear_sectors,
+        rectangle_hourglass,
     }
 
     public static List<Poly2D> GetPolyList(PolygonTestCase testcase)
@@ -32,6 +33,7 @@ public class PolygonTestBox : MonoBehaviour
             case PolygonTestCase.two_croissants_sharing_point: return TwoCroissantsSharingSinglePoint();
             case PolygonTestCase.ingyang_multiedge: return SolidIngYangTouchingMultiedges();
             case PolygonTestCase.collinear_sectors: return CollinearSectors120and240();
+            case PolygonTestCase.rectangle_hourglass: return RectangleHourglass();
             default: return null;
         }
 
@@ -153,6 +155,15 @@ public class PolygonTestBox : MonoBehaviour
         for (int i = 0; i < slices; i++)
             polygons.Add(new Poly2D(points[i], points[(i + 1) % slices], Vector2.zero));
         
+        return polygons;
+    }
+
+    public static List<Poly2D> RectangleHourglass()
+    {
+        List<Poly2D> polygons = new();
+        polygons.Add(new Poly2D(new Vector2(-3, -3), new Vector2(0, -3), new Vector2(0, 3), new Vector2(-3, 3)));
+        polygons.Add(new Poly2D(new Vector2(-2, -2), new Vector2(2, -2), new Vector2(0, 0)));
+        polygons.Add(new Poly2D(new Vector2(-2, 2), new Vector2(0, 0), new Vector2(2, 2)));
         return polygons;
     }
 
@@ -501,7 +512,22 @@ public class DegeneratePolygonTestEditor : Editor
                 if (i % 2 == 0) PolygonTestBox.AddPolygon(polygons[i], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
             PolygonTestBox.AddPolygon(new Poly2D(new Vector2(0, 0), new Vector2(0, 5), new Vector2(-5, 5), new Vector2(-5, -5), new Vector2(0, -5)), PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
         }
-
+        if (GUILayout.Button("Rectangle Hourglass"))
+        {
+            List<Poly2D> polygons = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.rectangle_hourglass);
+            PolygonTestBox.AddPolygon(polygons[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(polygons[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(polygons[2], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+        }
+        if (GUILayout.Button("Rectangle Hourglass Inverted"))
+        {
+            List<Poly2D> polygons = PolygonTestBox.GetPolyList(PolygonTestBox.PolygonTestCase.rectangle_hourglass);
+            polygons[1].Orient(true);
+            polygons[2].Orient(true);
+            PolygonTestBox.AddPolygon(polygons[0], PolygonManager.TargetDebugTestChunk.first_leveled, CH2D_Chunk.PolygonAddMode.FillHoles);
+            PolygonTestBox.AddPolygon(polygons[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+            PolygonTestBox.AddPolygon(polygons[2], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
+        }
 
         base.OnInspectorGUI();
     }
