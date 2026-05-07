@@ -34,7 +34,7 @@ public static class GHPolygonMerge
         Inside, 
         Outside, 
         Out_Colin, // This edge faces different directions in two polygons
-        Inn_Colin, // This edge faces the same direction in both polygons
+        Inn_Colin, // This edge faces the same direction in both polygons. This edge is kept.
         Used}
     /* Поиск разностей начинается с любой внутренней или наружней точке 
      * Запоминается сторона начальной точки и начальное направление. На пересечении проверяется следующая точка полигона A и предыдущая точка полигона B. 

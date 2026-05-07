@@ -17,8 +17,6 @@ public static class LipomaPolygonClipping
     // Объединение было ошибкой. Я теряю информацию для определения принадлежности грани к внутреннему или наружнему списку.
     public static GraphDynamicList GetGraph(CH2D_Chunk A, CH2D_Chunk B, int draw_connection = -1)
     {
-        (List<(CH2D_P_Index A, CH2D_P_Index B)> shared_points, List<ReturnPoint> shared_segments) = GetPairIntersectionsSimpler(A, B);
-
         // Реализация графа которая кажется чуть более умной:
         // Более умный алгоритм:
         // (галочка) Найти все точки пересечения точно также как в прошлый раз, но занести их все в hashset или лучше словать (Ai, Bi) : List<Chunk+Poly+index>
@@ -41,10 +39,11 @@ public static class LipomaPolygonClipping
 
         // Ошибки:
         // (!) Есть баг из-за которого создаютс ядубликаты. Он исправляется проверкой if (A.vertices[shared_points[i].A] == B.vertices[shared_points[i].B]) что обе точки одинаковые.
-        // Устраняется при повторном использовании функции, когда полигоны не содержат незарегистрированных пересечений. 
+
+        (List<(CH2D_P_Index A, CH2D_P_Index B)> shared_points, List<ReturnPoint> shared_segments) = GetPairIntersectionsSimpler(A, B);
         List<PGPointIntwise> PGPoints = new();
         for (int i = 0; i < shared_points.Count; i++)
-            if (A.vertices[shared_points[i].A] == B.vertices[shared_points[i].B]) PGPoints.Add(new PGPointIntwise(shared_points[i].A, shared_points[i].B));
+            /*if (A.vertices[shared_points[i].A] == B.vertices[shared_points[i].B])*/ PGPoints.Add(new PGPointIntwise(shared_points[i].A, shared_points[i].B));
 
         PGPoints.Sort((a, b) => a.Aindex.CompareTo(b.Aindex));
         string n = "PGPoints " + PGPoints.Count + ": ";
@@ -76,9 +75,15 @@ public static class LipomaPolygonClipping
         Debug.Log("<color=orange> КОНЕЦ СПИСКА ТОЧЕК <color/>");
         if (draw_connection >= 0 && draw_connection < PGPoints.Count) DrawChaosStar(draw_connection, PGPoints, edges, A, B, true);
         // Когда все отсортировано, будет легко определить принадлежность каждой из эджей.
-        
-        ClassifyEdges(PGPoints[0], PGBelong.A);
-        ClassifyEdges(PGPoints[0], PGBelong.B);
+        for (int i = 0; i < PGPoints.Count; i++)
+        {
+            ClassifyEdges(PGPoints[i], PGBelong.A);
+            ClassifyEdges(PGPoints[i], PGBelong.B);
+        }
+
+        ChaosDraw(A, B, edges);
+
+
         return null;
     }
     //private static void DooDoo
@@ -121,7 +126,8 @@ public static class LipomaPolygonClipping
     // Классифицирует грани принадлежащие А относительно Б, или Б относительно А. Надо настройку правильную выбрать.
     // Вообще интересно, так как я доверяю входным данным, я могу гарантировать что каждый сектор имеет различное начало и конец. Поэтому проверять мне надо только предыдущую грань.
     // Но проверка предыдущей грани не даст мне получить информацию о коллинеарности граней, т.к. порядок коллинеарных граней случаен.
-    // Эта реализация очень простая и влобешная, уверен что поиск предыдущего и последующего элемента B относительно точки A можно реализовать за O(N) а не O(N*2)
+    // Эта реализация очень простая и влобешная, уверен что поиск предыдущего и последующего элемента занимает O(M) и потому результируемая сложность O(N*M) примерно. Вообще это O(N*N), но есть пропуски и потому должно быть лучше.
+    // Все равно это можно полуше реализовать, тут для каждого А перерасчитываются значения b и это тоже надо доработать.
     private static void ClassifyEdges(PGPointIntwise PGPoint, PGBelong belong)
     {
         if (!(belong == PGBelong.A | belong == PGBelong.B)) throw new System.Exception("Input PGBelong need to be either A or B");
@@ -132,16 +138,16 @@ public static class LipomaPolygonClipping
 
         for (int a = 0; a < cons.Count; a++)
         {
-            if (PGPoint.con_list[a].edge.belong != belong) { Debug.Log("Skip " + a + " " + PGPoint.con_list[a].edge.belong); continue; }
+            if (PGPoint.con_list[a].edge.belong != target) { /*Debug.Log("Skip " + a + " " + PGPoint.con_list[a].edge.belong);*/ continue; }
             // тут ищутся предыдущая и последующая B грани. Алгоритм такойЖ 
             int prev_b = -1; PGDirection prev_direction = PGDirection.None;
             int next_b = -1; PGDirection next_direction = PGDirection.None;
-            for (int b = 0; b < cons.Count; b++)
+            for (int b = 0; b < cons.Count; b++)    // Кажется можно откинуть next_direction, в функции AngleBelongToSector конец интервала не включителен, а потому совпадения со следующим сектором быть не может.
             {
             int b_index = (a + b) % cons.Count;
                 if (PGPoint.con_list[b_index].edge.belong != lookup) continue;
                 if (next_b == -1) { next_b = b_index; next_direction = cons[next_b].dir; prev_b = next_b; }
-                else
+                else // Это затратная хуйня с O(n*m) сложностью. 
                 {
                     if (cons[next_b].angle == cons[b_index].angle) { next_direction |= cons[b_index].dir; }
                     //if (next_b != -1)
@@ -151,12 +157,26 @@ public static class LipomaPolygonClipping
                 }
             }
             // Конец штуки
-            Debug.Log(prev_b + " " + a + " " + next_b);
-
+            //Debug.Log(prev_b + " " + a + " " + next_b);
             Debug.Log(cons[prev_b].angle + " " + cons[prev_b].dir + " comb:  " + prev_direction + " || " + cons[a].angle + " " + cons[a].dir + " || " + cons[next_b].angle + " " + cons[next_b].dir + " comb: " + next_direction);
-            //if (cons[prev_b].angle == )
+            GHPolygonMerge.EdgeSide edge_accessment = ClassifyEdge(cons[a].edge, cons[prev_b].angle, cons[a].angle, cons[next_b].angle,
+                cons[prev_b].dir, prev_direction, cons[a].dir, cons[next_b].dir, next_direction);
+            Debug.Log(edge_accessment);
+            if (cons[a].edge.side == GHPolygonMerge.EdgeSide.None) cons[a].edge.side = edge_accessment;
+            else if (cons[a].edge.side != edge_accessment) Debug.Log("<color=red><b>OH THE HORROR! Accessments from two opposite ends of the side did not match: </b></color> + " + cons[a].edge.side + " " + edge_accessment);
         }
     }
+
+    private static GHPolygonMerge.EdgeSide ClassifyEdge(PGEdge edge, float p_angle, float a_angle, float n_angle, PGDirection p_dir, PGDirection p_dir_combo, PGDirection a_dir, PGDirection n_dir, PGDirection n_dir_combo)
+    {
+        p_angle = p_angle == -Mathf.PI ? Mathf.PI : p_angle;    // очень некруто что приходится так делать
+        a_angle = a_angle == -Mathf.PI ? Mathf.PI : a_angle;
+        n_angle = n_angle == -Mathf.PI ? Mathf.PI : n_angle;
+        if (a_angle == p_angle) { if (a_dir == p_dir_combo) return GHPolygonMerge.EdgeSide.Inn_Colin; else return GHPolygonMerge.EdgeSide.Out_Colin; }
+        if (a_angle == n_angle) { if (a_dir == n_dir_combo) return GHPolygonMerge.EdgeSide.Inn_Colin; else return GHPolygonMerge.EdgeSide.Out_Colin; }
+        if (p_dir == PGDirection.Ingoing) return GHPolygonMerge.EdgeSide.Inside;
+        else                              return GHPolygonMerge.EdgeSide.Outside;
+    } 
 
     // К моему удивлению, все сегменты идут парочками из входящего и исходящего. Этого стоило ожидать, они созданы последовательно и потому тоже будут расположены последовательно.
     // Но сегменты разных полигонов все еще разрозненны, и порядок зависит от порядка полигонов внутри чанка. 
@@ -167,6 +187,7 @@ public static class LipomaPolygonClipping
         // Компилятор, я верю в тебя, ты смжешь оптимизировать всю эту хрень
         // Но штука работает. Грани сортируются, и вроде бы даже корректно.
         if (PGPoint.con_list.Count % 2 != 0) throw new System.Exception(" Количество элементов в списоке входящих и выходящих точек должено быть кратено двум. ");
+        if (PGPoint.con_list.Count == 4) { PGPoint.con_list.Sort((a, b) => a.angle.CompareTo(b.angle)); return; }
         List<(float angle1, float angle2, int original_i)> pairs_A = new();
         List<(float angle1, float angle2, int original_i)> pairs_B = new();
         for (int i = 0; i < PGPoint.con_list.Count / 2; i++)
@@ -192,12 +213,12 @@ public static class LipomaPolygonClipping
         for (int i = 0; i < linker_B.Count; i++) {
             b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i * 2].angle, pairs_B[i].original_i * 2));
             b_items.Add(new(PGPoint.con_list[pairs_B[i].original_i*2+1].angle, pairs_B[i].original_i*2+1)); }
-        //n = "A Sorted intervals: "; for (int i = 0; i < a_items.Count; i++) n += "\n" + a_items[i].ai + " " + (a_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
-        //n = "B Sorted intervals: "; for (int i = 0; i < b_items.Count; i++) n += "\n" + b_items[i].bi + " " + (b_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        n = "A Sorted intervals: "; for (int i = 0; i < a_items.Count; i++) n += "\n" + a_items[i].ai + " " + (a_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
+        n = "B Sorted intervals: "; for (int i = 0; i < b_items.Count; i++) n += "\n" + b_items[i].bi + " " + (b_items[i].angle * Mathf.Rad2Deg).ToString("0000.0000"); Debug.Log(n);
         List<(bool, int)> final_ordering = ArrayAndListToolbox.SortedSectorUnifier(a_items, b_items);
         //for (int i = 0; i < final_ordering.Count; i++) Debug.Log(final_ordering[i].Item1 + " " + final_ordering[i].Item2);
         List<(float, int)> vals = ArrayAndListToolbox.ConstructListFrom_ABindices(a_items, b_items, final_ordering);
-        //n = "Global Sorted intervals: "; for (int i = 0; i < vals.Count; i++) n += "\n" + PGPoint.con_list[vals[i].Item2]; Debug.Log(n);
+        n = "Global Sorted intervals: "; for (int i = 0; i < vals.Count; i++) n += "\n" + PGPoint.con_list[vals[i].Item2]; Debug.Log(n);
         PGPoint.con_list = vals.Select(v => PGPoint.con_list[v.Item2]).ToList();
         //n = "Unsorted pairs: "; for (int i = 0; i < PGPoint.con_list.Count; i++) n += "\n" + PGPoint.con_list[i]; Debug.Log(n);
     }
@@ -325,6 +346,28 @@ public static class LipomaPolygonClipping
         }
     }
 
+    private static void ChaosDraw(CH2D_Chunk A, CH2D_Chunk B, List<PGEdge> edges)
+    {
+        for (int i = 0; i < edges.Count; i++)
+        {
+            //Debug.Log(edges[i]);
+            CH2D_Chunk chunk = edges[i].belong == PGBelong.A ? A : B;
+            CH2D_Polygon poly = chunk.polygons[edges[i].poly_id];
+            List<Vector2> segment = poly.GetSegment(chunk, edges[i].segment_start, edges[i].segment_length + 2);
+            Color color = Color.black;
+            switch (edges[i].side)
+            {
+                case GHPolygonMerge.EdgeSide.Inside:    color = Color.red; break;
+                case GHPolygonMerge.EdgeSide.Inn_Colin: color = Color.pink; break;
+                case GHPolygonMerge.EdgeSide.Outside:   color = Color.green; break;
+                case GHPolygonMerge.EdgeSide.Out_Colin: color = Color.darkOliveGreen; break;
+            }
+            for (int s = 0; s < segment.Count - 1; s++)
+                DebugUtilities.DebugDrawLine(segment[s], segment[s + 1], color, 5f);
+            
+        }
+    }
+
 
 
     protected class PGPointIntwise
@@ -445,7 +488,9 @@ public static class LipomaPolygonClipping
             {
                 CH2D_Polygon bp = B.polygons[b];
                 if (!ap.BBox.Intersects(bp.BBox)) continue;
+                Debug.Log("vertice count before operation " + ap.vertices.Count + " " + bp.vertices.Count);
                 CH2D_Chunk.PolyPolyOnlineIntersectionOnesided(A, B, a, b);
+                Debug.Log("vertice count after operation " + ap.vertices.Count + " " + bp.vertices.Count);
             }
         }
 
@@ -465,6 +510,7 @@ public static class LipomaPolygonClipping
                 Debug.Log("vertice count after operation " + A.polygons[a].vertices.Count + " " + B.polygons[b].vertices.Count);
                 Debug.Log(a + DebugUtilities.DebugListString(point_pairsAB.ToArray()) + " " + b + " " + DebugUtilities.DebugListString(point_pairsBA.ToArray()));
                 //pairs.AddRange(point_pairsAB);
+                /*
                 for (int i = 0; i < point_pairsAB.Count; i++)
                 {
                     shared_point.Add((ap.vertices[point_pairsAB[i].A], bp.vertices[point_pairsAB[i].B]));
@@ -476,6 +522,33 @@ public static class LipomaPolygonClipping
                     shared_point.Add((ap.vertices[point_pairsBA[i].B], bp.vertices[point_pairsBA[i].A]));
                     shared_segments.Add(new ReturnPoint(PGBelong.A, a, point_pairsBA[i].B, ap.vertices[point_pairsBA[i].B]));
                     shared_segments.Add(new ReturnPoint(PGBelong.B, b, point_pairsBA[i].A, ap.vertices[point_pairsBA[i].B]));
+                }*/
+            }
+        }
+
+        for (int a = 0; a < A.polygons.Count; a++)
+        {
+            CH2D_Polygon ap = A.polygons[a];
+            for (int b = 0; b < B.polygons.Count; b++)
+            {
+                CH2D_Polygon bp = B.polygons[b];
+                if (!ap.BBox.Intersects(bp.BBox)) continue;
+                List<int> apoints = A.PointsInsideBoundsInt(ap.vertices, bp.BBox);
+                List<int> bpoints = B.PointsInsideBoundsInt(bp.vertices, ap.BBox);
+                for (int apoint = 0; apoint < apoints.Count; apoint++)
+                {
+                    int a_index = apoints[apoint];
+                    for (int bpoint = 0; bpoint < bpoints.Count; bpoint++)
+                    {
+                        int b_index = bpoints[bpoint];
+                        //Debug.Log(A.vertices[ap.vertices[a_index]] + " " + B.vertices[bp.vertices[b_index]] + " " + (A.vertices[ap.vertices[a_index]] == B.vertices[bp.vertices[b_index]]));
+                        if (A.vertices[ap.vertices[a_index]] == B.vertices[bp.vertices[b_index]])
+                        {
+                            shared_point.Add(new (ap.vertices[a_index], bp.vertices[b_index]));
+                            shared_segments.Add(new ReturnPoint(PGBelong.A, a, a_index, ap.vertices[a_index]));
+                            shared_segments.Add(new ReturnPoint(PGBelong.B, b, b_index, ap.vertices[a_index]));
+                        }
+                    }
                 }
             }
         }
@@ -488,6 +561,7 @@ public static class LipomaPolygonClipping
             DebugUtilities.DebugDrawCross(A.vertices[unique_points[i].A], Color.yellow, 1.0f);
             Debug.Log(unique_points[i].A + " " + unique_points[i].B);
         }
+
         //for (int i = 0; i < unique_segments.Count; i++) Debug.Log(unique_segments[i].belong + " " + unique_segments[i].polygon + " " + unique_segments[i].index);
 
         return (unique_points, unique_segments);

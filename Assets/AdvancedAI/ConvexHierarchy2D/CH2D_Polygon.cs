@@ -66,6 +66,13 @@ public class CH2D_Polygon : I_BBoxSupporter
         int e2 = (e1 + 1) % vertices.Count;
         return new CH2D_Edge(this.vertices[e1], this.vertices[e2], e);
     }
+    public List<Vector2> GetSegment(CH2D_Chunk my_chunk, int start, int length)
+    {   // Вообще вот так вот надо перетащить все функции из чанка в полигон чтобы код почище стал
+        List<Vector2> to_return = new(length);
+        for (int i = 0; i < length; i++)
+            to_return.Add(my_chunk.vertices[this.vertices[(start + i) % this.vertices.Count]]);
+        return to_return;
+    }
 
     public void RecalculateBBox(List<Vector2> o_vertices)
     {

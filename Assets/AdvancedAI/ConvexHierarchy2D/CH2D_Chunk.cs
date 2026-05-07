@@ -1156,11 +1156,18 @@ public class CH2D_Chunk
                 if (polyA[p_a[a]] == polyB[p_b[b]]) pairs.Add(new Pair(p_a[a], p_b[b], false));
         return pairs;
     }
-    private List<int> PointsInsideBoundsInt(List<CH2D_P_Index> polyA, LipomaBounds bounds)
+    public List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, LipomaBounds bounds)
+    {
+        List<CH2D_P_Index> toreturn = new();
+        for (int i = 0; i < polyA.Count; i++)
+            if (bounds.Contains(this.vertices[polyA[i]])) toreturn.Add(polyA[i]);
+        return toreturn;
+    }
+    public List<int> PointsInsideBoundsInt(List<CH2D_P_Index> polyA, LipomaBounds bounds)
     {
         return Poly2DToolbox.PointsInsideBounds(GetVertices(polyA), bounds);
     }
-    private List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
+    public List<CH2D_P_Index> PointsInsideBounds(List<CH2D_P_Index> polyA, Bounds bounds)
     {
        return polyA.FindAll(p => bounds.Contains(this.vertices[polyA[p]]));
     }
