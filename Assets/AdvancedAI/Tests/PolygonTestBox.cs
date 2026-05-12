@@ -528,7 +528,6 @@ public class DegeneratePolygonTestEditor : Editor
             PolygonTestBox.AddPolygon(polygons[1], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
             PolygonTestBox.AddPolygon(polygons[2], PolygonManager.TargetDebugTestChunk.second_leveled, CH2D_Chunk.PolygonAddMode.RawAdd);
         }
-
         base.OnInspectorGUI();
     }
 }

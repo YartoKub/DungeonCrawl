@@ -691,6 +691,50 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.254628, y: 1.5885888, z: 5.80689}
   m_Center: {x: 0.12731397, y: 0.29429442, z: 0.8808596}
+--- !u!1 &651016467
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 651016469}
+  - component: {fileID: 651016468}
+  m_Layer: 0
+  m_Name: Clipper2Test
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &651016468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 651016467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79cb6ee092291794eb068d543e618377, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Clipper2Monobehaviour
+--- !u!4 &651016469
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 651016467}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 5.45747, y: -0.17255, z: 7.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &662903946
 GameObject:
   m_ObjectHideFlags: 0
@@ -2222,126 +2266,13 @@ MonoBehaviour:
     regular_chunks: []
     complex_chunks: []
   leveled_one:
-    polygons:
-    - vertices:
-      - i: 0
-      - i: 1
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: 0, y: 0}
-        max: {x: 2, y: 0.8134733}
-    - vertices:
-      - i: 3
-      - i: 4
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: 0, y: 0}
-        max: {x: 1.3382611, y: 1.9021131}
-    - vertices:
-      - i: 5
-      - i: 6
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -1.0000001, y: 0}
-        max: {x: 0, y: 1.9890438}
-    - vertices:
-      - i: 7
-      - i: 8
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -1.9562953, y: 0}
-        max: {x: 0, y: 1.1755704}
-    - vertices:
-      - i: 9
-      - i: 10
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -1.9562951, y: -1.1755707}
-        max: {x: 0, y: 0}
-    - vertices:
-      - i: 11
-      - i: 12
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -0.9999998, y: -1.9890438}
-        max: {x: 0, y: 0}
-    - vertices:
-      - i: 13
-      - i: 14
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: 0, y: -1.902113}
-        max: {x: 1.3382615, y: 0}
-    - vertices:
-      - i: 15
-      - i: 0
-      - i: 2
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: 0, y: -0.813473}
-        max: {x: 2, y: 0}
-    vertices:
-    - {x: 2, y: 0}
-    - {x: 1.8270909, y: 0.8134733}
-    - {x: 0, y: 0}
-    - {x: 1.3382611, y: 1.4862897}
-    - {x: 0.61803395, y: 1.9021131}
-    - {x: -0.20905702, y: 1.9890438}
-    - {x: -1.0000001, y: 1.7320508}
-    - {x: -1.6180341, y: 1.1755704}
-    - {x: -1.9562953, y: 0.41582322}
-    - {x: -1.9562951, y: -0.41582358}
-    - {x: -1.6180339, y: -1.1755707}
-    - {x: -0.9999998, y: -1.7320509}
-    - {x: -0.20905668, y: -1.9890438}
-    - {x: 0.61803424, y: -1.902113}
-    - {x: 1.3382615, y: -1.4862895}
-    - {x: 1.8270911, y: -0.813473}
+    polygons: []
+    vertices: []
     ConvexHull: []
     global_position: {x: 0, y: 0}
   leveled_two:
-    polygons:
-    - vertices:
-      - i: 0
-      - i: 1
-      - i: 2
-      - i: 3
-      - i: 4
-      isHole: 0
-      convex: 0
-      initialized: 1
-      BBox:
-        min: {x: -5, y: -5}
-        max: {x: 0, y: 5}
-    vertices:
-    - {x: 0, y: 0}
-    - {x: 0, y: 5}
-    - {x: -5, y: 5}
-    - {x: -5, y: -5}
-    - {x: 0, y: -5}
+    polygons: []
+    vertices: []
     ConvexHull: []
     global_position: {x: 0, y: 0}
   level1_offset: {x: 0, y: 0}
@@ -2349,7 +2280,7 @@ MonoBehaviour:
   selected1: -1
   selected2: -1
   selectionColorScheme: 1
-  SelectedChunkAction: 0
+  SelectedChunkAction: 9
   Union: 0
   Inter: 0
   Aonly: 0
@@ -3678,3 +3609,4 @@ SceneRoots:
   - {fileID: 1764971959}
   - {fileID: 1876186780}
   - {fileID: 1822449377}
+  - {fileID: 651016469}

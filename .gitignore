@@ -96,4 +96,7 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
+# This folder stores code that does not belong to me
+# So there will be libraries that i will use to compare my thing to
+*NotMyCode 
 

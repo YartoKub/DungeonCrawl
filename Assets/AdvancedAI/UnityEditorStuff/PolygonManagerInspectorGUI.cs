@@ -53,6 +53,7 @@ public class PointManagerInspectorGUI: AbstractManagerEditor<PolygonManager>
             if (stateMachine != null) stateMachine.EndStateMachine(manager);
             ChangeState(current_action_index, manager);
         }
+
         EditorGUILayout.LabelField("Purging");
         if (GUILayout.Button("purge polygons")) manager.PurgePolygons();
         if (GUILayout.Button("Purge Chunk")) manager.PurgeChunk();
